@@ -1,15 +1,22 @@
-import { Component, createSignal } from 'solid-js';
+import { Component, createSignal, createResource, Show } from 'solid-js';
 import { useNavigate, useParams } from '@solidjs/router';
-import { createTrip, updateTrip, getTrip } from '../api';
+import { createTrip, updateTrip, getTrip, getSBMRates, type SBMRate } from '../api';
 import { ArrowLeftIcon } from '../components/Icons';
+import CreatableSelect from '../components/CreatableSelect';
+
+const formatRp = (n: number) =>
+  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n);
 
 const TripForm: Component = () => {
   const params = useParams();
   const navigate = useNavigate();
   const isEdit = !!params.id;
 
+  const [sbmRates] = createResource(getSBMRates);
+
   const [nama, setNama] = createSignal('');
   const [tujuan, setTujuan] = createSignal('');
+  const [selectedRate, setSelectedRate] = createSignal<SBMRate | undefined>();
   const [mulai, setMulai] = createSignal('');
   const [selesai, setSelesai] = createSignal('');
   const [uangDinas, setUangDinas] = createSignal('');
@@ -37,6 +44,36 @@ const TripForm: Component = () => {
       if (t.settlement_note) setSettlementNote(t.settlement_note);
     });
   }
+
+  const tripDays = () => {
+    if (!mulai() || !selesai()) return 0;
+    const m = new Date(mulai()).getTime();
+    const s = new Date(selesai()).getTime();
+    if (isNaN(m) || isNaN(s) || s < m) return 0;
+    return Math.round((s - m) / (1000 * 60 * 60 * 24)) + 1;
+  };
+
+  const matchedRate = () => {
+    if (selectedRate()) return selectedRate();
+    const dest = tujuan().toLowerCase();
+    if (!dest) return undefined;
+    return sbmRates()?.find(
+      (r) =>
+        dest.includes(r.provinsi.toLowerCase()) ||
+        (r.ibukota && dest.includes(r.ibukota.toLowerCase()))
+    );
+  };
+
+  const estimatedSBM = () => {
+    const r = matchedRate();
+    const days = tripDays();
+    if (!r || days <= 0) return null;
+    return {
+      rate: r,
+      days,
+      total: r.uang_harian * days,
+    };
+  };
 
   const handleSubmit = async (e: Event) => {
     e.preventDefault();
@@ -107,13 +144,15 @@ const TripForm: Component = () => {
             </div>
 
             <div class="form-group">
-              <label for="tujuan">Kota Tujuan</label>
-              <input
-                id="tujuan"
-                class="form-control"
+              <label for="tujuan">Kota / Wilayah Tujuan</label>
+              <CreatableSelect
                 value={tujuan()}
-                onInput={(e) => setTujuan(e.currentTarget.value)}
-                placeholder="Contoh: Yogyakarta"
+                options={sbmRates() || []}
+                placeholder="Pilih atau cari kota / provinsi..."
+                onChange={(val, rate) => {
+                  setTujuan(val);
+                  setSelectedRate(rate);
+                }}
                 required
               />
             </div>
@@ -141,6 +180,43 @@ const TripForm: Component = () => {
                 required
               />
             </div>
+
+            {/* SBM Auto-Estimation Chip/Banner */}
+            <Show when={estimatedSBM()}>
+              {(est) => (
+                <div
+                  style={{
+                    background: 'rgba(52, 211, 153, 0.08)',
+                    border: '1px solid rgba(52, 211, 153, 0.25)',
+                    'border-radius': '12px',
+                    padding: '0.75rem 1rem',
+                    'margin-bottom': '1rem',
+                    display: 'flex',
+                    'justify-content': 'space-between',
+                    'align-items': 'center',
+                    gap: '0.75rem',
+                  }}
+                >
+                  <div>
+                    <div style="font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; color: var(--emerald); letter-spacing: 0.05em;">
+                      Estimasi SBM ({est().rate.provinsi})
+                    </div>
+                    <div style="font-size: 0.8125rem; color: var(--text-secondary); margin-top: 0.125rem;">
+                      {est().days} hari × {formatRp(est().rate.uang_harian)} ={' '}
+                      <strong class="amount text-emerald">{formatRp(est().total)}</strong>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    class="btn btn-sm"
+                    style="background: var(--emerald); color: #000; font-size: 0.75rem; font-weight: 700; padding: 0.375rem 0.75rem;"
+                    onClick={() => setNominalMonita(String(est().total))}
+                  >
+                    Gunakan
+                  </button>
+                </div>
+              )}
+            </Show>
 
             {isEdit && (
               <div class="form-group">
