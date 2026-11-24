@@ -54,6 +54,16 @@ func main() {
 	mux.Handle("GET /api/categories", authMW(http.HandlerFunc(handler.ListCategories(database))))
 	mux.Handle("GET /api/payment-methods", authMW(http.HandlerFunc(handler.ListPaymentMethods(database))))
 
+	// Trips
+	mux.Handle("GET /api/trips", authMW(http.HandlerFunc(handler.ListTrips(database))))
+	mux.Handle("POST /api/trips", authMW(http.HandlerFunc(handler.CreateTrip(database))))
+	mux.Handle("GET /api/trips/{id}", authMW(http.HandlerFunc(handler.GetTrip(database))))
+	mux.Handle("PUT /api/trips/{id}", authMW(http.HandlerFunc(handler.UpdateTrip(database))))
+	mux.Handle("DELETE /api/trips/{id}", authMW(http.HandlerFunc(handler.DeleteTrip(database))))
+
+	// Dashboard
+	mux.Handle("GET /api/dashboard", authMW(http.HandlerFunc(handler.GetDashboard(database))))
+
 	log.Printf("server starting on :%s", cfg.Port)
 	if err := http.ListenAndServe(":"+cfg.Port, mux); err != nil {
 		log.Fatalf("server: %v", err)
