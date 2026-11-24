@@ -1,25 +1,17 @@
 services:
-  db:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${DB_USER:-perjadin}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-perjadin}
-      POSTGRES_DB: ${DB_NAME:-perjadin}
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-
   app:
-    build: .
-    restart: unless-stopped
-    depends_on:
-      - db
+    container_name: perjadin-personal-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "${APP_PORT:-8010}:8080"
     env_file:
       - .env
-    ports:
-      - "8080:8080"
+    restart: unless-stopped
+    networks:
+      - reusable-network
 
-volumes:
-  pgdata:
+networks:
+  reusable-network:
+    external: true
