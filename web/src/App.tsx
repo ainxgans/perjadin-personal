@@ -7,7 +7,9 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import TripDetail from './pages/TripDetail';
 import TripForm from './pages/TripForm';
-import Admin from './pages/Admin';
+import AdminHub from './pages/admin/AdminHub';
+import AdminUsers from './pages/admin/AdminUsers';
+import AdminMaster from './pages/admin/AdminMaster';
 
 const [user, setUser] = createSignal<User | null>(null);
 const [loading, setLoading] = createSignal(true);
@@ -24,6 +26,28 @@ const Protected: Component<{ children: any }> = (props) => {
   return (
     <Show when={!loading()} fallback={<div class="page"><p>Memuat...</p></div>}>
       <Show when={user()}>
+        {props.children}
+      </Show>
+    </Show>
+  );
+};
+
+const AdminProtected: Component<{ children: any }> = (props) => {
+  const navigate = useNavigate();
+
+  createEffect(() => {
+    if (!loading()) {
+      if (!user()) {
+        navigate('/login', { replace: true });
+      } else if (user()?.role !== 'admin') {
+        navigate('/', { replace: true });
+      }
+    }
+  });
+
+  return (
+    <Show when={!loading()} fallback={<div class="page"><p>Memuat...</p></div>}>
+      <Show when={user() && user()?.role === 'admin'}>
         {props.children}
       </Show>
     </Show>
@@ -66,7 +90,9 @@ const App: Component = () => {
       <Route path="/trips/new" component={() => <Protected><TripForm /></Protected>} />
       <Route path="/trips/:id" component={() => <Protected><TripDetail /></Protected>} />
       <Route path="/trips/:id/edit" component={() => <Protected><TripForm /></Protected>} />
-      <Route path="/admin" component={() => <Protected><Admin /></Protected>} />
+      <Route path="/admin" component={() => <AdminProtected><AdminHub /></AdminProtected>} />
+      <Route path="/admin/users" component={() => <AdminProtected><AdminUsers /></AdminProtected>} />
+      <Route path="/admin/master" component={() => <AdminProtected><AdminMaster /></AdminProtected>} />
     </Router>
   );
 };
