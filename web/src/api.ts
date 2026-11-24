@@ -21,6 +21,9 @@ export interface Trip {
   settlement_note: string;
   total_pengeluaran: number;
   saldo: number;
+  is_owner?: boolean;
+  owner_name?: string;
+  collaborators_count?: number;
   created_at: string;
   updated_at: string;
 }
@@ -28,6 +31,10 @@ export interface Trip {
 export interface Expense {
   id: string;
   trip_id: string;
+  user_id?: string;
+  user_name?: string;
+  user_avatar?: string;
+  can_edit?: boolean;
   category_id: string;
   category_nama: string;
   payment_method_id: string;
@@ -36,6 +43,34 @@ export interface Expense {
   jumlah: number;
   tanggal: string;
   created_at: string;
+}
+
+export interface SBMRate {
+  id: string;
+  provinsi: string;
+  ibukota: string;
+  uang_harian: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TripMember {
+  id: string;
+  trip_id: string;
+  user_id: string;
+  role: string;
+  name: string;
+  email: string;
+  avatar_url: string;
+  created_at: string;
+}
+
+export interface UserSearchItem {
+  id: string;
+  email: string;
+  name: string;
+  avatar_url: string;
+  role: string;
 }
 
 export interface Category {
@@ -89,6 +124,10 @@ export interface AnalyticsData {
   total_expenses_rp: number;
   total_uang_dinas_rp: number;
   average_expense_trip: number;
+  total_days: number;
+  daily_burn_rate: number;
+  personal_share_pct: number;
+  budget_realization_pct: number;
   categories: CategorySpending[];
   payment_methods: PaymentMethodSpending[];
 }
@@ -135,6 +174,18 @@ export const deleteExpense = (id: string) => apiFetch<void>(`/api/expenses/${id}
 // Master data
 export const getCategories = () => apiFetch<Category[]>('/api/categories');
 export const getPaymentMethods = () => apiFetch<PaymentMethod[]>('/api/payment-methods');
+export const getSBMRates = (q?: string) => apiFetch<SBMRate[]>(q ? `/api/sbm?q=${encodeURIComponent(q)}` : '/api/sbm');
+export const createSBMRate = (data: Partial<SBMRate>) => apiFetch<SBMRate>('/api/admin/sbm', { method: 'POST', body: JSON.stringify(data) });
+export const updateSBMRate = (id: string, data: Partial<SBMRate>) => apiFetch<SBMRate>(`/api/admin/sbm/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+export const deleteSBMRate = (id: string) => apiFetch<void>(`/api/admin/sbm/${id}`, { method: 'DELETE' });
+
+// Users search
+export const searchUsers = (q?: string) => apiFetch<UserSearchItem[]>(q ? `/api/users?q=${encodeURIComponent(q)}` : '/api/users');
+
+// Trip Collaborators
+export const getTripMembers = (tripId: string) => apiFetch<TripMember[]>(`/api/trips/${tripId}/members`);
+export const addTripMember = (tripId: string, data: { user_id?: string; email?: string }) => apiFetch<TripMember>(`/api/trips/${tripId}/members`, { method: 'POST', body: JSON.stringify(data) });
+export const removeTripMember = (tripId: string, userId: string) => apiFetch<void>(`/api/trips/${tripId}/members/${userId}`, { method: 'DELETE' });
 
 // Admin
 export const getAdminUsers = () => apiFetch<AdminUser[]>('/api/admin/users');
