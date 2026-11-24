@@ -7,6 +7,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import TripDetail from './pages/TripDetail';
 import TripForm from './pages/TripForm';
+import Analytics from './pages/Analytics';
 import AdminHub from './pages/admin/AdminHub';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminMaster from './pages/admin/AdminMaster';
@@ -87,6 +88,7 @@ const App: Component = () => {
     <Router root={Layout}>
       <Route path="/login" component={Login} />
       <Route path="/" component={() => <Protected><Dashboard /></Protected>} />
+      <Route path="/analytics" component={() => <Protected><Analytics /></Protected>} />
       <Route path="/trips/new" component={() => <Protected><TripForm /></Protected>} />
       <Route path="/trips/:id" component={() => <Protected><TripDetail /></Protected>} />
       <Route path="/trips/:id/edit" component={() => <Protected><TripForm /></Protected>} />
