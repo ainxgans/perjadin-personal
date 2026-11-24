@@ -3,13 +3,14 @@ import { useParams, useNavigate, A } from '@solidjs/router';
 import { getTrip, getExpenses, deleteTrip, deleteExpense, type Expense } from '../api';
 import StatusBadge from '../components/StatusBadge';
 import ExpenseForm from '../components/ExpenseForm';
+import { ArrowLeftIcon, EditIcon, TrashIcon, PlusIcon, ReceiptIcon, CalendarIcon, MapPinIcon } from '../components/Icons';
 
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n);
 
 const getPaymentBadgeClass = (method: string) => {
   const m = (method || '').toLowerCase();
-  if (m.includes('pribadi')) return 'badge badge-purple';
+  if (m.includes('pribadi')) return 'badge badge-gray';
   if (m.includes('koperasi')) return 'badge badge-green';
   if (m.includes('talangan')) return 'badge badge-orange';
   return 'badge badge-gray';
@@ -63,43 +64,63 @@ const TripDetail: Component = () => {
 
   return (
     <div class="page">
+      <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem;">
+        <A href="/" class="btn-icon-subtle" aria-label="Kembali ke Dashboard">
+          <ArrowLeftIcon size={16} />
+        </A>
+        <span style="font-size: 0.8125rem; font-weight: 600; color: var(--text-secondary);">
+          Detail Perjalanan
+        </span>
+      </div>
+
       <Show when={trip()} fallback={<p style="text-align: center; padding: 2rem 0; color: var(--text-muted);">Memuat...</p>}>
         {(t) => (
           <>
-            {/* Doppelrand Hero Header */}
+            {/* Hero Header */}
             <div class="detail-hero-doppel">
-              <div class="detail-hero-inner">
-                <div class="detail-hero-top">
-                  <div>
-                    <div class="detail-hero-title">{t().nama}</div>
-                    <div class="detail-hero-subtitle">
-                      {t().tujuan} · {t().tanggal_mulai} — {t().tanggal_selesai}
-                    </div>
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem;">
+                <div>
+                  <div class="detail-hero-title">{t().nama}</div>
+                  <div class="detail-hero-subtitle" style="display: flex; align-items: center; gap: 0.375rem;">
+                    <MapPinIcon size={13} style="color: var(--text-muted);" />
+                    <span>{t().tujuan}</span>
+                    <span style="margin: 0 0.125rem;">·</span>
+                    <CalendarIcon size={13} style="color: var(--text-muted);" />
+                    <span>{t().tanggal_mulai} — {t().tanggal_selesai}</span>
                   </div>
-                  <StatusBadge status={t().status} />
                 </div>
+                <StatusBadge status={t().status} />
+              </div>
 
-                <div class="detail-hero-stats">
-                  <div>
-                    <div class="detail-hero-stat-label">Uang Dinas</div>
-                    <div class="detail-hero-stat-val amount">{t().uang_dinas != null ? formatRp(t().uang_dinas!) : '-'}</div>
-                  </div>
-                  <div>
-                    <div class="detail-hero-stat-label">Pengeluaran</div>
-                    <div class="detail-hero-stat-val amount">{formatRp(t().total_pengeluaran)}</div>
-                  </div>
-                  <div>
-                    <div class="detail-hero-stat-label">Saldo</div>
-                    <div class={'detail-hero-stat-val amount ' + (t().saldo >= 0 ? 'text-emerald' : 'text-rose')}>
-                      {formatRp(t().saldo)}
-                    </div>
+              <div class="detail-hero-stats">
+                <div>
+                  <div class="detail-hero-stat-label">Uang Dinas</div>
+                  <div class="detail-hero-stat-val amount">{t().uang_dinas != null ? formatRp(t().uang_dinas!) : '-'}</div>
+                </div>
+                <div>
+                  <div class="detail-hero-stat-label">Pengeluaran</div>
+                  <div class="detail-hero-stat-val amount">{formatRp(t().total_pengeluaran)}</div>
+                </div>
+                <div>
+                  <div class="detail-hero-stat-label">Saldo</div>
+                  <div class={'detail-hero-stat-val amount ' + (t().saldo >= 0 ? 'text-emerald' : 'text-rose')}>
+                    {formatRp(t().saldo)}
                   </div>
                 </div>
+              </div>
 
-                <div class="detail-hero-actions">
-                  <A href={'/trips/' + params.id + '/edit'} class="btn btn-sm btn-secondary">Edit</A>
-                  <button type="button" class="btn btn-sm btn-outline" style="color: var(--rose); border-color: rgba(244,63,94,0.3)" onClick={handleDeleteTrip}>Hapus</button>
-                </div>
+              <div class="detail-hero-actions">
+                <A href={'/trips/' + params.id + '/edit'} class="btn btn-sm btn-secondary">
+                  <EditIcon size={14} /> Edit
+                </A>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline"
+                  style="color: var(--rose);"
+                  onClick={handleDeleteTrip}
+                >
+                  <TrashIcon size={14} /> Hapus
+                </button>
               </div>
             </div>
 
@@ -111,7 +132,7 @@ const TripDetail: Component = () => {
                 class="btn btn-sm btn-primary"
                 onClick={() => { setEditingExpense(null); setShowForm(true); }}
               >
-                + Tambah
+                <PlusIcon size={14} /> Tambah
               </button>
             </div>
 
@@ -121,15 +142,17 @@ const TripDetail: Component = () => {
                 when={expenses()!.length > 0}
                 fallback={
                   <div class="empty-state">
-                    <div class="empty-state-icon">🧾</div>
-                    <h3>Belum ada pengeluaran</h3>
-                    <p>Catat pengeluaran perjalanan dinas Anda sekarang.</p>
+                    <div class="empty-state-icon">
+                      <ReceiptIcon size={22} />
+                    </div>
+                    <h3 style="font-size: 0.9375rem; margin-bottom: 0.25rem;">Belum ada pengeluaran</h3>
+                    <p style="font-size: 0.8125rem; margin-bottom: 1.25rem;">Catat pengeluaran perjalanan dinas sekarang.</p>
                     <button
                       type="button"
                       class="btn btn-primary btn-sm"
                       onClick={() => { setEditingExpense(null); setShowForm(true); }}
                     >
-                      + Tambah Pengeluaran
+                      <PlusIcon size={14} /> Tambah Pengeluaran
                     </button>
                   </div>
                 }
@@ -145,7 +168,7 @@ const TripDetail: Component = () => {
                         <For each={exps}>
                           {(exp) => (
                             <div class="expense-row-item">
-                              <div class="expense-row-info">
+                              <div style="flex: 1; min-width: 0;">
                                 <div class="expense-row-desc">{exp.deskripsi || '-'}</div>
                                 <div class="expense-row-meta">
                                   <span>{exp.tanggal}</span>
@@ -164,16 +187,17 @@ const TripDetail: Component = () => {
                                   title="Edit"
                                   aria-label="Edit pengeluaran"
                                 >
-                                  ✏️
+                                  <EditIcon size={14} />
                                 </button>
                                 <button
                                   type="button"
                                   class="btn-icon-subtle"
+                                  style="color: var(--rose);"
                                   onClick={() => handleDeleteExpense(exp.id)}
                                   title="Hapus"
                                   aria-label="Hapus pengeluaran"
                                 >
-                                  🗑️
+                                  <TrashIcon size={14} />
                                 </button>
                               </div>
                             </div>
@@ -189,7 +213,7 @@ const TripDetail: Component = () => {
         )}
       </Show>
 
-      {/* Modal Bottom Sheet */}
+      {/* Modal Expense Form */}
       <Show when={showForm()}>
         <ExpenseForm
           tripId={params.id!}

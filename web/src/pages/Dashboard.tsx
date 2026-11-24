@@ -2,6 +2,7 @@ import { Component, createSignal, createResource, For, Show } from 'solid-js';
 import { A } from '@solidjs/router';
 import { getDashboard, getTrips, type Trip } from '../api';
 import StatusBadge from '../components/StatusBadge';
+import { SearchIcon, MapPinIcon, CalendarIcon, PlusIcon, PlaneIcon } from '../components/Icons';
 
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n);
@@ -49,7 +50,7 @@ const Dashboard: Component = () => {
   };
 
   const getBurnDownColor = (trip: Trip) => {
-    if (!trip.uang_dinas) return 'var(--indigo)';
+    if (!trip.uang_dinas) return 'var(--sky)';
     const ratio = trip.total_pengeluaran / trip.uang_dinas;
     if (ratio > 1) return 'var(--rose)';
     if (ratio > 0.8) return 'var(--amber)';
@@ -58,22 +59,20 @@ const Dashboard: Component = () => {
 
   return (
     <div class="page">
-      {/* Top balance overview */}
+      {/* Top Financial Overview */}
       <Show when={dashboard()}>
         <div class="ledger-hero">
-          <div class="ledger-hero-inner">
-            <div class="ledger-hero-badge">
-              <span class="beacon-dot" style="background:#10b981;box-shadow:0 0 8px #10b981;"></span> OVERVIEW KEUANGAN
+          <div class="ledger-hero-badge">
+            Ringkasan Keuangan
+          </div>
+          <div class="ledger-stat-row">
+            <div class="ledger-stat-box">
+              <span class="label">Belum Lunas</span>
+              <span class="val text-amber amount">{formatRp(dashboard()!.belum_lunas)}</span>
             </div>
-            <div class="ledger-stat-row">
-              <div class="ledger-stat-box">
-                <span class="label">Belum Lunas</span>
-                <span class="val text-amber amount">{formatRp(dashboard()!.belum_lunas)}</span>
-              </div>
-              <div class="ledger-stat-box" style="text-align: right">
-                <span class="label">Pemasukan Bulan Lalu</span>
-                <span class="val text-emerald amount">{formatRp(dashboard()!.pemasukan_bulan_lalu)}</span>
-              </div>
+            <div class="ledger-stat-box" style="text-align: right">
+              <span class="label">Pemasukan Bulan Lalu</span>
+              <span class="val text-emerald amount">{formatRp(dashboard()!.pemasukan_bulan_lalu)}</span>
             </div>
           </div>
         </div>
@@ -82,7 +81,9 @@ const Dashboard: Component = () => {
       {/* Search & Status Filters */}
       <div class="search-filter-box">
         <div class="search-input-wrap">
-          <span class="search-input-icon">🔍</span>
+          <span class="search-input-icon">
+            <SearchIcon size={16} />
+          </span>
           <input
             class="form-control"
             placeholder="Cari perjalanan atau kota tujuan..."
@@ -126,28 +127,32 @@ const Dashboard: Component = () => {
       {/* Heading */}
       <div class="section-heading">
         <h2>Daftar Perjalanan</h2>
-        <span style="font-size: 0.75rem; color: var(--text-subtle);">
+        <span style="font-size: 0.75rem; color: var(--text-muted);">
           {filteredTrips().length} ditemukan
         </span>
       </div>
 
-      {/* Boarding pass / ticket list & empty state */}
+      {/* Trip List & Empty State */}
       <Show when={trips()} fallback={<p style="text-align: center; color: var(--text-muted); padding: 2rem 0;">Memuat...</p>}>
         <Show
           when={filteredTrips().length > 0}
           fallback={
             <div class="empty-state">
-              <div class="empty-state-icon">✈️</div>
-              <h3 style="color: #fff; font-size: 1rem; margin-bottom: 0.25rem;">
+              <div class="empty-state-icon">
+                <PlaneIcon size={22} />
+              </div>
+              <h3 style="font-size: 0.9375rem; margin-bottom: 0.25rem;">
                 {searchQuery() || statusFilter() !== 'all' ? 'Tidak ada hasil yang cocok' : 'Belum ada perjalanan'}
               </h3>
               <p style="font-size: 0.8125rem; margin-bottom: 1.25rem;">
                 {searchQuery() || statusFilter() !== 'all'
-                  ? 'Coba ganti kata kunci atau pilih filter status lain.'
+                  ? 'Coba ubah kata kunci atau filter status.'
                   : 'Mulai catat perjalanan dinas dan pengeluaran kamu.'}
               </p>
               <Show when={!searchQuery() && statusFilter() === 'all'}>
-                <A href="/trips/new" class="btn btn-primary btn-sm">+ Buat Perjalanan</A>
+                <A href="/trips/new" class="btn btn-primary btn-sm">
+                  <PlusIcon size={14} /> Buat Perjalanan
+                </A>
               </Show>
             </div>
           }
@@ -167,14 +172,17 @@ const Dashboard: Component = () => {
                       </div>
 
                       <div class="ticket-route">
-                        <span class="ticket-route-badge">ROUTE</span>
-                        <span>📍 {trip.tujuan} · {formatDates(trip.tanggal_mulai, trip.tanggal_selesai)}</span>
+                        <MapPinIcon size={14} style="color: var(--text-muted); flex-shrink: 0;" />
+                        <span>{trip.tujuan}</span>
+                        <span style="color: var(--border-hover); margin: 0 0.125rem;">·</span>
+                        <CalendarIcon size={13} style="color: var(--text-muted); flex-shrink: 0;" />
+                        <span>{formatDates(trip.tanggal_mulai, trip.tanggal_selesai)}</span>
                       </div>
 
-                      {/* Burn-down mini bar if budget exists */}
+                      {/* Burn-down bar */}
                       <Show when={burnPercent() !== null}>
                         <div style="margin: 0.25rem 0 0.5rem 0;">
-                          <div style="display: flex; justify-content: space-between; font-size: 0.6875rem; color: var(--text-subtle);">
+                          <div style="display: flex; justify-content: space-between; font-size: 0.6875rem; color: var(--text-muted);">
                             <span>Pemakaian Anggaran</span>
                             <span class="amount">{burnPercent()}%</span>
                           </div>
@@ -190,19 +198,13 @@ const Dashboard: Component = () => {
                         </div>
                       </Show>
 
-                      <div class="ticket-perforation">
-                        <div class="ticket-notch-left"></div>
-                        <div class="ticket-perforation-line"></div>
-                        <div class="ticket-notch-right"></div>
-                      </div>
-
                       <div class="ticket-footer">
                         <div class="ticket-metric">
-                          <span class="ticket-metric-label">PENGELUARAN</span>
+                          <span class="ticket-metric-label">Pengeluaran</span>
                           <span class="ticket-metric-val amount">{formatRp(trip.total_pengeluaran)}</span>
                         </div>
                         <div class="ticket-metric" style="text-align: right">
-                          <span class="ticket-metric-label">SALDO</span>
+                          <span class="ticket-metric-label">Saldo</span>
                           <span class={'ticket-metric-val amount ' + (trip.saldo >= 0 ? 'text-emerald' : 'text-rose')}>
                             {formatRp(trip.saldo)}
                           </span>
@@ -218,7 +220,9 @@ const Dashboard: Component = () => {
       </Show>
 
       {/* FAB */}
-      <A href="/trips/new" class="fab" aria-label="Tambah Perjalanan">+</A>
+      <A href="/trips/new" class="fab" aria-label="Tambah Perjalanan">
+        <PlusIcon size={20} strokeWidth={2.25} />
+      </A>
     </div>
   );
 };

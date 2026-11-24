@@ -1,11 +1,14 @@
 import { Component } from 'solid-js';
+import { PlaneIcon } from '../components/Icons';
 
 const Login: Component = () => {
   return (
     <div class="login-hero">
       <div class="login-card-doppel">
         <div class="login-card-inner">
-          <div class="login-icon-box">✈</div>
+          <div class="login-icon-box">
+            <PlaneIcon size={24} strokeWidth={2} />
+          </div>
           <h1 class="login-title">Perjadin</h1>
           <p class="login-subtitle">Pusat Keuangan Perjalanan Dinas</p>
           <a href="/auth/google" class="btn btn-google">

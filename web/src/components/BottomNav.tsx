@@ -1,6 +1,7 @@
 import { Component, Show } from 'solid-js';
 import { A, useLocation } from '@solidjs/router';
 import type { User } from '../api';
+import { PlaneIcon, BarChartIcon, SettingsIcon } from './Icons';
 
 const BottomNav: Component<{ user: User | null }> = (props) => {
   const location = useLocation();
@@ -15,19 +16,25 @@ const BottomNav: Component<{ user: User | null }> = (props) => {
       <div class="bottom-dock-wrapper">
         <nav class="bottom-dock" aria-label="Navigasi Utama">
           <A href="/" class={`dock-item ${isActive('/') ? 'active' : ''}`}>
-            <span class="dock-icon">🛫</span>
-            <span class="dock-label">Perjalanan</span>
+            <span class="dock-icon">
+              <PlaneIcon size={18} strokeWidth={isActive('/') ? 2 : 1.75} />
+            </span>
+            <span>Perjalanan</span>
           </A>
 
           <A href="/analytics" class={`dock-item ${isActive('/analytics') ? 'active' : ''}`}>
-            <span class="dock-icon">📊</span>
-            <span class="dock-label">Analitik</span>
+            <span class="dock-icon">
+              <BarChartIcon size={18} strokeWidth={isActive('/analytics') ? 2 : 1.75} />
+            </span>
+            <span>Analitik</span>
           </A>
 
           <Show when={props.user?.role === 'admin'}>
             <A href="/admin" class={`dock-item ${isActive('/admin') ? 'active' : ''}`}>
-              <span class="dock-icon">⚙️</span>
-              <span class="dock-label">Admin</span>
+              <span class="dock-icon">
+                <SettingsIcon size={18} strokeWidth={isActive('/admin') ? 2 : 1.75} />
+              </span>
+              <span>Admin</span>
             </A>
           </Show>
         </nav>

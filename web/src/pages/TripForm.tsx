@@ -1,6 +1,7 @@
 import { Component, createSignal } from 'solid-js';
 import { useNavigate, useParams } from '@solidjs/router';
 import { createTrip, updateTrip, getTrip } from '../api';
+import { ArrowLeftIcon } from '../components/Icons';
 
 const TripForm: Component = () => {
   const params = useParams();
@@ -68,7 +69,7 @@ const TripForm: Component = () => {
           onClick={() => navigate(-1)}
           aria-label="Kembali"
         >
-          ←
+          <ArrowLeftIcon size={16} />
         </button>
         <h2 style="font-size: 1.125rem; font-weight: 800; color: #fff; margin: 0;">
           {isEdit ? 'Edit Perjalanan' : 'Buat Perjalanan Baru'}

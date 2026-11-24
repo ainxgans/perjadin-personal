@@ -5,6 +5,7 @@ import {
   createCategory, updateCategory, deleteCategoryApi,
   createPaymentMethod, updatePaymentMethod, deletePaymentMethodApi,
 } from '../../api';
+import { ArrowLeftIcon, TagIcon, CreditCardIcon, EditIcon, TrashIcon, PlusIcon } from '../../components/Icons';
 
 const MasterListManager: Component<{
   title: string;
@@ -64,13 +65,13 @@ const MasterListManager: Component<{
 
         <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
           <Show when={props.items()} fallback={<p style="font-size: 0.8125rem; color: var(--text-muted); padding: 0.5rem 0;">Memuat...</p>}>
-            <Show when={props.items()!.length > 0} fallback={<p style="font-size: 0.8125rem; color: var(--text-muted); padding: 0.5rem 0;">Belum ada data master</p>}>
+            <Show when={props.items()!.length > 0} fallback={<p style="font-size: 0.8125rem; color: var(--text-muted); padding: 0.5rem 0;">Belum ada data</p>}>
               <For each={props.items()}>
                 {(item) => (
                   <div class="admin-item-row">
                     <Show when={editId() === item.id} fallback={
                       <>
-                        <span class="badge badge-gray" style="font-size: 0.8125rem; text-transform: none;">
+                        <span class="badge badge-gray" style="font-size: 0.8125rem; font-weight: 500;">
                           {item.nama}
                         </span>
                         <div style="display: flex; gap: 0.375rem;">
@@ -79,8 +80,9 @@ const MasterListManager: Component<{
                             class="btn-icon-subtle"
                             onClick={() => { setEditId(item.id); setEditName(item.nama); }}
                             title="Edit"
+                            aria-label="Edit item"
                           >
-                            ✏️
+                            <EditIcon size={14} />
                           </button>
                           <button
                             type="button"
@@ -88,8 +90,9 @@ const MasterListManager: Component<{
                             style="color: var(--rose);"
                             onClick={() => handleDelete(item.id)}
                             title="Hapus"
+                            aria-label="Hapus item"
                           >
-                            🗑️
+                            <TrashIcon size={14} />
                           </button>
                         </div>
                       </>
@@ -98,7 +101,7 @@ const MasterListManager: Component<{
                         class="form-control"
                         value={editName()}
                         onInput={(e) => setEditName(e.currentTarget.value)}
-                        style="flex: 1; min-height: 38px; padding: 0.25rem 0.625rem; font-size: 0.875rem;"
+                        style="flex: 1; min-height: 36px; padding: 0.25rem 0.625rem; font-size: 0.8125rem;"
                       />
                       <div style="display: flex; gap: 0.375rem; margin-left: 0.5rem;">
                         <button type="button" class="btn btn-sm btn-primary" onClick={handleUpdate}>Simpan</button>
@@ -117,12 +120,12 @@ const MasterListManager: Component<{
             class="form-control"
             value={newName()}
             onInput={(e) => setNewName(e.currentTarget.value)}
-            placeholder={`Tambah ${props.title.toLowerCase()} baru...`}
+            placeholder={`Tambah ${props.title.toLowerCase()}...`}
             onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); }}
             style="flex: 1;"
           />
           <button type="button" class="btn btn-primary btn-sm" onClick={handleAdd} style="white-space: nowrap;">
-            + Tambah
+            <PlusIcon size={14} /> Tambah
           </button>
         </div>
       </div>
@@ -139,10 +142,10 @@ const AdminMaster: Component = () => {
     <div class="page">
       <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem;">
         <A href="/admin" class="btn-icon-subtle" aria-label="Kembali ke Admin Hub">
-          ←
+          <ArrowLeftIcon size={16} />
         </A>
         <div>
-          <h2 style="font-size: 1.125rem; font-weight: 800; color: #fff; margin: 0;">
+          <h2 style="font-size: 1.125rem; font-weight: 800; color: var(--text-primary); margin: 0;">
             Master Data
           </h2>
           <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0;">
@@ -158,14 +161,16 @@ const AdminMaster: Component = () => {
           class={`segment-tab ${tab() === 'categories' ? 'active' : ''}`}
           onClick={() => setTab('categories')}
         >
-          🏷️ Kategori ({categories()?.length || 0})
+          <TagIcon size={14} />
+          <span>Kategori ({categories()?.length || 0})</span>
         </button>
         <button
           type="button"
           class={`segment-tab ${tab() === 'payment_methods' ? 'active' : ''}`}
           onClick={() => setTab('payment_methods')}
         >
-          💳 Pembayaran ({paymentMethods()?.length || 0})
+          <CreditCardIcon size={14} />
+          <span>Pembayaran ({paymentMethods()?.length || 0})</span>
         </button>
       </div>
 
