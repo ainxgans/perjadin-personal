@@ -49,7 +49,6 @@ const TripDetail: Component = () => {
     setShowForm(true);
   };
 
-  // Group expenses by category
   const groupedExpenses = () => {
     const exps = expenses() || [];
     const groups: Record<string, Expense[]> = {};
@@ -67,64 +66,74 @@ const TripDetail: Component = () => {
       <Show when={trip()} fallback={<p style="text-align: center; padding: 2rem 0; color: var(--text-muted);">Memuat...</p>}>
         {(t) => (
           <>
-            <div class="detail-hero">
-              <div class="detail-hero-top">
-                <div>
-                  <div class="detail-hero-title">{t().nama}</div>
-                  <div class="detail-hero-subtitle">
-                    {t().tujuan} · {t().tanggal_mulai} — {t().tanggal_selesai}
+            {/* Doppelrand Hero Header */}
+            <div class="detail-hero-doppel">
+              <div class="detail-hero-inner">
+                <div class="detail-hero-top">
+                  <div>
+                    <div class="detail-hero-title">{t().nama}</div>
+                    <div class="detail-hero-subtitle">
+                      📍 {t().tujuan} · {t().tanggal_mulai} — {t().tanggal_selesai}
+                    </div>
+                  </div>
+                  <StatusBadge status={t().status} />
+                </div>
+
+                <div class="detail-hero-stats">
+                  <div>
+                    <div class="detail-hero-stat-label">Uang Dinas</div>
+                    <div class="detail-hero-stat-val amount">{t().uang_dinas != null ? formatRp(t().uang_dinas!) : '-'}</div>
+                  </div>
+                  <div>
+                    <div class="detail-hero-stat-label">Pengeluaran</div>
+                    <div class="detail-hero-stat-val amount">{formatRp(t().total_pengeluaran)}</div>
+                  </div>
+                  <div>
+                    <div class="detail-hero-stat-label">Saldo</div>
+                    <div class={`detail-hero-stat-val amount ${t().saldo >= 0 ? 'text-emerald' : 'text-rose'}`}>
+                      {formatRp(t().saldo)}
+                    </div>
                   </div>
                 </div>
-                <StatusBadge status={t().status} />
-              </div>
 
-              <div class="detail-hero-stats">
-                <div>
-                  <div class="detail-hero-stat-label">Uang Dinas</div>
-                  <div class="detail-hero-stat-val num">{t().uang_dinas != null ? formatRp(t().uang_dinas!) : '-'}</div>
+                <div class="detail-hero-actions">
+                  <A href={`/trips/${params.id}/edit`} class="btn btn-sm btn-secondary">Edit</A>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline"
+                    style="color: var(--rose); border-color: rgba(244, 63, 94, 0.3);"
+                    onClick={handleDeleteTrip}
+                  >
+                    Hapus
+                  </button>
                 </div>
-                <div>
-                  <div class="detail-hero-stat-label">Pengeluaran</div>
-                  <div class="detail-hero-stat-val num">{formatRp(t().total_pengeluaran)}</div>
-                </div>
-                <div>
-                  <div class="detail-hero-stat-label">Saldo</div>
-                  <div class={`detail-hero-stat-val num ${t().saldo >= 0 ? 'text-green' : 'text-red'}`}>
-                    {formatRp(t().saldo)}
-                  </div>
-                </div>
-              </div>
-
-              <div class="detail-hero-actions">
-                <A href={`/trips/${params.id}/edit`} class="btn btn-sm btn-secondary">Edit</A>
-                <button type="button" class="btn btn-sm btn-danger-ghost" onClick={handleDeleteTrip}>Hapus</button>
               </div>
             </div>
 
             {/* Expenses Header */}
-            <div class="section-header">
+            <div class="section-heading">
               <h2>Rincian Pengeluaran</h2>
               <button
                 type="button"
-                class="btn btn-sm btn-secondary"
+                class="btn btn-sm btn-primary"
                 onClick={() => { setEditingExpense(null); setShowForm(true); }}
               >
                 + Tambah
               </button>
             </div>
 
-            {/* Grouped Expenses / Empty State */}
+            {/* Grouped Expenses List */}
             <Show when={expenses()} fallback={<p style="text-align: center; padding: 1.5rem 0; color: var(--text-muted);">Memuat...</p>}>
               <Show
                 when={expenses()!.length > 0}
                 fallback={
                   <div class="empty-state">
                     <div class="empty-state-icon">🧾</div>
-                    <h3>Belum ada pengeluaran</h3>
-                    <p>Catat pengeluaran perjalanan dinas Anda sekarang.</p>
+                    <h3 style="color: #fff; font-size: 1.0625rem; margin-bottom: 0.25rem;">Belum ada pengeluaran</h3>
+                    <p style="font-size: 0.8125rem; margin-bottom: 1.5rem;">Catat rincian nota dan pengeluaran dinas Anda sekarang.</p>
                     <button
                       type="button"
-                      class="btn btn-sm btn-secondary"
+                      class="btn btn-primary btn-sm"
                       onClick={() => { setEditingExpense(null); setShowForm(true); }}
                     >
                       + Tambah Pengeluaran
@@ -134,50 +143,51 @@ const TripDetail: Component = () => {
               >
                 <For each={Object.entries(groupedExpenses())}>
                   {([category, exps]) => (
-                    <div class="expense-category-card">
-                      <div class="expense-category-header">
-                        <span>{category}</span>
-                        <span class="num">{formatRp(getCategoryTotal(exps))}</span>
-                      </div>
-                      <For each={exps}>
-                        {(exp) => (
-                          <div class="expense-item">
-                            <div class="expense-item-info">
-                              <div class="expense-item-desc">{exp.deskripsi || '-'}</div>
-                              <div class="expense-item-meta">
-                                <span>{exp.tanggal}</span>
-                                <span>·</span>
-                                <span class={getPaymentBadgeClass(exp.payment_method_nama)}>
-                                  {exp.payment_method_nama}
-                                </span>
+                    <div class="category-group-card">
+                      <div class="category-group-inner">
+                        <div class="category-group-header">
+                          <span class="category-group-title">{category}</span>
+                          <span class="category-group-total amount">{formatRp(getCategoryTotal(exps))}</span>
+                        </div>
+                        <For each={exps}>
+                          {(exp) => (
+                            <div class="expense-row-item">
+                              <div class="expense-row-info">
+                                <div class="expense-row-desc">{exp.deskripsi || '-'}</div>
+                                <div class="expense-row-meta">
+                                  <span>{exp.tanggal}</span>
+                                  <span>·</span>
+                                  <span class={getPaymentBadgeClass(exp.payment_method_nama)}>
+                                    {exp.payment_method_nama}
+                                  </span>
+                                </div>
+                              </div>
+                              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span class="expense-row-amount amount">{formatRp(exp.jumlah)}</span>
+                                <button
+                                  type="button"
+                                  class="btn-icon-subtle"
+                                  onClick={() => openEdit(exp)}
+                                  title="Edit"
+                                  aria-label="Edit pengeluaran"
+                                >
+                                  ✏️
+                                </button>
+                                <button
+                                  type="button"
+                                  class="btn-icon-subtle"
+                                  style="color: var(--rose);"
+                                  onClick={() => handleDeleteExpense(exp.id)}
+                                  title="Hapus"
+                                  aria-label="Hapus pengeluaran"
+                                >
+                                  🗑️
+                                </button>
                               </div>
                             </div>
-                            <div class="expense-item-right">
-                              <span class="expense-item-amount num">{formatRp(exp.jumlah)}</span>
-                              <button
-                                type="button"
-                                class="btn btn-icon btn-secondary"
-                                style="width: 32px; height: 32px; min-height: 32px; font-size: 0.8125rem;"
-                                onClick={() => openEdit(exp)}
-                                title="Edit"
-                                aria-label="Edit pengeluaran"
-                              >
-                                ✏️
-                              </button>
-                              <button
-                                type="button"
-                                class="btn btn-icon btn-danger-ghost"
-                                style="width: 32px; height: 32px; min-height: 32px; font-size: 0.8125rem; box-shadow: none;"
-                                onClick={() => handleDeleteExpense(exp.id)}
-                                title="Hapus"
-                                aria-label="Hapus pengeluaran"
-                              >
-                                🗑️
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </For>
+                          )}
+                        </For>
+                      </div>
                     </div>
                   )}
                 </For>
@@ -187,6 +197,7 @@ const TripDetail: Component = () => {
         )}
       </Show>
 
+      {/* Modal Bottom Sheet */}
       <Show when={showForm()}>
         <ExpenseForm
           tripId={params.id!}

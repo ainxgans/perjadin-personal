@@ -64,93 +64,104 @@ const TripForm: Component = () => {
       <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem;">
         <button
           type="button"
-          class="btn-sm btn-outline"
+          class="btn-icon-subtle"
           onClick={() => navigate(-1)}
           aria-label="Kembali"
-          style="display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; cursor: pointer; border-radius: var(--radius-sm);"
         >
           ←
         </button>
-        <h2 style="font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; color: var(--text-main); margin: 0;">
-          {isEdit ? 'Edit Perjalanan' : 'Tambah Perjalanan'}
+        <h2 style="font-size: 1.125rem; font-weight: 800; color: #fff; margin: 0;">
+          {isEdit ? 'Edit Perjalanan' : 'Buat Perjalanan Baru'}
         </h2>
       </div>
 
-      <div class="card">
-        <form onSubmit={handleSubmit}>
-          <div class="form-group">
-            <label for="nama">Nama</label>
-            <input
-              id="nama"
-              class="form-control"
-              value={nama()}
-              onInput={(e) => setNama(e.currentTarget.value)}
-              required
-            />
-          </div>
-          <div class="form-group">
-            <label for="tujuan">Tujuan</label>
-            <input
-              id="tujuan"
-              class="form-control"
-              value={tujuan()}
-              onInput={(e) => setTujuan(e.currentTarget.value)}
-              required
-            />
-          </div>
-          <div class="form-group">
-            <label for="mulai">Tanggal Mulai</label>
-            <input
-              id="mulai"
-              type="date"
-              class="form-control"
-              value={mulai()}
-              onInput={(e) => setMulai(e.currentTarget.value)}
-              required
-            />
-          </div>
-          <div class="form-group">
-            <label for="selesai">Tanggal Selesai</label>
-            <input
-              id="selesai"
-              type="date"
-              class="form-control"
-              value={selesai()}
-              onInput={(e) => setSelesai(e.currentTarget.value)}
-              required
-            />
-          </div>
-          <div class="form-group">
-            <label for="uangDinas">Uang Dinas (Rp, opsional)</label>
-            <input
-              id="uangDinas"
-              type="number"
-              class="form-control"
-              value={uangDinas()}
-              onInput={(e) => setUangDinas(e.currentTarget.value)}
-              min="0"
-            />
-          </div>
-          <div class="form-group">
-            <label for="dibayar">Tanggal Dibayar (opsional)</label>
-            <input
-              id="dibayar"
-              type="date"
-              class="form-control"
-              value={dibayar()}
-              onInput={(e) => setDibayar(e.currentTarget.value)}
-            />
-          </div>
-          {error() && <p class="text-red" style="margin-bottom: 1rem; font-size: 0.875rem;">{error()}</p>}
-          <div class="form-actions">
-            <button type="button" class="btn btn-outline" onClick={() => navigate(-1)}>
-              Batal
-            </button>
-            <button type="submit" class="btn" disabled={loading()}>
-              {loading() ? 'Menyimpan...' : 'Simpan'}
-            </button>
-          </div>
-        </form>
+      <div class="doppel-card">
+        <div class="doppel-inner">
+          <form onSubmit={handleSubmit}>
+            <div class="form-group">
+              <label for="nama">Nama Perjalanan</label>
+              <input
+                id="nama"
+                class="form-control"
+                value={nama()}
+                onInput={(e) => setNama(e.currentTarget.value)}
+                placeholder="Contoh: Raker Yogyakarta Q1"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="tujuan">Kota Tujuan</label>
+              <input
+                id="tujuan"
+                class="form-control"
+                value={tujuan()}
+                onInput={(e) => setTujuan(e.currentTarget.value)}
+                placeholder="Contoh: Yogyakarta"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="mulai">Tanggal Mulai</label>
+              <input
+                id="mulai"
+                type="date"
+                class="form-control"
+                value={mulai()}
+                onInput={(e) => setMulai(e.currentTarget.value)}
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="selesai">Tanggal Selesai</label>
+              <input
+                id="selesai"
+                type="date"
+                class="form-control"
+                value={selesai()}
+                onInput={(e) => setSelesai(e.currentTarget.value)}
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="uangDinas">Uang Dinas Diterima (Rp, Opsional)</label>
+              <input
+                id="uangDinas"
+                type="number"
+                class="form-control amount"
+                value={uangDinas()}
+                onInput={(e) => setUangDinas(e.currentTarget.value)}
+                placeholder="0"
+                min="0"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="dibayar">Tanggal Pencairan / Dibayar (Opsional)</label>
+              <input
+                id="dibayar"
+                type="date"
+                class="form-control"
+                value={dibayar()}
+                onInput={(e) => setDibayar(e.currentTarget.value)}
+              />
+            </div>
+
+            {error() && <p class="text-rose" style="margin-bottom: 1rem; font-size: 0.8125rem;">{error()}</p>}
+
+            <div class="form-actions">
+              <button type="button" class="btn btn-outline" onClick={() => navigate(-1)}>
+                Batal
+              </button>
+              <button type="submit" class="btn btn-primary" disabled={loading()}>
+                {loading() ? 'Menyimpan...' : 'Simpan'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

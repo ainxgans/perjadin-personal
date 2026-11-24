@@ -8,7 +8,12 @@ const statusConfig: Record<string, { label: string; class: string }> = {
 
 const StatusBadge: Component<{ status: string }> = (props) => {
   const cfg = () => statusConfig[props.status] || { label: props.status, class: 'badge badge-gray' };
-  return <span class={cfg().class}>{cfg().label}</span>;
+  return (
+    <span class={cfg().class}>
+      <span class="beacon-dot"></span>
+      <span>{cfg().label}</span>
+    </span>
+  );
 };
 
 export default StatusBadge;

@@ -53,46 +53,80 @@ const ExpenseForm: Component<{
     <div class="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) props.onClose(); }}>
       <div class="modal-content">
         <div class="modal-handle" />
-        <div class="modal-title">{isEdit ? 'Edit' : 'Tambah'} Pengeluaran</div>
+        <div class="modal-title">{isEdit ? 'Edit Pengeluaran' : 'Catat Pengeluaran'}</div>
         <form onSubmit={handleSubmit}>
           <div class="form-group">
             <label>Kategori</label>
             <Show when={categories()}>
               <select class="form-control" value={categoryId()} onInput={(e) => setCategoryId(e.currentTarget.value)} required>
-                <option value="">Pilih kategori</option>
+                <option value="">Pilih kategori...</option>
                 <For each={categories()}>
                   {(cat) => <option value={cat.id}>{cat.nama}</option>}
                 </For>
               </select>
             </Show>
           </div>
+
           <div class="form-group">
             <label>Metode Pembayaran</label>
             <Show when={paymentMethods()}>
               <select class="form-control" value={pmId()} onInput={(e) => setPmId(e.currentTarget.value)} required>
-                <option value="">Pilih metode</option>
+                <option value="">Pilih metode...</option>
                 <For each={paymentMethods()}>
                   {(pm) => <option value={pm.id}>{pm.nama}</option>}
                 </For>
               </select>
             </Show>
           </div>
+
           <div class="form-group">
-            <label>Deskripsi</label>
-            <input class="form-control" value={deskripsi()} onInput={(e) => setDeskripsi(e.currentTarget.value)} placeholder="Makan siang" />
+            <label>Deskripsi (Opsional)</label>
+            <input
+              class="form-control"
+              value={deskripsi()}
+              onInput={(e) => setDeskripsi(e.currentTarget.value)}
+              placeholder="Contoh: Tiket Kereta / Makan Malam"
+            />
           </div>
+
           <div class="form-group">
-            <label>Jumlah (Rp)</label>
-            <input class="form-control num" type="number" value={jumlah()} onInput={(e) => setJumlah(e.currentTarget.value)} min="1" required />
+            <label>Jumlah Nominal (Rp)</label>
+            <input
+              class="form-control amount"
+              type="number"
+              value={jumlah()}
+              onInput={(e) => setJumlah(e.currentTarget.value)}
+              min="1"
+              placeholder="0"
+              required
+            />
           </div>
+
+          {/* Rapid Amount Chips */}
+          <div class="quick-amount-row">
+            <button type="button" class="quick-chip" onClick={() => setJumlah('25000')}>+25rb</button>
+            <button type="button" class="quick-chip" onClick={() => setJumlah('50000')}>+50rb</button>
+            <button type="button" class="quick-chip" onClick={() => setJumlah('100000')}>+100rb</button>
+            <button type="button" class="quick-chip" onClick={() => setJumlah('250000')}>+250rb</button>
+            <button type="button" class="quick-chip" onClick={() => setJumlah('500000')}>+500rb</button>
+          </div>
+
           <div class="form-group">
-            <label>Tanggal</label>
-            <input class="form-control" type="date" value={tanggal()} onInput={(e) => setTanggal(e.currentTarget.value)} required />
+            <label>Tanggal Transaksi</label>
+            <input
+              class="form-control"
+              type="date"
+              value={tanggal()}
+              onInput={(e) => setTanggal(e.currentTarget.value)}
+              required
+            />
           </div>
-          {error() && <p class="text-red" style="margin-bottom: 1rem">{error()}</p>}
+
+          {error() && <p class="text-rose" style="margin-bottom: 1rem; font-size: 0.8125rem;">{error()}</p>}
+
           <div class="form-actions">
             <button type="button" class="btn btn-outline" onClick={props.onClose}>Batal</button>
-            <button type="submit" class="btn" disabled={loading()}>
+            <button type="submit" class="btn btn-primary" disabled={loading()}>
               {loading() ? 'Menyimpan...' : 'Simpan'}
             </button>
           </div>
