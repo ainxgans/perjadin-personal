@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/maulana/perjadin-personal/internal/auth"
 	"github.com/maulana/perjadin-personal/internal/config"
@@ -69,6 +72,25 @@ func main() {
 	mux.Handle("POST /api/trips/{tripID}/expenses", authMW(http.HandlerFunc(handler.CreateExpense(database))))
 	mux.Handle("PUT /api/expenses/{id}", authMW(http.HandlerFunc(handler.UpdateExpense(database))))
 	mux.Handle("DELETE /api/expenses/{id}", authMW(http.HandlerFunc(handler.DeleteExpense(database))))
+
+	// Serve static frontend (with SPA fallback)
+	distDir := "web/dist"
+	if _, err := os.Stat(distDir); err == nil {
+		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			// Don't intercept API/auth routes
+			if strings.HasPrefix(r.URL.Path, "/api/") || strings.HasPrefix(r.URL.Path, "/auth/") {
+				http.NotFound(w, r)
+				return
+			}
+			path := filepath.Join(distDir, r.URL.Path)
+			if fi, err := os.Stat(path); err == nil && !fi.IsDir() {
+				http.ServeFile(w, r, path)
+				return
+			}
+			// SPA fallback
+			http.ServeFile(w, r, filepath.Join(distDir, "index.html"))
+		})
+	}
 
 	log.Printf("server starting on :%s", cfg.Port)
 	if err := http.ListenAndServe(":"+cfg.Port, mux); err != nil {
