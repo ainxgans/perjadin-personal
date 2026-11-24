@@ -70,6 +70,11 @@ const tripSelectCols = `t.id, t.nama, t.tujuan, t.tanggal_mulai, t.tanggal_seles
 	COALESCE(t.catatan, ''), COALESCE(t.link_monita, ''), COALESCE(t.settlement_note, ''),
 	t.created_at, t.updated_at`
 
+const tripInsertCols = `id, nama, tujuan, tanggal_mulai, tanggal_selesai,
+	COALESCE(status, 'berlangsung'), uang_dinas, nominal_monita, tanggal_dibayar,
+	COALESCE(catatan, ''), COALESCE(link_monita, ''), COALESCE(settlement_note, ''),
+	created_at, updated_at`
+
 func ListTrips(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID := auth.UserIDFromContext(r.Context())
@@ -168,7 +173,7 @@ func CreateTrip(db *sql.DB) http.HandlerFunc {
 		err := db.QueryRow(`
 			INSERT INTO trips (user_id, nama, tujuan, tanggal_mulai, tanggal_selesai, status, uang_dinas, nominal_monita, tanggal_dibayar, catatan, link_monita)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-			RETURNING `+tripSelectCols+`
+			RETURNING `+tripInsertCols+`
 		`, userID, input.Nama, input.Tujuan, mulai, selesai, model.StatusBerlangsung,
 			input.UangDinas, input.NominalMonita, dibayar, input.Catatan, input.LinkMonita).
 			Scan(&trip.ID, &trip.Nama, &trip.Tujuan, &trip.TanggalMulai, &trip.TanggalSelesai,

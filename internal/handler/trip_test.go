@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/maulana/perjadin-personal/internal/auth"
@@ -144,5 +145,11 @@ func TestDeleteTrip(t *testing.T) {
 	rec := doRequest(t, handler, "DELETE", "/api/trips/"+tripID, "", cookie)
 	if rec.Code != http.StatusNoContent {
 		t.Errorf("expected 204, got %d", rec.Code)
+	}
+}
+
+func TestTripSQLConstants(t *testing.T) {
+	if strings.Contains(tripInsertCols, "t.") {
+		t.Errorf("tripInsertCols cannot contain 't.' table alias because it is used in INSERT RETURNING clauses")
 	}
 }

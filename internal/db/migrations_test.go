@@ -52,3 +52,21 @@ func TestMigrationFilesSyntax(t *testing.T) {
 		t.Errorf("004_collab_and_sbm.sql not found in migrations")
 	}
 }
+
+func TestInsertReturningSyntax(t *testing.T) {
+	// Ensure no INSERT INTO queries mistakenly use table alias in RETURNING clause
+	files, err := filepath.Glob("../handler/*.go")
+	if err != nil || len(files) == 0 {
+		files, _ = filepath.Glob("../../internal/handler/*.go")
+	}
+	for _, f := range files {
+		content, err := os.ReadFile(f)
+		if err != nil {
+			continue
+		}
+		s := string(content)
+		if strings.Contains(s, "INSERT INTO trips") && strings.Contains(s, "RETURNING `+tripSelectCols+`") {
+			t.Errorf("file %s has invalid INSERT INTO trips RETURNING `+tripSelectCols+` (uses 't.' alias)", f)
+		}
+	}
+}
