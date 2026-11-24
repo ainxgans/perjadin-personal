@@ -69,8 +69,9 @@ func main() {
 	mux.Handle("PUT /api/trips/{id}", authMW(http.HandlerFunc(handler.UpdateTrip(database))))
 	mux.Handle("DELETE /api/trips/{id}", authMW(http.HandlerFunc(handler.DeleteTrip(database))))
 
-	// Dashboard
+	// Dashboard & Analytics
 	mux.Handle("GET /api/dashboard", authMW(http.HandlerFunc(handler.GetDashboard(database))))
+	mux.Handle("GET /api/analytics", authMW(http.HandlerFunc(handler.GetAnalytics(database))))
 
 	// Expenses
 	mux.Handle("GET /api/trips/{tripID}/expenses", authMW(http.HandlerFunc(handler.ListExpenses(database))))
