@@ -178,7 +178,14 @@ const Dashboard: Component = () => {
                   <A href={'/trips/' + trip.id} class="ticket-card">
                     <div class="ticket-inner">
                       <div class="ticket-header">
-                        <span class="ticket-title">{trip.nama}</span>
+                        <div>
+                          <span class="ticket-title">{trip.nama}</span>
+                          <Show when={trip.is_owner === false}>
+                            <span class="badge badge-gray" style="font-size: 0.625rem; margin-left: 0.375rem;">
+                              Kolaborator ({trip.owner_name})
+                            </span>
+                          </Show>
+                        </div>
                         <StatusBadge status={trip.status} />
                       </div>
 
@@ -239,6 +246,18 @@ const Dashboard: Component = () => {
                           </Show>
                         </div>
                       </div>
+
+                      <Show when={trip.status === 'berlangsung'}>
+                        <div style="margin-top: 0.625rem; padding-top: 0.5rem; border-top: 1px solid rgba(255, 255, 255, 0.05); display: flex; justify-content: space-between; align-items: center;">
+                          <span style="font-size: 0.6875rem; color: var(--emerald); font-weight: 600; display: flex; align-items: center; gap: 0.375rem;">
+                            <span style="width: 6px; height: 6px; border-radius: 9999px; background: var(--emerald); display: inline-block;" />
+                            Sedang Berlangsung
+                          </span>
+                          <span class="btn btn-sm btn-secondary" style="font-size: 0.6875rem; padding: 0.25rem 0.625rem; gap: 0.25rem;">
+                            <PlusIcon size={12} /> Catat Pengeluaran
+                          </span>
+                        </div>
+                      </Show>
                     </div>
                   </A>
                 );
