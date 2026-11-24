@@ -1,9 +1,12 @@
-import { Component, createSignal, createResource, onMount } from 'solid-js';
+import { Component, createSignal, onMount, Show } from 'solid-js';
 import { Router, Route, useNavigate } from '@solidjs/router';
 import { getMe, type User } from './api';
 import Navbar from './components/Navbar';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import TripDetail from './pages/TripDetail';
+import TripForm from './pages/TripForm';
+import Admin from './pages/Admin';
 
 const App: Component = () => {
   const [user, setUser] = createSignal<User | null>(null);
@@ -25,7 +28,6 @@ const App: Component = () => {
     window.location.href = '/login';
   };
 
-  // Guard component
   const Protected: Component<{ children: any }> = (props) => {
     const navigate = useNavigate();
     if (!loading() && !user()) {
@@ -39,16 +41,16 @@ const App: Component = () => {
     <>
       <Navbar user={user()} onLogout={handleLogout} />
       <main>
-        {loading() ? (
-          <div class="page"><p>Memuat...</p></div>
-        ) : (
+        <Show when={!loading()} fallback={<div class="page"><p>Memuat...</p></div>}>
           <Router>
             <Route path="/login" component={Login} />
-            <Route path="/" component={() => (
-              <Protected><Dashboard /></Protected>
-            )} />
+            <Route path="/" component={() => <Protected><Dashboard /></Protected>} />
+            <Route path="/trips/new" component={() => <Protected><TripForm /></Protected>} />
+            <Route path="/trips/:id" component={() => <Protected><TripDetail /></Protected>} />
+            <Route path="/trips/:id/edit" component={() => <Protected><TripForm /></Protected>} />
+            <Route path="/admin" component={() => <Protected><Admin /></Protected>} />
           </Router>
-        )}
+        </Show>
       </main>
     </>
   );

@@ -1,0 +1,102 @@
+import { Component, createSignal } from 'solid-js';
+import { useNavigate, useParams } from '@solidjs/router';
+import { createTrip, updateTrip, getTrip, type Trip } from '../api';
+
+const TripForm: Component = () => {
+  const params = useParams();
+  const navigate = useNavigate();
+  const isEdit = !!params.id;
+
+  const [nama, setNama] = createSignal('');
+  const [tujuan, setTujuan] = createSignal('');
+  const [mulai, setMulai] = createSignal('');
+  const [selesai, setSelesai] = createSignal('');
+  const [uangDinas, setUangDinas] = createSignal('');
+  const [dibayar, setDibayar] = createSignal('');
+  const [error, setError] = createSignal('');
+  const [loading, setLoading] = createSignal(false);
+
+  if (isEdit) {
+    getTrip(params.id).then((t) => {
+      setNama(t.nama);
+      setTujuan(t.tujuan);
+      setMulai(t.tanggal_mulai);
+      setSelesai(t.tanggal_selesai);
+      if (t.uang_dinas != null) setUangDinas(String(t.uang_dinas));
+      if (t.tanggal_dibayar) setDibayar(t.tanggal_dibayar);
+    });
+  }
+
+  const handleSubmit = async (e: Event) => {
+    e.preventDefault();
+    setError('');
+    if (selesai() < mulai()) {
+      setError('Tanggal selesai harus >= tanggal mulai');
+      return;
+    }
+    setLoading(true);
+    try {
+      const data: any = {
+        nama: nama(),
+        tujuan: tujuan(),
+        tanggal_mulai: mulai(),
+        tanggal_selesai: selesai(),
+      };
+      if (uangDinas()) data.uang_dinas = parseInt(uangDinas());
+      if (dibayar()) data.tanggal_dibayar = dibayar();
+
+      if (isEdit) {
+        await updateTrip(params.id, data);
+        navigate(`/trips/${params.id}`);
+      } else {
+        const trip = await createTrip(data);
+        navigate(`/trips/${trip.id}`);
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div class="page">
+      <h2>{isEdit ? 'Edit' : 'Tambah'} Perjalanan Dinas</h2>
+      <form onSubmit={handleSubmit}>
+        <div class="form-group">
+          <label>Nama</label>
+          <input value={nama()} onInput={(e) => setNama(e.currentTarget.value)} required />
+        </div>
+        <div class="form-group">
+          <label>Tujuan</label>
+          <input value={tujuan()} onInput={(e) => setTujuan(e.currentTarget.value)} required />
+        </div>
+        <div class="form-group">
+          <label>Tanggal Mulai</label>
+          <input type="date" value={mulai()} onInput={(e) => setMulai(e.currentTarget.value)} required />
+        </div>
+        <div class="form-group">
+          <label>Tanggal Selesai</label>
+          <input type="date" value={selesai()} onInput={(e) => setSelesai(e.currentTarget.value)} required />
+        </div>
+        <div class="form-group">
+          <label>Uang Dinas (Rp, opsional)</label>
+          <input type="number" value={uangDinas()} onInput={(e) => setUangDinas(e.currentTarget.value)} min="0" />
+        </div>
+        <div class="form-group">
+          <label>Tanggal Dibayar (opsional)</label>
+          <input type="date" value={dibayar()} onInput={(e) => setDibayar(e.currentTarget.value)} />
+        </div>
+        {error() && <p class="text-red" style="margin-bottom: 1rem">{error()}</p>}
+        <div class="form-actions">
+          <button type="button" class="btn btn-outline" onClick={() => navigate(-1)}>Batal</button>
+          <button type="submit" class="btn" disabled={loading()}>
+            {loading() ? 'Menyimpan...' : 'Simpan'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default TripForm;
