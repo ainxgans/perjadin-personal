@@ -52,12 +52,13 @@ const ExpenseForm: Component<{
   return (
     <div class="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) props.onClose(); }}>
       <div class="modal-content">
+        <div class="modal-handle" />
         <div class="modal-title">{isEdit ? 'Edit' : 'Tambah'} Pengeluaran</div>
         <form onSubmit={handleSubmit}>
           <div class="form-group">
             <label>Kategori</label>
             <Show when={categories()}>
-              <select value={categoryId()} onInput={(e) => setCategoryId(e.currentTarget.value)} required>
+              <select class="form-control" value={categoryId()} onInput={(e) => setCategoryId(e.currentTarget.value)} required>
                 <option value="">Pilih kategori</option>
                 <For each={categories()}>
                   {(cat) => <option value={cat.id}>{cat.nama}</option>}
@@ -68,7 +69,7 @@ const ExpenseForm: Component<{
           <div class="form-group">
             <label>Metode Pembayaran</label>
             <Show when={paymentMethods()}>
-              <select value={pmId()} onInput={(e) => setPmId(e.currentTarget.value)} required>
+              <select class="form-control" value={pmId()} onInput={(e) => setPmId(e.currentTarget.value)} required>
                 <option value="">Pilih metode</option>
                 <For each={paymentMethods()}>
                   {(pm) => <option value={pm.id}>{pm.nama}</option>}
@@ -78,15 +79,15 @@ const ExpenseForm: Component<{
           </div>
           <div class="form-group">
             <label>Deskripsi</label>
-            <input value={deskripsi()} onInput={(e) => setDeskripsi(e.currentTarget.value)} placeholder="Makan siang" />
+            <input class="form-control" value={deskripsi()} onInput={(e) => setDeskripsi(e.currentTarget.value)} placeholder="Makan siang" />
           </div>
           <div class="form-group">
             <label>Jumlah (Rp)</label>
-            <input type="number" value={jumlah()} onInput={(e) => setJumlah(e.currentTarget.value)} min="1" required />
+            <input class="form-control num" type="number" value={jumlah()} onInput={(e) => setJumlah(e.currentTarget.value)} min="1" required />
           </div>
           <div class="form-group">
             <label>Tanggal</label>
-            <input type="date" value={tanggal()} onInput={(e) => setTanggal(e.currentTarget.value)} required />
+            <input class="form-control" type="date" value={tanggal()} onInput={(e) => setTanggal(e.currentTarget.value)} required />
           </div>
           {error() && <p class="text-red" style="margin-bottom: 1rem">{error()}</p>}
           <div class="form-actions">

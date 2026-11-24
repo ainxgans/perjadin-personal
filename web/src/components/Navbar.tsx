@@ -10,14 +10,17 @@ const Navbar: Component<{ user: User | null; onLogout: () => void }> = (props) =
 
   return (
     <nav class="navbar">
-      <A href="/" class="nav-brand">Perjadin</A>
+      <A href="/" class="nav-brand">
+        <span class="nav-brand-icon">✈️</span>
+        <span>Perjadin</span>
+      </A>
       <Show when={props.user}>
         <div class="nav-right">
           <Show when={props.user!.role === 'admin'}>
             <A href="/admin" class="nav-link">Admin</A>
           </Show>
-          <span class="nav-user">{props.user!.name}</span>
-          <button onClick={handleLogout} class="btn-sm">Keluar</button>
+          <span class="nav-user-badge">{props.user!.name}</span>
+          <button onClick={handleLogout} class="btn-sm btn-outline">Keluar</button>
         </div>
       </Show>
     </nav>

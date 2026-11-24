@@ -1,4 +1,5 @@
 import { Component, createSignal, createResource, For, Show } from 'solid-js';
+import { A } from '@solidjs/router';
 import {
   getCategories, getPaymentMethods,
   createCategory, updateCategory, deleteCategoryApi,
@@ -19,23 +20,27 @@ const AdminSection: Component<{
   const [error, setError] = createSignal('');
 
   const handleAdd = async () => {
-    if (!newName()) return;
+    if (!newName().trim()) return;
     setError('');
     try {
-      await props.onAdd(newName());
+      await props.onAdd(newName().trim());
       setNewName('');
       props.refetch();
-    } catch (e: any) { setError(e.message); }
+    } catch (e: any) {
+      setError(e.message);
+    }
   };
 
   const handleUpdate = async () => {
-    if (!editName()) return;
+    if (!editName().trim()) return;
     setError('');
     try {
-      await props.onUpdate(editId(), editName());
+      await props.onUpdate(editId(), editName().trim());
       setEditId('');
       props.refetch();
-    } catch (e: any) { setError(e.message); }
+    } catch (e: any) {
+      setError(e.message);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -44,42 +49,69 @@ const AdminSection: Component<{
     try {
       await props.onDelete(id);
       props.refetch();
-    } catch (e: any) { setError(e.message); }
+    } catch (e: any) {
+      setError(e.message);
+    }
   };
 
   return (
-    <div class="admin-section">
-      <h3>{props.title}</h3>
-      {error() && <p class="text-red" style="margin-bottom: 0.5rem; font-size: 0.8125rem">{error()}</p>}
-      <Show when={props.items()}>
-        <For each={props.items()}>
-          {(item) => (
-            <div class="admin-item">
-              <Show when={editId() === item.id} fallback={
-                <>
-                  <span>{item.nama}</span>
-                  <div style="display: flex; gap: 0.25rem">
-                    <button class="btn-sm" onClick={() => { setEditId(item.id); setEditName(item.nama); }}>Edit</button>
-                    <button class="btn-sm btn-danger" onClick={() => handleDelete(item.id)}>Hapus</button>
-                  </div>
-                </>
-              }>
-                <input value={editName()} onInput={(e) => setEditName(e.currentTarget.value)}
-                  style="flex:1; min-height:36px; padding:0.375rem; border:1px solid var(--gray-200); border-radius:6px" />
-                <div style="display: flex; gap: 0.25rem; margin-left: 0.5rem">
-                  <button class="btn-sm" onClick={handleUpdate}>Simpan</button>
-                  <button class="btn-sm btn-outline" onClick={() => setEditId('')}>Batal</button>
+    <div class="card" style="margin-bottom: 1.25rem;">
+      <h3 style="font-size: 1rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.875rem;">
+        {props.title}
+      </h3>
+      {error() && <p class="text-red" style="margin-bottom: 0.75rem; font-size: 0.8125rem;">{error()}</p>}
+
+      <div style="display: flex; flex-direction: column; margin-bottom: 1rem;">
+        <Show when={props.items()} fallback={<p style="font-size: 0.8125rem; color: var(--text-muted); padding: 0.5rem 0;">Memuat...</p>}>
+          <Show when={props.items()!.length > 0} fallback={<p style="font-size: 0.8125rem; color: var(--text-muted); padding: 0.5rem 0;">Belum ada data</p>}>
+            <For each={props.items()}>
+              {(item) => (
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--border-subtle); gap: 0.5rem;">
+                  <Show when={editId() === item.id} fallback={
+                    <>
+                      <span class="badge badge-gray" style="font-size: 0.8125rem; font-weight: 600; text-transform: none; padding: 0.25rem 0.625rem; color: var(--text-main);">
+                        {item.nama}
+                      </span>
+                      <div style="display: flex; gap: 0.375rem;">
+                        <button class="btn-sm btn-outline" onClick={() => { setEditId(item.id); setEditName(item.nama); }}>
+                          Edit
+                        </button>
+                        <button class="btn-sm btn-danger" onClick={() => handleDelete(item.id)}>
+                          Hapus
+                        </button>
+                      </div>
+                    </>
+                  }>
+                    <input
+                      class="form-control"
+                      value={editName()}
+                      onInput={(e) => setEditName(e.currentTarget.value)}
+                      style="flex: 1; min-height: 34px; padding: 0.25rem 0.5rem; font-size: 0.875rem;"
+                    />
+                    <div style="display: flex; gap: 0.375rem; margin-left: 0.5rem;">
+                      <button class="btn-sm" onClick={handleUpdate}>Simpan</button>
+                      <button class="btn-sm btn-outline" onClick={() => setEditId('')}>Batal</button>
+                    </div>
+                  </Show>
                 </div>
-              </Show>
-            </div>
-          )}
-        </For>
-      </Show>
-      <div class="admin-add">
-        <input value={newName()} onInput={(e) => setNewName(e.currentTarget.value)}
-          placeholder={`Tambah ${props.title.toLowerCase()}`}
-          style="min-height:44px; padding:0.625rem; border:1px solid var(--gray-200); border-radius:8px" />
-        <button class="btn-sm" onClick={handleAdd}>+</button>
+              )}
+            </For>
+          </Show>
+        </Show>
+      </div>
+
+      <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <input
+          class="form-control"
+          value={newName()}
+          onInput={(e) => setNewName(e.currentTarget.value)}
+          placeholder={`Tambah ${props.title.replace('Kelola ', '').toLowerCase()}...`}
+          onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); }}
+          style="flex: 1;"
+        />
+        <button class="btn btn-sm" onClick={handleAdd} style="white-space: nowrap; height: 46px;">
+          + Tambah
+        </button>
       </div>
     </div>
   );
@@ -91,10 +123,22 @@ const Admin: Component = () => {
 
   return (
     <div class="page">
-      <h2>Admin</h2>
-      <br />
+      <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem;">
+        <A
+          href="/"
+          class="btn-sm btn-outline"
+          aria-label="Kembali ke Dashboard"
+          style="display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; text-decoration: none; border-radius: var(--radius-sm);"
+        >
+          ←
+        </A>
+        <h2 style="font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; color: var(--text-main); margin: 0;">
+          Admin
+        </h2>
+      </div>
+
       <AdminSection
-        title="Kategori"
+        title="Kelola Kategori"
         items={categories}
         onAdd={(n) => createCategory(n).then(() => {})}
         onUpdate={(id, n) => updateCategory(id, n).then(() => {})}
@@ -102,7 +146,7 @@ const Admin: Component = () => {
         refetch={refetchCats}
       />
       <AdminSection
-        title="Metode Pembayaran"
+        title="Kelola Metode Pembayaran"
         items={paymentMethods}
         onAdd={(n) => createPaymentMethod(n).then(() => {})}
         onUpdate={(id, n) => updatePaymentMethod(id, n).then(() => {})}

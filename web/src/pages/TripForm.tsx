@@ -1,6 +1,6 @@
 import { Component, createSignal } from 'solid-js';
 import { useNavigate, useParams } from '@solidjs/router';
-import { createTrip, updateTrip, getTrip, type Trip } from '../api';
+import { createTrip, updateTrip, getTrip } from '../api';
 
 const TripForm: Component = () => {
   const params = useParams();
@@ -17,7 +17,7 @@ const TripForm: Component = () => {
   const [loading, setLoading] = createSignal(false);
 
   if (isEdit) {
-    getTrip(params.id).then((t) => {
+    getTrip(params.id!).then((t) => {
       setNama(t.nama);
       setTujuan(t.tujuan);
       setMulai(t.tanggal_mulai);
@@ -46,7 +46,7 @@ const TripForm: Component = () => {
       if (dibayar()) data.tanggal_dibayar = dibayar();
 
       if (isEdit) {
-        await updateTrip(params.id, data);
+        await updateTrip(params.id!, data);
         navigate(`/trips/${params.id}`);
       } else {
         const trip = await createTrip(data);
@@ -61,40 +61,97 @@ const TripForm: Component = () => {
 
   return (
     <div class="page">
-      <h2>{isEdit ? 'Edit' : 'Tambah'} Perjalanan Dinas</h2>
-      <form onSubmit={handleSubmit}>
-        <div class="form-group">
-          <label>Nama</label>
-          <input value={nama()} onInput={(e) => setNama(e.currentTarget.value)} required />
-        </div>
-        <div class="form-group">
-          <label>Tujuan</label>
-          <input value={tujuan()} onInput={(e) => setTujuan(e.currentTarget.value)} required />
-        </div>
-        <div class="form-group">
-          <label>Tanggal Mulai</label>
-          <input type="date" value={mulai()} onInput={(e) => setMulai(e.currentTarget.value)} required />
-        </div>
-        <div class="form-group">
-          <label>Tanggal Selesai</label>
-          <input type="date" value={selesai()} onInput={(e) => setSelesai(e.currentTarget.value)} required />
-        </div>
-        <div class="form-group">
-          <label>Uang Dinas (Rp, opsional)</label>
-          <input type="number" value={uangDinas()} onInput={(e) => setUangDinas(e.currentTarget.value)} min="0" />
-        </div>
-        <div class="form-group">
-          <label>Tanggal Dibayar (opsional)</label>
-          <input type="date" value={dibayar()} onInput={(e) => setDibayar(e.currentTarget.value)} />
-        </div>
-        {error() && <p class="text-red" style="margin-bottom: 1rem">{error()}</p>}
-        <div class="form-actions">
-          <button type="button" class="btn btn-outline" onClick={() => navigate(-1)}>Batal</button>
-          <button type="submit" class="btn" disabled={loading()}>
-            {loading() ? 'Menyimpan...' : 'Simpan'}
-          </button>
-        </div>
-      </form>
+      <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem;">
+        <button
+          type="button"
+          class="btn-sm btn-outline"
+          onClick={() => navigate(-1)}
+          aria-label="Kembali"
+          style="display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; padding: 0; cursor: pointer; border-radius: var(--radius-sm);"
+        >
+          ←
+        </button>
+        <h2 style="font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; color: var(--text-main); margin: 0;">
+          {isEdit ? 'Edit Perjalanan' : 'Tambah Perjalanan'}
+        </h2>
+      </div>
+
+      <div class="card">
+        <form onSubmit={handleSubmit}>
+          <div class="form-group">
+            <label for="nama">Nama</label>
+            <input
+              id="nama"
+              class="form-control"
+              value={nama()}
+              onInput={(e) => setNama(e.currentTarget.value)}
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="tujuan">Tujuan</label>
+            <input
+              id="tujuan"
+              class="form-control"
+              value={tujuan()}
+              onInput={(e) => setTujuan(e.currentTarget.value)}
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="mulai">Tanggal Mulai</label>
+            <input
+              id="mulai"
+              type="date"
+              class="form-control"
+              value={mulai()}
+              onInput={(e) => setMulai(e.currentTarget.value)}
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="selesai">Tanggal Selesai</label>
+            <input
+              id="selesai"
+              type="date"
+              class="form-control"
+              value={selesai()}
+              onInput={(e) => setSelesai(e.currentTarget.value)}
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="uangDinas">Uang Dinas (Rp, opsional)</label>
+            <input
+              id="uangDinas"
+              type="number"
+              class="form-control"
+              value={uangDinas()}
+              onInput={(e) => setUangDinas(e.currentTarget.value)}
+              min="0"
+            />
+          </div>
+          <div class="form-group">
+            <label for="dibayar">Tanggal Dibayar (opsional)</label>
+            <input
+              id="dibayar"
+              type="date"
+              class="form-control"
+              value={dibayar()}
+              onInput={(e) => setDibayar(e.currentTarget.value)}
+            />
+          </div>
+          {error() && <p class="text-red" style="margin-bottom: 1rem; font-size: 0.875rem;">{error()}</p>}
+          <div class="form-actions">
+            <button type="button" class="btn btn-outline" onClick={() => navigate(-1)}>
+              Batal
+            </button>
+            <button type="submit" class="btn" disabled={loading()}>
+              {loading() ? 'Menyimpan...' : 'Simpan'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };
