@@ -137,7 +137,7 @@ const Dashboard: Component = () => {
       </div>
 
       {/* Trip List & Empty State */}
-      <Show when={trips()} fallback={<p style="text-align: center; color: var(--text-muted); padding: 2rem 0;">Memuat...</p>}>
+      <Show when={!trips.loading} fallback={<p style="text-align: center; color: var(--text-muted); padding: 2rem 0;">Memuat...</p>}>
         <Show
           when={filteredTrips().length > 0}
           fallback={
