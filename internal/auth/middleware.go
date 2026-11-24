@@ -57,6 +57,10 @@ func UserRoleFromContext(ctx context.Context) string {
 	return v
 }
 
+func RoleFromContext(ctx context.Context) string {
+	return UserRoleFromContext(ctx)
+}
+
 func writeJSON(w http.ResponseWriter, status int, v interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)

@@ -78,6 +78,11 @@ func main() {
 	mux.Handle("PUT /api/trips/{id}", authMW(http.HandlerFunc(handler.UpdateTrip(database))))
 	mux.Handle("DELETE /api/trips/{id}", authMW(http.HandlerFunc(handler.DeleteTrip(database))))
 
+	// Trip Collaborators
+	mux.Handle("GET /api/trips/{id}/members", authMW(http.HandlerFunc(handler.ListTripMembers(database))))
+	mux.Handle("POST /api/trips/{id}/members", authMW(http.HandlerFunc(handler.AddTripMember(database))))
+	mux.Handle("DELETE /api/trips/{id}/members/{userID}", authMW(http.HandlerFunc(handler.RemoveTripMember(database))))
+
 	// Dashboard & Analytics
 	mux.Handle("GET /api/dashboard", authMW(http.HandlerFunc(handler.GetDashboard(database))))
 	mux.Handle("GET /api/analytics", authMW(http.HandlerFunc(handler.GetAnalytics(database))))

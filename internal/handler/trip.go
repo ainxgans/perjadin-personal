@@ -11,25 +11,28 @@ import (
 )
 
 type tripResponse struct {
-	ID               string    `json:"id"`
-	Nama             string    `json:"nama"`
-	Tujuan           string    `json:"tujuan"`
-	TanggalMulai     string    `json:"tanggal_mulai"`
-	TanggalSelesai   string    `json:"tanggal_selesai"`
-	Status           string    `json:"status"`
-	UangDinas        *int64    `json:"uang_dinas"`
-	NominalMonita    *int64    `json:"nominal_monita"`
-	TanggalDibayar   *string   `json:"tanggal_dibayar"`
-	Catatan          string    `json:"catatan"`
-	LinkMonita       string    `json:"link_monita"`
-	SettlementNote   string    `json:"settlement_note"`
-	TotalPengeluaran int64     `json:"total_pengeluaran"`
-	Saldo            int64     `json:"saldo"`
-	CreatedAt        time.Time `json:"created_at"`
-	UpdatedAt        time.Time `json:"updated_at"`
+	ID                 string    `json:"id"`
+	Nama               string    `json:"nama"`
+	Tujuan             string    `json:"tujuan"`
+	TanggalMulai       string    `json:"tanggal_mulai"`
+	TanggalSelesai     string    `json:"tanggal_selesai"`
+	Status             string    `json:"status"`
+	UangDinas          *int64    `json:"uang_dinas"`
+	NominalMonita      *int64    `json:"nominal_monita"`
+	TanggalDibayar     *string   `json:"tanggal_dibayar"`
+	Catatan            string    `json:"catatan"`
+	LinkMonita         string    `json:"link_monita"`
+	SettlementNote     string    `json:"settlement_note"`
+	TotalPengeluaran   int64     `json:"total_pengeluaran"`
+	Saldo              int64     `json:"saldo"`
+	IsOwner            bool      `json:"is_owner"`
+	OwnerName          string    `json:"owner_name"`
+	CollaboratorsCount int       `json:"collaborators_count"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
 }
 
-func tripToResponse(t model.Trip, totalExpense int64) tripResponse {
+func tripToResponse(t model.Trip, totalExpense int64, isOwner bool, ownerName string, collabsCount int) tripResponse {
 	var dibayarStr *string
 	if t.TanggalDibayar != nil {
 		s := t.TanggalDibayar.Format("2006-01-02")
@@ -40,52 +43,49 @@ func tripToResponse(t model.Trip, totalExpense int64) tripResponse {
 		uangDinas = *t.UangDinas
 	}
 	return tripResponse{
-		ID:               t.ID,
-		Nama:             t.Nama,
-		Tujuan:           t.Tujuan,
-		TanggalMulai:     t.TanggalMulai.Format("2006-01-02"),
-		TanggalSelesai:   t.TanggalSelesai.Format("2006-01-02"),
-		Status:           t.Status,
-		UangDinas:        t.UangDinas,
-		NominalMonita:    t.NominalMonita,
-		TanggalDibayar:   dibayarStr,
-		Catatan:          t.Catatan,
-		LinkMonita:       t.LinkMonita,
-		SettlementNote:   t.SettlementNote,
-		TotalPengeluaran: totalExpense,
-		Saldo:            uangDinas - totalExpense,
-		CreatedAt:        t.CreatedAt,
-		UpdatedAt:        t.UpdatedAt,
+		ID:                 t.ID,
+		Nama:               t.Nama,
+		Tujuan:             t.Tujuan,
+		TanggalMulai:       t.TanggalMulai.Format("2006-01-02"),
+		TanggalSelesai:     t.TanggalSelesai.Format("2006-01-02"),
+		Status:             t.Status,
+		UangDinas:          t.UangDinas,
+		NominalMonita:      t.NominalMonita,
+		TanggalDibayar:     dibayarStr,
+		Catatan:            t.Catatan,
+		LinkMonita:         t.LinkMonita,
+		SettlementNote:     t.SettlementNote,
+		TotalPengeluaran:   totalExpense,
+		Saldo:              uangDinas - totalExpense,
+		IsOwner:            isOwner,
+		OwnerName:          ownerName,
+		CollaboratorsCount: collabsCount,
+		CreatedAt:          t.CreatedAt,
+		UpdatedAt:          t.UpdatedAt,
 	}
 }
 
-// scanTripCols is the shared column list for trip queries.
 const tripSelectCols = `t.id, t.nama, t.tujuan, t.tanggal_mulai, t.tanggal_selesai,
 	COALESCE(t.status, 'berlangsung'), t.uang_dinas, t.nominal_monita, t.tanggal_dibayar,
 	COALESCE(t.catatan, ''), COALESCE(t.link_monita, ''), COALESCE(t.settlement_note, ''),
 	t.created_at, t.updated_at`
-
-func scanTrip(scanner interface{ Scan(...any) error }, t *model.Trip, extras ...any) error {
-	args := []any{
-		&t.ID, &t.Nama, &t.Tujuan, &t.TanggalMulai, &t.TanggalSelesai,
-		&t.Status, &t.UangDinas, &t.NominalMonita, &t.TanggalDibayar,
-		&t.Catatan, &t.LinkMonita, &t.SettlementNote,
-		&t.CreatedAt, &t.UpdatedAt,
-	}
-	args = append(args, extras...)
-	return scanner.Scan(args...)
-}
 
 func ListTrips(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID := auth.UserIDFromContext(r.Context())
 		rows, err := db.Query(`
 			SELECT `+tripSelectCols+`,
-				COALESCE(SUM(e.jumlah), 0) as total_expense
+				COALESCE(SUM(e.jumlah), 0) as total_expense,
+				(t.user_id = $1) as is_owner,
+				u.name as owner_name,
+				(SELECT COUNT(*) FROM trip_members tm WHERE tm.trip_id = t.id) as collabs_count
 			FROM trips t
+			JOIN users u ON t.user_id = u.id
 			LEFT JOIN expenses e ON e.trip_id = t.id
-			WHERE t.user_id = $1
-			GROUP BY t.id
+			WHERE t.user_id = $1 OR EXISTS (
+				SELECT 1 FROM trip_members tm WHERE tm.trip_id = t.id AND tm.user_id = $1
+			)
+			GROUP BY t.id, u.name
 			ORDER BY t.tanggal_mulai DESC
 		`, userID)
 		if err != nil {
@@ -98,10 +98,20 @@ func ListTrips(db *sql.DB) http.HandlerFunc {
 		for rows.Next() {
 			var t model.Trip
 			var totalExpense int64
-			if err := scanTrip(rows, &t, &totalExpense); err != nil {
+			var isOwner bool
+			var ownerName string
+			var collabsCount int
+
+			if err := rows.Scan(
+				&t.ID, &t.Nama, &t.Tujuan, &t.TanggalMulai, &t.TanggalSelesai,
+				&t.Status, &t.UangDinas, &t.NominalMonita, &t.TanggalDibayar,
+				&t.Catatan, &t.LinkMonita, &t.SettlementNote,
+				&t.CreatedAt, &t.UpdatedAt,
+				&totalExpense, &isOwner, &ownerName, &collabsCount,
+			); err != nil {
 				continue
 			}
-			trips = append(trips, tripToResponse(t, totalExpense))
+			trips = append(trips, tripToResponse(t, totalExpense, isOwner, ownerName, collabsCount))
 		}
 		if trips == nil {
 			trips = []tripResponse{}
@@ -169,29 +179,45 @@ func CreateTrip(db *sql.DB) http.HandlerFunc {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
 		}
-		writeJSON(w, http.StatusCreated, map[string]interface{}{"data": tripToResponse(trip, 0)})
+
+		var ownerName string
+		db.QueryRow("SELECT name FROM users WHERE id = $1", userID).Scan(&ownerName)
+		writeJSON(w, http.StatusCreated, map[string]interface{}{"data": tripToResponse(trip, 0, true, ownerName, 0)})
 	}
 }
 
 func GetTrip(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID := auth.UserIDFromContext(r.Context())
+		role := auth.RoleFromContext(r.Context())
 		id := r.PathValue("id")
 
 		var trip model.Trip
 		var totalExpense int64
+		var tripOwnerID string
+		var ownerName string
+		var collabsCount int
+
 		err := db.QueryRow(`
 			SELECT `+tripSelectCols+`,
-				COALESCE(SUM(e.jumlah), 0)
+				COALESCE(SUM(e.jumlah), 0),
+				t.user_id,
+				u.name as owner_name,
+				(SELECT COUNT(*) FROM trip_members tm WHERE tm.trip_id = t.id) as collabs_count
 			FROM trips t
+			JOIN users u ON t.user_id = u.id
 			LEFT JOIN expenses e ON e.trip_id = t.id
-			WHERE t.id = $1 AND t.user_id = $2
-			GROUP BY t.id
-		`, id, userID).Scan(
+			WHERE t.id = $1 AND (
+				t.user_id = $2 OR EXISTS (SELECT 1 FROM trip_members tm WHERE tm.trip_id = t.id AND tm.user_id = $2) OR $3 = 'admin'
+			)
+			GROUP BY t.id, u.name
+		`, id, userID, role).Scan(
 			&trip.ID, &trip.Nama, &trip.Tujuan, &trip.TanggalMulai, &trip.TanggalSelesai,
 			&trip.Status, &trip.UangDinas, &trip.NominalMonita, &trip.TanggalDibayar,
 			&trip.Catatan, &trip.LinkMonita, &trip.SettlementNote,
-			&trip.CreatedAt, &trip.UpdatedAt, &totalExpense)
+			&trip.CreatedAt, &trip.UpdatedAt, &totalExpense,
+			&tripOwnerID, &ownerName, &collabsCount)
+
 		if err == sql.ErrNoRows {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
 			return
@@ -200,13 +226,16 @@ func GetTrip(db *sql.DB) http.HandlerFunc {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
 		}
-		writeJSON(w, http.StatusOK, map[string]interface{}{"data": tripToResponse(trip, totalExpense)})
+
+		isOwner := (tripOwnerID == userID) || (role == "admin")
+		writeJSON(w, http.StatusOK, map[string]interface{}{"data": tripToResponse(trip, totalExpense, isOwner, ownerName, collabsCount)})
 	}
 }
 
 func UpdateTrip(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID := auth.UserIDFromContext(r.Context())
+		role := auth.RoleFromContext(r.Context())
 		id := r.PathValue("id")
 
 		var input struct {
@@ -227,16 +256,22 @@ func UpdateTrip(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		// Get current trip
+		// Only owner or admin can update trip metadata
 		var trip model.Trip
-		err := db.QueryRow(`SELECT `+tripSelectCols+`
-			FROM trips t WHERE t.id = $1 AND t.user_id = $2`, id, userID).
+		var tripOwnerID string
+		err := db.QueryRow(`SELECT `+tripSelectCols+`, t.user_id
+			FROM trips t WHERE t.id = $1`, id).
 			Scan(&trip.ID, &trip.Nama, &trip.Tujuan, &trip.TanggalMulai, &trip.TanggalSelesai,
 				&trip.Status, &trip.UangDinas, &trip.NominalMonita, &trip.TanggalDibayar,
 				&trip.Catatan, &trip.LinkMonita, &trip.SettlementNote,
-				&trip.CreatedAt, &trip.UpdatedAt)
+				&trip.CreatedAt, &trip.UpdatedAt, &tripOwnerID)
 		if err == sql.ErrNoRows {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
+			return
+		}
+
+		if tripOwnerID != userID && role != "admin" {
+			writeJSON(w, http.StatusForbidden, map[string]string{"error": "hanya pemilik trip atau admin yang dapat mengubah detail trip"})
 			return
 		}
 
@@ -301,10 +336,10 @@ func UpdateTrip(db *sql.DB) http.HandlerFunc {
 			UPDATE trips SET nama=$1, tujuan=$2, tanggal_mulai=$3, tanggal_selesai=$4,
 				status=$5, uang_dinas=$6, nominal_monita=$7, tanggal_dibayar=$8,
 				catatan=$9, link_monita=$10, settlement_note=$11, updated_at=now()
-			WHERE id=$12 AND user_id=$13
+			WHERE id=$12
 		`, trip.Nama, trip.Tujuan, trip.TanggalMulai, trip.TanggalSelesai,
 			trip.Status, trip.UangDinas, trip.NominalMonita, trip.TanggalDibayar,
-			trip.Catatan, trip.LinkMonita, trip.SettlementNote, id, userID)
+			trip.Catatan, trip.LinkMonita, trip.SettlementNote, id)
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
@@ -312,25 +347,38 @@ func UpdateTrip(db *sql.DB) http.HandlerFunc {
 
 		// Re-fetch with totals
 		var totalExpense int64
+		var ownerName string
+		var collabsCount int
 		db.QueryRow("SELECT COALESCE(SUM(jumlah), 0) FROM expenses WHERE trip_id = $1", id).Scan(&totalExpense)
 		db.QueryRow("SELECT updated_at FROM trips WHERE id = $1", id).Scan(&trip.UpdatedAt)
-		writeJSON(w, http.StatusOK, map[string]interface{}{"data": tripToResponse(trip, totalExpense)})
+		db.QueryRow("SELECT name FROM users WHERE id = $1", tripOwnerID).Scan(&ownerName)
+		db.QueryRow("SELECT COUNT(*) FROM trip_members WHERE trip_id = $1", id).Scan(&collabsCount)
+
+		writeJSON(w, http.StatusOK, map[string]interface{}{"data": tripToResponse(trip, totalExpense, true, ownerName, collabsCount)})
 	}
 }
 
 func DeleteTrip(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID := auth.UserIDFromContext(r.Context())
+		role := auth.RoleFromContext(r.Context())
 		id := r.PathValue("id")
 
-		result, err := db.Exec("DELETE FROM trips WHERE id = $1 AND user_id = $2", id, userID)
+		var result sql.Result
+		var err error
+		if role == "admin" {
+			result, err = db.Exec("DELETE FROM trips WHERE id = $1", id)
+		} else {
+			result, err = db.Exec("DELETE FROM trips WHERE id = $1 AND user_id = $2", id, userID)
+		}
+
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
 		}
 		rows, _ := result.RowsAffected()
 		if rows == 0 {
-			writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found or unauthorized"})
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
