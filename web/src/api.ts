@@ -13,7 +13,10 @@ export interface Trip {
   tanggal_mulai: string;
   tanggal_selesai: string;
   uang_dinas: number | null;
+  nominal_monita: number | null;
   tanggal_dibayar: string | null;
+  catatan: string;
+  link_monita: string;
   status: string;
   total_pengeluaran: number;
   saldo: number;
@@ -47,6 +50,7 @@ export interface PaymentMethod {
 export interface Dashboard {
   belum_lunas: number;
   pemasukan_bulan_lalu: number;
+  estimasi_belum_cair: number;
 }
 
 export interface AdminUser {

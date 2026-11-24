@@ -17,7 +17,10 @@ type tripResponse struct {
 	TanggalMulai    string     `json:"tanggal_mulai"`
 	TanggalSelesai  string     `json:"tanggal_selesai"`
 	UangDinas       *int64     `json:"uang_dinas"`
+	NominalMonita   *int64     `json:"nominal_monita"`
 	TanggalDibayar  *string    `json:"tanggal_dibayar"`
+	Catatan         string     `json:"catatan"`
+	LinkMonita      string     `json:"link_monita"`
 	Status          string     `json:"status"`
 	TotalPengeluaran int64     `json:"total_pengeluaran"`
 	Saldo           int64      `json:"saldo"`
@@ -42,7 +45,10 @@ func tripToResponse(t model.Trip, totalExpense int64) tripResponse {
 		TanggalMulai:    t.TanggalMulai.Format("2006-01-02"),
 		TanggalSelesai:  t.TanggalSelesai.Format("2006-01-02"),
 		UangDinas:       t.UangDinas,
+		NominalMonita:   t.NominalMonita,
 		TanggalDibayar:  dibayarStr,
+		Catatan:         t.Catatan,
+		LinkMonita:      t.LinkMonita,
 		Status:          t.Status(),
 		TotalPengeluaran: totalExpense,
 		Saldo:           uangDinas - totalExpense,
@@ -56,7 +62,8 @@ func ListTrips(db *sql.DB) http.HandlerFunc {
 		userID := auth.UserIDFromContext(r.Context())
 		rows, err := db.Query(`
 			SELECT t.id, t.nama, t.tujuan, t.tanggal_mulai, t.tanggal_selesai,
-				t.uang_dinas, t.tanggal_dibayar, t.created_at, t.updated_at,
+				t.uang_dinas, t.nominal_monita, t.tanggal_dibayar, COALESCE(t.catatan, ''), COALESCE(t.link_monita, ''),
+				t.created_at, t.updated_at,
 				COALESCE(SUM(e.jumlah), 0) as total_expense
 			FROM trips t
 			LEFT JOIN expenses e ON e.trip_id = t.id
@@ -75,7 +82,8 @@ func ListTrips(db *sql.DB) http.HandlerFunc {
 			var t model.Trip
 			var totalExpense int64
 			if err := rows.Scan(&t.ID, &t.Nama, &t.Tujuan, &t.TanggalMulai, &t.TanggalSelesai,
-				&t.UangDinas, &t.TanggalDibayar, &t.CreatedAt, &t.UpdatedAt, &totalExpense); err != nil {
+				&t.UangDinas, &t.NominalMonita, &t.TanggalDibayar, &t.Catatan, &t.LinkMonita,
+				&t.CreatedAt, &t.UpdatedAt, &totalExpense); err != nil {
 				continue
 			}
 			trips = append(trips, tripToResponse(t, totalExpense))
@@ -96,7 +104,10 @@ func CreateTrip(db *sql.DB) http.HandlerFunc {
 			TanggalMulai   string  `json:"tanggal_mulai"`
 			TanggalSelesai string  `json:"tanggal_selesai"`
 			UangDinas      *int64  `json:"uang_dinas"`
+			NominalMonita  *int64  `json:"nominal_monita"`
 			TanggalDibayar *string `json:"tanggal_dibayar"`
+			Catatan        string  `json:"catatan"`
+			LinkMonita     string  `json:"link_monita"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid json"})
@@ -130,12 +141,12 @@ func CreateTrip(db *sql.DB) http.HandlerFunc {
 
 		var trip model.Trip
 		err := db.QueryRow(`
-			INSERT INTO trips (user_id, nama, tujuan, tanggal_mulai, tanggal_selesai, uang_dinas, tanggal_dibayar)
-			VALUES ($1, $2, $3, $4, $5, $6, $7)
-			RETURNING id, user_id, nama, tujuan, tanggal_mulai, tanggal_selesai, uang_dinas, tanggal_dibayar, created_at, updated_at
-		`, userID, input.Nama, input.Tujuan, mulai, selesai, input.UangDinas, dibayar).
+			INSERT INTO trips (user_id, nama, tujuan, tanggal_mulai, tanggal_selesai, uang_dinas, nominal_monita, tanggal_dibayar, catatan, link_monita)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+			RETURNING id, user_id, nama, tujuan, tanggal_mulai, tanggal_selesai, uang_dinas, nominal_monita, tanggal_dibayar, catatan, link_monita, created_at, updated_at
+		`, userID, input.Nama, input.Tujuan, mulai, selesai, input.UangDinas, input.NominalMonita, dibayar, input.Catatan, input.LinkMonita).
 			Scan(&trip.ID, &trip.UserID, &trip.Nama, &trip.Tujuan, &trip.TanggalMulai, &trip.TanggalSelesai,
-				&trip.UangDinas, &trip.TanggalDibayar, &trip.CreatedAt, &trip.UpdatedAt)
+				&trip.UangDinas, &trip.NominalMonita, &trip.TanggalDibayar, &trip.Catatan, &trip.LinkMonita, &trip.CreatedAt, &trip.UpdatedAt)
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
@@ -153,14 +164,16 @@ func GetTrip(db *sql.DB) http.HandlerFunc {
 		var totalExpense int64
 		err := db.QueryRow(`
 			SELECT t.id, t.nama, t.tujuan, t.tanggal_mulai, t.tanggal_selesai,
-				t.uang_dinas, t.tanggal_dibayar, t.created_at, t.updated_at,
+				t.uang_dinas, t.nominal_monita, t.tanggal_dibayar, COALESCE(t.catatan, ''), COALESCE(t.link_monita, ''),
+				t.created_at, t.updated_at,
 				COALESCE(SUM(e.jumlah), 0)
 			FROM trips t
 			LEFT JOIN expenses e ON e.trip_id = t.id
 			WHERE t.id = $1 AND t.user_id = $2
 			GROUP BY t.id
 		`, id, userID).Scan(&trip.ID, &trip.Nama, &trip.Tujuan, &trip.TanggalMulai, &trip.TanggalSelesai,
-			&trip.UangDinas, &trip.TanggalDibayar, &trip.CreatedAt, &trip.UpdatedAt, &totalExpense)
+			&trip.UangDinas, &trip.NominalMonita, &trip.TanggalDibayar, &trip.Catatan, &trip.LinkMonita,
+			&trip.CreatedAt, &trip.UpdatedAt, &totalExpense)
 		if err == sql.ErrNoRows {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
 			return
@@ -184,7 +197,10 @@ func UpdateTrip(db *sql.DB) http.HandlerFunc {
 			TanggalMulai   *string `json:"tanggal_mulai"`
 			TanggalSelesai *string `json:"tanggal_selesai"`
 			UangDinas      *int64  `json:"uang_dinas"`
+			NominalMonita  *int64  `json:"nominal_monita"`
 			TanggalDibayar *string `json:"tanggal_dibayar"`
+			Catatan        *string `json:"catatan"`
+			LinkMonita     *string `json:"link_monita"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid json"})
@@ -193,10 +209,10 @@ func UpdateTrip(db *sql.DB) http.HandlerFunc {
 
 		// Get current trip
 		var trip model.Trip
-		err := db.QueryRow(`SELECT id, nama, tujuan, tanggal_mulai, tanggal_selesai, uang_dinas, tanggal_dibayar, created_at, updated_at
+		err := db.QueryRow(`SELECT id, nama, tujuan, tanggal_mulai, tanggal_selesai, uang_dinas, nominal_monita, tanggal_dibayar, COALESCE(catatan, ''), COALESCE(link_monita, ''), created_at, updated_at
 			FROM trips WHERE id = $1 AND user_id = $2`, id, userID).
 			Scan(&trip.ID, &trip.Nama, &trip.Tujuan, &trip.TanggalMulai, &trip.TanggalSelesai,
-				&trip.UangDinas, &trip.TanggalDibayar, &trip.CreatedAt, &trip.UpdatedAt)
+				&trip.UangDinas, &trip.NominalMonita, &trip.TanggalDibayar, &trip.Catatan, &trip.LinkMonita, &trip.CreatedAt, &trip.UpdatedAt)
 		if err == sql.ErrNoRows {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
 			return
@@ -231,6 +247,9 @@ func UpdateTrip(db *sql.DB) http.HandlerFunc {
 		if input.UangDinas != nil {
 			trip.UangDinas = input.UangDinas
 		}
+		if input.NominalMonita != nil {
+			trip.NominalMonita = input.NominalMonita
+		}
 		if input.TanggalDibayar != nil {
 			t, err := time.Parse("2006-01-02", *input.TanggalDibayar)
 			if err != nil {
@@ -239,13 +258,19 @@ func UpdateTrip(db *sql.DB) http.HandlerFunc {
 			}
 			trip.TanggalDibayar = &t
 		}
+		if input.Catatan != nil {
+			trip.Catatan = *input.Catatan
+		}
+		if input.LinkMonita != nil {
+			trip.LinkMonita = *input.LinkMonita
+		}
 
 		_, err = db.Exec(`
 			UPDATE trips SET nama=$1, tujuan=$2, tanggal_mulai=$3, tanggal_selesai=$4,
-				uang_dinas=$5, tanggal_dibayar=$6, updated_at=now()
-			WHERE id=$7 AND user_id=$8
+				uang_dinas=$5, nominal_monita=$6, tanggal_dibayar=$7, catatan=$8, link_monita=$9, updated_at=now()
+			WHERE id=$10 AND user_id=$11
 		`, trip.Nama, trip.Tujuan, trip.TanggalMulai, trip.TanggalSelesai,
-			trip.UangDinas, trip.TanggalDibayar, id, userID)
+			trip.UangDinas, trip.NominalMonita, trip.TanggalDibayar, trip.Catatan, trip.LinkMonita, id, userID)
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return

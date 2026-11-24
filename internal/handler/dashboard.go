@@ -33,11 +33,20 @@ func GetDashboard(db *sql.DB) http.HandlerFunc {
 				AND date_trunc('month', t.tanggal_dibayar) = date_trunc('month', now() - interval '1 month')
 		`, userID).Scan(&pemasukanBulanLalu)
 
+		var estimasiBelumCair int64
+		db.QueryRow(`
+			SELECT COALESCE(SUM(COALESCE(t.nominal_monita, t.uang_dinas, 0)), 0)
+			FROM trips t
+			WHERE t.user_id = $1
+				AND t.tanggal_dibayar IS NULL
+		`, userID).Scan(&estimasiBelumCair)
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"data": map[string]interface{}{
 				"belum_lunas":          belumLunas,
 				"pemasukan_bulan_lalu": pemasukanBulanLalu,
+				"estimasi_belum_cair":  estimasiBelumCair,
 			},
 		})
 	}

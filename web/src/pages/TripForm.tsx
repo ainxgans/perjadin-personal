@@ -13,6 +13,9 @@ const TripForm: Component = () => {
   const [mulai, setMulai] = createSignal('');
   const [selesai, setSelesai] = createSignal('');
   const [uangDinas, setUangDinas] = createSignal('');
+  const [nominalMonita, setNominalMonita] = createSignal('');
+  const [linkMonita, setLinkMonita] = createSignal('');
+  const [catatan, setCatatan] = createSignal('');
   const [dibayar, setDibayar] = createSignal('');
   const [error, setError] = createSignal('');
   const [loading, setLoading] = createSignal(false);
@@ -24,6 +27,9 @@ const TripForm: Component = () => {
       setMulai(t.tanggal_mulai);
       setSelesai(t.tanggal_selesai);
       if (t.uang_dinas != null) setUangDinas(String(t.uang_dinas));
+      if (t.nominal_monita != null) setNominalMonita(String(t.nominal_monita));
+      if (t.link_monita) setLinkMonita(t.link_monita);
+      if (t.catatan) setCatatan(t.catatan);
       if (t.tanggal_dibayar) setDibayar(t.tanggal_dibayar);
     });
   }
@@ -44,6 +50,9 @@ const TripForm: Component = () => {
         tanggal_selesai: selesai(),
       };
       if (uangDinas()) data.uang_dinas = parseInt(uangDinas());
+      if (nominalMonita()) data.nominal_monita = parseInt(nominalMonita());
+      data.link_monita = linkMonita();
+      data.catatan = catatan();
       if (dibayar()) data.tanggal_dibayar = dibayar();
 
       if (isEdit) {
@@ -128,7 +137,20 @@ const TripForm: Component = () => {
             </div>
 
             <div class="form-group">
-              <label for="uangDinas">Uang Dinas Diterima (Rp, Opsional)</label>
+              <label for="nominalMonita">Nominal Monita (Pagu Kotor / Estimasi, Opsional)</label>
+              <input
+                id="nominalMonita"
+                type="number"
+                class="form-control amount"
+                value={nominalMonita()}
+                onInput={(e) => setNominalMonita(e.currentTarget.value)}
+                placeholder="0"
+                min="0"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="uangDinas">Uang Dinas Diterima (Pagu Bersih Masuk Rekening, Opsional)</label>
               <input
                 id="uangDinas"
                 type="number"
@@ -148,6 +170,31 @@ const TripForm: Component = () => {
                 class="form-control"
                 value={dibayar()}
                 onInput={(e) => setDibayar(e.currentTarget.value)}
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="linkMonita">Link Monita (Opsional)</label>
+              <input
+                id="linkMonita"
+                type="url"
+                class="form-control"
+                value={linkMonita()}
+                onInput={(e) => setLinkMonita(e.currentTarget.value)}
+                placeholder="https://monita.bphmigas.com/..."
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="catatan">Catatan Perjalanan (Rekan, Agenda, Kendaraan, Opsional)</label>
+              <textarea
+                id="catatan"
+                class="form-control"
+                rows="3"
+                value={catatan()}
+                onInput={(e) => setCatatan(e.currentTarget.value)}
+                placeholder="Catatan tim, detail whoosh/taksi, atau agenda..."
+                style="resize: vertical;"
               />
             </div>
 

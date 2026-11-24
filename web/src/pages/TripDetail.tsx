@@ -94,8 +94,16 @@ const TripDetail: Component = () => {
 
               <div class="detail-hero-stats">
                 <div>
-                  <div class="detail-hero-stat-label">Uang Dinas</div>
-                  <div class="detail-hero-stat-val amount">{t().uang_dinas != null ? formatRp(t().uang_dinas!) : '-'}</div>
+                  <div class="detail-hero-stat-label">
+                    {t().uang_dinas != null ? 'Uang Dinas' : 'Estimasi Monita'}
+                  </div>
+                  <div class="detail-hero-stat-val amount">
+                    {t().uang_dinas != null
+                      ? formatRp(t().uang_dinas!)
+                      : t().nominal_monita != null
+                      ? formatRp(t().nominal_monita!)
+                      : '-'}
+                  </div>
                 </div>
                 <div>
                   <div class="detail-hero-stat-label">Pengeluaran</div>
@@ -108,6 +116,36 @@ const TripDetail: Component = () => {
                   </div>
                 </div>
               </div>
+
+              <Show when={t().nominal_monita && t().uang_dinas != null && t().nominal_monita !== t().uang_dinas}>
+                <div style="font-size: 0.6875rem; color: var(--text-muted); margin-bottom: 0.75rem; display: flex; justify-content: space-between;">
+                  <span>Pagu Kotor Monita: <strong class="amount">{formatRp(t().nominal_monita!)}</strong></span>
+                  <span>Potongan: <strong class="amount text-rose">{formatRp(t().nominal_monita! - t().uang_dinas!)}</strong></span>
+                </div>
+              </Show>
+
+              <Show when={t().link_monita}>
+                <div style="margin-bottom: 0.75rem;">
+                  <a
+                    href={t().link_monita}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="btn btn-sm btn-outline"
+                    style="width: 100%; font-size: 0.75rem; text-decoration: none;"
+                  >
+                    Buka Transaksi Monita ↗
+                  </a>
+                </div>
+              </Show>
+
+              <Show when={t().catatan}>
+                <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 0.75rem; margin-bottom: 0.75rem; font-size: 0.8125rem; white-space: pre-wrap; color: var(--text-secondary); line-height: 1.4;">
+                  <div style="font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.25rem;">
+                    Catatan Perjalanan
+                  </div>
+                  {t().catatan}
+                </div>
+              </Show>
 
               <div class="detail-hero-actions">
                 <A href={'/trips/' + params.id + '/edit'} class="btn btn-sm btn-secondary">

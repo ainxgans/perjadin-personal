@@ -67,13 +67,17 @@ const Dashboard: Component = () => {
           </div>
           <div class="ledger-stat-row">
             <div class="ledger-stat-box">
-              <span class="label">Belum Lunas</span>
-              <span class="val text-amber amount">{formatRp(dashboard()!.belum_lunas)}</span>
+              <span class="label">Estimasi Belum Cair</span>
+              <span class="val text-sky amount">{formatRp(dashboard()!.estimasi_belum_cair)}</span>
             </div>
             <div class="ledger-stat-box" style="text-align: right">
-              <span class="label">Pemasukan Bulan Lalu</span>
-              <span class="val text-emerald amount">{formatRp(dashboard()!.pemasukan_bulan_lalu)}</span>
+              <span class="label">Talangan Belum Lunas</span>
+              <span class="val text-amber amount">{formatRp(dashboard()!.belum_lunas)}</span>
             </div>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem; padding-top: 0.625rem; border-top: 1px solid var(--border-subtle); font-size: 0.75rem;">
+            <span style="color: var(--text-muted);">Pemasukan Bulan Lalu:</span>
+            <span class="text-emerald amount" style="font-weight: 700;">{formatRp(dashboard()!.pemasukan_bulan_lalu)}</span>
           </div>
         </div>
       </Show>
@@ -204,10 +208,28 @@ const Dashboard: Component = () => {
                           <span class="ticket-metric-val amount">{formatRp(trip.total_pengeluaran)}</span>
                         </div>
                         <div class="ticket-metric" style="text-align: right">
-                          <span class="ticket-metric-label">Saldo</span>
-                          <span class={'ticket-metric-val amount ' + (trip.saldo >= 0 ? 'text-emerald' : 'text-rose')}>
-                            {formatRp(trip.saldo)}
-                          </span>
+                          <Show
+                            when={trip.uang_dinas != null}
+                            fallback={
+                              <Show
+                                when={trip.nominal_monita}
+                                fallback={
+                                  <div>
+                                    <span class="ticket-metric-label">Status Kas</span>
+                                    <span class="ticket-metric-val" style="color: var(--text-muted); font-size: 0.75rem;">Menunggu SP2D</span>
+                                  </div>
+                                }
+                              >
+                                <span class="ticket-metric-label">Estimasi Monita</span>
+                                <span class="ticket-metric-val amount text-sky">{formatRp(trip.nominal_monita!)}</span>
+                              </Show>
+                            }
+                          >
+                            <span class="ticket-metric-label">Saldo</span>
+                            <span class={'ticket-metric-val amount ' + (trip.saldo >= 0 ? 'text-emerald' : 'text-rose')}>
+                              {formatRp(trip.saldo)}
+                            </span>
+                          </Show>
                         </div>
                       </div>
                     </div>

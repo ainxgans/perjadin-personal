@@ -32,7 +32,10 @@ type Trip struct {
 	TanggalMulai    time.Time  `json:"tanggal_mulai"`
 	TanggalSelesai  time.Time  `json:"tanggal_selesai"`
 	UangDinas       *int64     `json:"uang_dinas"`
+	NominalMonita   *int64     `json:"nominal_monita"`
 	TanggalDibayar  *time.Time `json:"tanggal_dibayar"`
+	Catatan         string     `json:"catatan"`
+	LinkMonita      string     `json:"link_monita"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
 }
