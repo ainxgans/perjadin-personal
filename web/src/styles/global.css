@@ -999,3 +999,236 @@ body::after {
 .text-amber { color: #fbbf24; }
 .text-rose { color: #fb7185; }
 .text-indigo { color: #818cf8; }
+
+/* ------------------------------------------------------------- */
+/* PERSISTENT BOTTOM DOCK NAVIGATION                            */
+/* ------------------------------------------------------------- */
+.bottom-dock-wrapper {
+  position: fixed;
+  bottom: 0.75rem;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 0 1rem;
+  pointer-events: none;
+}
+
+.bottom-dock {
+  pointer-events: auto;
+  background: rgba(14, 17, 24, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-shell);
+  border-radius: 9999px;
+  padding: 0.375rem 0.625rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.dock-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  padding: 0.375rem 0.875rem;
+  border-radius: 9999px;
+  color: var(--text-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  transition: all var(--dur-fast) ease;
+  min-width: 64px;
+}
+
+.dock-icon {
+  font-size: 1.125rem;
+  margin-bottom: 0.125rem;
+  transition: transform var(--dur-fast) var(--ease-spring);
+}
+
+.dock-item.active {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dock-item.active .dock-icon {
+  transform: translateY(-2px);
+}
+
+/* Adjust page padding so bottom dock doesn't obscure content */
+.page {
+  padding-bottom: 6rem;
+}
+
+/* Adjust FAB position to stay nicely above bottom dock */
+.fab {
+  bottom: 5rem;
+}
+
+/* ------------------------------------------------------------- */
+/* SEARCH & FILTER BAR                                           */
+/* ------------------------------------------------------------- */
+.search-filter-box {
+  margin-bottom: 1.25rem;
+}
+
+.search-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.625rem;
+}
+
+.search-input-icon {
+  position: absolute;
+  left: 0.875rem;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  pointer-events: none;
+}
+
+.search-input-wrap .form-control {
+  padding-left: 2.375rem;
+  min-height: 42px;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.filter-chips-row {
+  display: flex;
+  gap: 0.375rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+}
+
+.filter-chip {
+  white-space: nowrap;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+  padding: 0.375rem 0.75rem;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all var(--dur-fast) ease;
+}
+
+.filter-chip.active {
+  background: rgba(99, 102, 241, 0.2);
+  color: #fff;
+  border-color: #6366f1;
+}
+
+/* ------------------------------------------------------------- */
+/* BURN-DOWN PROGRESS GAUGE (IN TICKET)                          */
+/* ------------------------------------------------------------- */
+.burn-down-track {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  overflow: hidden;
+  margin: 0.5rem 0 0.25rem 0;
+}
+
+.burn-down-fill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.3s var(--ease-spring);
+}
+
+/* ------------------------------------------------------------- */
+/* TAB NAVIGATION (ADMIN & ANALYTICS)                            */
+/* ------------------------------------------------------------- */
+.segment-tabs {
+  display: flex;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  padding: 0.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.segment-tab {
+  flex: 1;
+  text-align: center;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-radius: 9999px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  transition: all var(--dur-fast) ease;
+}
+
+.segment-tab.active {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* ------------------------------------------------------------- */
+/* PORTAL ACTION CARDS                                           */
+/* ------------------------------------------------------------- */
+.portal-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.125rem;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 0.75rem;
+  transition: transform var(--dur-fast) var(--ease-spring), border-color var(--dur-fast) ease;
+}
+
+.portal-card:active {
+  transform: scale(0.985);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.portal-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  margin-right: 0.875rem;
+}
+
+.portal-info {
+  flex: 1;
+}
+
+.portal-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 0.125rem;
+}
+
+.portal-desc {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.portal-arrow {
+  color: var(--text-subtle);
+  font-size: 1rem;
+}
+

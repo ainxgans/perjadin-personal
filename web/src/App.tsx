@@ -2,6 +2,7 @@ import { Component, createSignal, onMount, createEffect, Show } from 'solid-js';
 import { Router, Route, useNavigate, type RouteSectionProps } from '@solidjs/router';
 import { getMe, type User } from './api';
 import Navbar from './components/Navbar';
+import BottomNav from './components/BottomNav';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import TripDetail from './pages/TripDetail';
@@ -41,6 +42,7 @@ const Layout: Component<RouteSectionProps> = (props) => {
       <main>
         {props.children}
       </main>
+      <BottomNav user={user()} />
     </>
   );
 };

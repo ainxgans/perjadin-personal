@@ -49,6 +49,45 @@ export interface Dashboard {
   pemasukan_bulan_lalu: number;
 }
 
+export interface AdminUser {
+  id: string;
+  email: string;
+  name: string;
+  avatar_url: string;
+  role: string;
+  created_at: string;
+  trip_count: number;
+}
+
+export interface AdminStats {
+  total_users: number;
+  total_trips: number;
+  total_expenses_rp: number;
+  total_uang_dinas_rp: number;
+}
+
+export interface CategorySpending {
+  category_id: string;
+  category_nama: string;
+  total: number;
+  percentage: number;
+}
+
+export interface PaymentMethodSpending {
+  payment_method_id: string;
+  payment_method_nama: string;
+  total: number;
+  percentage: number;
+}
+
+export interface AnalyticsData {
+  total_expenses_rp: number;
+  total_uang_dinas_rp: number;
+  average_expense_trip: number;
+  categories: CategorySpending[];
+  payment_methods: PaymentMethodSpending[];
+}
+
 async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     ...opts,
@@ -71,8 +110,9 @@ async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
 export const getMe = () => apiFetch<User>('/auth/me');
 export const logout = () => fetch('/auth/logout', { method: 'POST', credentials: 'same-origin' });
 
-// Dashboard
+// Dashboard & Analytics
 export const getDashboard = () => apiFetch<Dashboard>('/api/dashboard');
+export const getAnalytics = () => apiFetch<AnalyticsData>('/api/analytics');
 
 // Trips
 export const getTrips = () => apiFetch<Trip[]>('/api/trips');
@@ -92,6 +132,12 @@ export const getCategories = () => apiFetch<Category[]>('/api/categories');
 export const getPaymentMethods = () => apiFetch<PaymentMethod[]>('/api/payment-methods');
 
 // Admin
+export const getAdminUsers = () => apiFetch<AdminUser[]>('/api/admin/users');
+export const updateUserRole = (id: string, role: string) => apiFetch<{ id: string; role: string }>(`/api/admin/users/${id}/role`, {
+  method: 'PUT',
+  body: JSON.stringify({ role }),
+});
+export const getAdminStats = () => apiFetch<AdminStats>('/api/admin/stats');
 export const createCategory = (nama: string) => apiFetch<Category>('/api/admin/categories', { method: 'POST', body: JSON.stringify({ nama }) });
 export const updateCategory = (id: string, nama: string) => apiFetch<Category>(`/api/admin/categories/${id}`, { method: 'PUT', body: JSON.stringify({ nama }) });
 export const deleteCategoryApi = (id: string) => apiFetch<void>(`/api/admin/categories/${id}`, { method: 'DELETE' });
