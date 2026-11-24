@@ -53,7 +53,7 @@ const ExpenseForm: Component<{
     <div class="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) props.onClose(); }}>
       <div class="modal-content">
         <div class="modal-handle" />
-        <div class="modal-title">{isEdit ? 'Edit Pengeluaran' : 'Catat Pengeluaran'}</div>
+        <div class="modal-title">{isEdit ? 'Edit Pengeluaran' : 'Catat Pengeluaran Baru'}</div>
         <form onSubmit={handleSubmit}>
           <div class="form-group">
             <label>Kategori</label>
@@ -91,6 +91,13 @@ const ExpenseForm: Component<{
 
           <div class="form-group">
             <label>Jumlah Nominal (Rp)</label>
+            <div class="quick-amount-row">
+              <button type="button" class="quick-chip" onClick={() => setJumlah('25000')}>25rb</button>
+              <button type="button" class="quick-chip" onClick={() => setJumlah('50000')}>50rb</button>
+              <button type="button" class="quick-chip" onClick={() => setJumlah('100000')}>100rb</button>
+              <button type="button" class="quick-chip" onClick={() => setJumlah('250000')}>250rb</button>
+              <button type="button" class="quick-chip" onClick={() => setJumlah('500000')}>500rb</button>
+            </div>
             <input
               class="form-control amount"
               type="number"
@@ -100,15 +107,6 @@ const ExpenseForm: Component<{
               placeholder="0"
               required
             />
-          </div>
-
-          {/* Rapid Amount Chips */}
-          <div class="quick-amount-row">
-            <button type="button" class="quick-chip" onClick={() => setJumlah('25000')}>+25rb</button>
-            <button type="button" class="quick-chip" onClick={() => setJumlah('50000')}>+50rb</button>
-            <button type="button" class="quick-chip" onClick={() => setJumlah('100000')}>+100rb</button>
-            <button type="button" class="quick-chip" onClick={() => setJumlah('250000')}>+250rb</button>
-            <button type="button" class="quick-chip" onClick={() => setJumlah('500000')}>+500rb</button>
           </div>
 
           <div class="form-group">

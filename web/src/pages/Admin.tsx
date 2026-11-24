@@ -57,7 +57,7 @@ const AdminSection: Component<{
   return (
     <div class="doppel-card" style="margin-bottom: 1.25rem;">
       <div class="doppel-inner">
-        <h3 style="font-size: 0.8125rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 1rem;">
+        <h3 style="font-size: 0.875rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 1rem;">
           {props.title}
         </h3>
         {error() && <p class="text-rose" style="margin-bottom: 0.75rem; font-size: 0.8125rem;">{error()}</p>}
@@ -121,7 +121,7 @@ const AdminSection: Component<{
             onKeyDown={(e) => { if (e.key === 'Enter') handleAdd(); }}
             style="flex: 1;"
           />
-          <button type="button" class="btn btn-sm btn-primary" onClick={handleAdd} style="white-space: nowrap; height: 48px;">
+          <button type="button" class="btn btn-primary btn-sm" onClick={handleAdd} style="white-space: nowrap;">
             + Tambah
           </button>
         </div>
