@@ -61,6 +61,15 @@ func main() {
 	// User read — Master Data
 	mux.Handle("GET /api/categories", authMW(http.HandlerFunc(handler.ListCategories(database))))
 	mux.Handle("GET /api/payment-methods", authMW(http.HandlerFunc(handler.ListPaymentMethods(database))))
+	mux.Handle("GET /api/sbm", authMW(http.HandlerFunc(handler.ListSBM(database))))
+
+	// Admin — SBM Rates
+	mux.Handle("POST /api/admin/sbm", authMW(adminMW(http.HandlerFunc(handler.CreateSBM(database)))))
+	mux.Handle("PUT /api/admin/sbm/{id}", authMW(adminMW(http.HandlerFunc(handler.UpdateSBM(database)))))
+	mux.Handle("DELETE /api/admin/sbm/{id}", authMW(adminMW(http.HandlerFunc(handler.DeleteSBM(database)))))
+
+	// User search (for trip collaborators picker)
+	mux.Handle("GET /api/users", authMW(http.HandlerFunc(handler.SearchUsers(database))))
 
 	// Trips
 	mux.Handle("GET /api/trips", authMW(http.HandlerFunc(handler.ListTrips(database))))

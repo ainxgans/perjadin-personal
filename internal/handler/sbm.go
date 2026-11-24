@@ -1,0 +1,146 @@
+package handler
+
+import (
+	"database/sql"
+	"encoding/json"
+	"net/http"
+	"strings"
+
+	"github.com/maulana/perjadin-personal/internal/model"
+)
+
+func ListSBM(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		q := strings.TrimSpace(r.URL.Query().Get("q"))
+		var rows *sql.Rows
+		var err error
+
+		if q != "" {
+			rows, err = db.Query(`
+				SELECT id, provinsi, ibukota, uang_harian, created_at, updated_at
+				FROM sbm_rates
+				WHERE provinsi ILIKE '%' || $1 || '%' OR ibukota ILIKE '%' || $1 || '%'
+				ORDER BY provinsi ASC
+			`, q)
+		} else {
+			rows, err = db.Query(`
+				SELECT id, provinsi, ibukota, uang_harian, created_at, updated_at
+				FROM sbm_rates
+				ORDER BY provinsi ASC
+			`)
+		}
+
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		defer rows.Close()
+
+		var list []model.SBMRate
+		for rows.Next() {
+			var item model.SBMRate
+			if err := rows.Scan(&item.ID, &item.Provinsi, &item.Ibukota, &item.UangHarian, &item.CreatedAt, &item.UpdatedAt); err != nil {
+				continue
+			}
+			list = append(list, item)
+		}
+		if list == nil {
+			list = []model.SBMRate{}
+		}
+		writeJSON(w, http.StatusOK, map[string]interface{}{"data": list})
+	}
+}
+
+func CreateSBM(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var input struct {
+			Provinsi   string `json:"provinsi"`
+			Ibukota    string `json:"ibukota"`
+			UangHarian int64  `json:"uang_harian"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid json"})
+			return
+		}
+		input.Provinsi = strings.TrimSpace(input.Provinsi)
+		if input.Provinsi == "" || input.UangHarian <= 0 {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "provinsi dan uang_harian > 0 required"})
+			return
+		}
+
+		var item model.SBMRate
+		err := db.QueryRow(`
+			INSERT INTO sbm_rates (provinsi, ibukota, uang_harian)
+			VALUES ($1, $2, $3)
+			RETURNING id, provinsi, ibukota, uang_harian, created_at, updated_at
+		`, input.Provinsi, strings.TrimSpace(input.Ibukota), input.UangHarian).
+			Scan(&item.ID, &item.Provinsi, &item.Ibukota, &item.UangHarian, &item.CreatedAt, &item.UpdatedAt)
+
+		if err != nil {
+			writeJSON(w, http.StatusConflict, map[string]string{"error": "provinsi already exists"})
+			return
+		}
+		writeJSON(w, http.StatusCreated, map[string]interface{}{"data": item})
+	}
+}
+
+func UpdateSBM(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+		var input struct {
+			Provinsi   *string `json:"provinsi"`
+			Ibukota    *string `json:"ibukota"`
+			UangHarian *int64  `json:"uang_harian"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid json"})
+			return
+		}
+
+		var item model.SBMRate
+		err := db.QueryRow(`SELECT id, provinsi, ibukota, uang_harian, created_at, updated_at FROM sbm_rates WHERE id = $1`, id).
+			Scan(&item.ID, &item.Provinsi, &item.Ibukota, &item.UangHarian, &item.CreatedAt, &item.UpdatedAt)
+		if err == sql.ErrNoRows {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
+			return
+		}
+
+		if input.Provinsi != nil && strings.TrimSpace(*input.Provinsi) != "" {
+			item.Provinsi = strings.TrimSpace(*input.Provinsi)
+		}
+		if input.Ibukota != nil {
+			item.Ibukota = strings.TrimSpace(*input.Ibukota)
+		}
+		if input.UangHarian != nil && *input.UangHarian > 0 {
+			item.UangHarian = *input.UangHarian
+		}
+
+		_, err = db.Exec(`
+			UPDATE sbm_rates SET provinsi = $1, ibukota = $2, uang_harian = $3, updated_at = now()
+			WHERE id = $4
+		`, item.Provinsi, item.Ibukota, item.UangHarian, id)
+		if err != nil {
+			writeJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
+			return
+		}
+
+		writeJSON(w, http.StatusOK, map[string]interface{}{"data": item})
+	}
+}
+
+func DeleteSBM(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+		result, err := db.Exec("DELETE FROM sbm_rates WHERE id = $1", id)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		rows, _ := result.RowsAffected()
+		if rows == 0 {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}
+}

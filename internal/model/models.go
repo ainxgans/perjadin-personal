@@ -61,10 +61,31 @@ type Trip struct {
 type Expense struct {
 	ID              string    `json:"id"`
 	TripID          string    `json:"trip_id"`
+	UserID          *string   `json:"user_id,omitempty"`
 	CategoryID      string    `json:"category_id"`
 	PaymentMethodID string    `json:"payment_method_id"`
 	Deskripsi       string    `json:"deskripsi"`
 	Jumlah          int64     `json:"jumlah"`
 	Tanggal         time.Time `json:"tanggal"`
 	CreatedAt       time.Time `json:"created_at"`
+}
+
+type SBMRate struct {
+	ID         string    `json:"id"`
+	Provinsi   string    `json:"provinsi"`
+	Ibukota    string    `json:"ibukota"`
+	UangHarian int64     `json:"uang_harian"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
+}
+
+type TripMember struct {
+	ID         string    `json:"id"`
+	TripID     string    `json:"trip_id"`
+	UserID     string    `json:"user_id"`
+	Role       string    `json:"role"`
+	UserName   string    `json:"user_name,omitempty"`
+	UserEmail  string    `json:"user_email,omitempty"`
+	UserAvatar string    `json:"user_avatar,omitempty"`
+	CreatedAt  time.Time `json:"created_at"`
 }
