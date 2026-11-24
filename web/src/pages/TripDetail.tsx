@@ -73,7 +73,7 @@ const TripDetail: Component = () => {
                   <div>
                     <div class="detail-hero-title">{t().nama}</div>
                     <div class="detail-hero-subtitle">
-                      📍 {t().tujuan} · {t().tanggal_mulai} — {t().tanggal_selesai}
+                      {t().tujuan} · {t().tanggal_mulai} — {t().tanggal_selesai}
                     </div>
                   </div>
                   <StatusBadge status={t().status} />
@@ -90,22 +90,15 @@ const TripDetail: Component = () => {
                   </div>
                   <div>
                     <div class="detail-hero-stat-label">Saldo</div>
-                    <div class={`detail-hero-stat-val amount ${t().saldo >= 0 ? 'text-emerald' : 'text-rose'}`}>
+                    <div class={'detail-hero-stat-val amount ' + (t().saldo >= 0 ? 'text-emerald' : 'text-rose')}>
                       {formatRp(t().saldo)}
                     </div>
                   </div>
                 </div>
 
                 <div class="detail-hero-actions">
-                  <A href={`/trips/${params.id}/edit`} class="btn btn-sm btn-secondary">Edit</A>
-                  <button
-                    type="button"
-                    class="btn btn-sm btn-outline"
-                    style="color: var(--rose); border-color: rgba(244, 63, 94, 0.3);"
-                    onClick={handleDeleteTrip}
-                  >
-                    Hapus
-                  </button>
+                  <A href={'/trips/' + params.id + '/edit'} class="btn btn-sm btn-secondary">Edit</A>
+                  <button type="button" class="btn btn-sm btn-outline" style="color: var(--rose); border-color: rgba(244,63,94,0.3)" onClick={handleDeleteTrip}>Hapus</button>
                 </div>
               </div>
             </div>
@@ -129,8 +122,8 @@ const TripDetail: Component = () => {
                 fallback={
                   <div class="empty-state">
                     <div class="empty-state-icon">🧾</div>
-                    <h3 style="color: #fff; font-size: 1.0625rem; margin-bottom: 0.25rem;">Belum ada pengeluaran</h3>
-                    <p style="font-size: 0.8125rem; margin-bottom: 1.5rem;">Catat rincian nota dan pengeluaran dinas Anda sekarang.</p>
+                    <h3>Belum ada pengeluaran</h3>
+                    <p>Catat pengeluaran perjalanan dinas Anda sekarang.</p>
                     <button
                       type="button"
                       class="btn btn-primary btn-sm"
@@ -176,7 +169,6 @@ const TripDetail: Component = () => {
                                 <button
                                   type="button"
                                   class="btn-icon-subtle"
-                                  style="color: var(--rose);"
                                   onClick={() => handleDeleteExpense(exp.id)}
                                   title="Hapus"
                                   aria-label="Hapus pengeluaran"
