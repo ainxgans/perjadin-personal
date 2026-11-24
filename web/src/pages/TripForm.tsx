@@ -16,6 +16,8 @@ const TripForm: Component = () => {
   const [nominalMonita, setNominalMonita] = createSignal('');
   const [linkMonita, setLinkMonita] = createSignal('');
   const [catatan, setCatatan] = createSignal('');
+  const [status, setStatus] = createSignal('berlangsung');
+  const [settlementNote, setSettlementNote] = createSignal('');
   const [dibayar, setDibayar] = createSignal('');
   const [error, setError] = createSignal('');
   const [loading, setLoading] = createSignal(false);
@@ -31,6 +33,8 @@ const TripForm: Component = () => {
       if (t.link_monita) setLinkMonita(t.link_monita);
       if (t.catatan) setCatatan(t.catatan);
       if (t.tanggal_dibayar) setDibayar(t.tanggal_dibayar);
+      if (t.status) setStatus(t.status);
+      if (t.settlement_note) setSettlementNote(t.settlement_note);
     });
   }
 
@@ -53,6 +57,8 @@ const TripForm: Component = () => {
       if (nominalMonita()) data.nominal_monita = parseInt(nominalMonita());
       data.link_monita = linkMonita();
       data.catatan = catatan();
+      data.settlement_note = settlementNote();
+      if (isEdit) data.status = status();
       if (dibayar()) data.tanggal_dibayar = dibayar();
 
       if (isEdit) {
@@ -136,6 +142,23 @@ const TripForm: Component = () => {
               />
             </div>
 
+            {isEdit && (
+              <div class="form-group">
+                <label for="status">Status</label>
+                <select
+                  id="status"
+                  class="form-control"
+                  value={status()}
+                  onChange={(e) => setStatus(e.currentTarget.value)}
+                >
+                  <option value="berlangsung">Berlangsung</option>
+                  <option value="selesai">Selesai</option>
+                  <option value="diajukan">Diajukan Klaim</option>
+                  <option value="lunas">Lunas</option>
+                </select>
+              </div>
+            )}
+
             <div class="form-group">
               <label for="nominalMonita">Nominal Monita (Pagu Kotor / Estimasi, Opsional)</label>
               <input
@@ -194,6 +217,19 @@ const TripForm: Component = () => {
                 value={catatan()}
                 onInput={(e) => setCatatan(e.currentTarget.value)}
                 placeholder="Catatan tim, detail whoosh/taksi, atau agenda..."
+                style="resize: vertical;"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="settlementNote">Catatan Pencairan / Klaim (Opsional)</label>
+              <textarea
+                id="settlementNote"
+                class="form-control"
+                rows="2"
+                value={settlementNote()}
+                onInput={(e) => setSettlementNote(e.currentTarget.value)}
+                placeholder="Catatan terkait klaim atau pencairan..."
                 style="resize: vertical;"
               />
             </div>

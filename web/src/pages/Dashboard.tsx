@@ -113,17 +113,24 @@ const Dashboard: Component = () => {
           </button>
           <button
             type="button"
-            class={`filter-chip ${statusFilter() === 'urus_berkas' ? 'active' : ''}`}
-            onClick={() => setStatusFilter('urus_berkas')}
-          >
-            Urus Berkas
-          </button>
-          <button
-            type="button"
             class={`filter-chip ${statusFilter() === 'selesai' ? 'active' : ''}`}
             onClick={() => setStatusFilter('selesai')}
           >
             Selesai
+          </button>
+          <button
+            type="button"
+            class={`filter-chip ${statusFilter() === 'diajukan' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('diajukan')}
+          >
+            Diajukan
+          </button>
+          <button
+            type="button"
+            class={`filter-chip ${statusFilter() === 'lunas' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('lunas')}
+          >
+            Lunas
           </button>
         </div>
       </div>

@@ -147,6 +147,15 @@ const TripDetail: Component = () => {
                 </div>
               </Show>
 
+              <Show when={t().settlement_note}>
+                <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 0.75rem; margin-bottom: 0.75rem; font-size: 0.8125rem; white-space: pre-wrap; color: var(--text-secondary); line-height: 1.4;">
+                  <div style="font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.25rem;">
+                    Catatan Pencairan / Klaim
+                  </div>
+                  {t().settlement_note}
+                </div>
+              </Show>
+
               <div class="detail-hero-actions">
                 <A href={'/trips/' + params.id + '/edit'} class="btn btn-sm btn-secondary">
                   <EditIcon size={14} /> Edit

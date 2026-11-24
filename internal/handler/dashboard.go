@@ -20,7 +20,7 @@ func GetDashboard(db *sql.DB) http.HandlerFunc {
 			JOIN payment_methods pm ON e.payment_method_id = pm.id
 			WHERE t.user_id = $1
 				AND pm.nama = 'Pribadi'
-				AND (t.tanggal_dibayar IS NULL OR t.uang_dinas IS NULL)
+				AND t.status != 'lunas'
 		`, userID).Scan(&belumLunas)
 
 		var pemasukanBulanLalu int64
@@ -28,8 +28,8 @@ func GetDashboard(db *sql.DB) http.HandlerFunc {
 			SELECT COALESCE(SUM(t.uang_dinas), 0)
 			FROM trips t
 			WHERE t.user_id = $1
+				AND t.status = 'lunas'
 				AND t.tanggal_dibayar IS NOT NULL
-				AND t.uang_dinas IS NOT NULL
 				AND date_trunc('month', t.tanggal_dibayar) = date_trunc('month', now() - interval '1 month')
 		`, userID).Scan(&pemasukanBulanLalu)
 
@@ -38,7 +38,7 @@ func GetDashboard(db *sql.DB) http.HandlerFunc {
 			SELECT COALESCE(SUM(COALESCE(t.nominal_monita, t.uang_dinas, 0)), 0)
 			FROM trips t
 			WHERE t.user_id = $1
-				AND t.tanggal_dibayar IS NULL
+				AND t.status != 'lunas'
 		`, userID).Scan(&estimasiBelumCair)
 
 		w.Header().Set("Content-Type", "application/json")

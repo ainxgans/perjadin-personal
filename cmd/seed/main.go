@@ -172,6 +172,15 @@ func main() {
 			}
 		}
 
+		// Compute status from data
+		now := time.Now()
+		status := "berlangsung"
+		if tglDibayar != nil && nomMasuk != nil {
+			status = "lunas"
+		} else if selesai.Before(now) {
+			status = "selesai"
+		}
+
 		// Upsert Trip
 		var tripID string
 		var isNew bool
@@ -184,10 +193,10 @@ func main() {
 		if err == sql.ErrNoRows {
 			// Insert new trip
 			err = conn.QueryRow(`
-				INSERT INTO trips (user_id, nama, tujuan, tanggal_mulai, tanggal_selesai, uang_dinas, nominal_monita, tanggal_dibayar, catatan, link_monita)
-				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+				INSERT INTO trips (user_id, nama, tujuan, tanggal_mulai, tanggal_selesai, status, uang_dinas, nominal_monita, tanggal_dibayar, catatan, link_monita)
+				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 				RETURNING id
-			`, userID, nama, tujuan, mulai, selesai, nomMasuk, nomMonita, tglDibayar, catatan, linkMonita).Scan(&tripID)
+			`, userID, nama, tujuan, mulai, selesai, status, nomMasuk, nomMonita, tglDibayar, catatan, linkMonita).Scan(&tripID)
 			if err != nil {
 				log.Printf("[%s] Gagal insert trip: %v", nama, err)
 				continue
@@ -200,14 +209,15 @@ func main() {
 				UPDATE trips SET
 					tujuan = $1,
 					tanggal_selesai = $2,
-					uang_dinas = $3,
-					nominal_monita = $4,
-					tanggal_dibayar = $5,
-					catatan = $6,
-					link_monita = $7,
+					status = $3,
+					uang_dinas = $4,
+					nominal_monita = $5,
+					tanggal_dibayar = $6,
+					catatan = $7,
+					link_monita = $8,
 					updated_at = now()
-				WHERE id = $8
-			`, tujuan, selesai, nomMasuk, nomMonita, tglDibayar, catatan, linkMonita, tripID)
+				WHERE id = $9
+			`, tujuan, selesai, status, nomMasuk, nomMonita, tglDibayar, catatan, linkMonita, tripID)
 			if err != nil {
 				log.Printf("[%s] Gagal update trip: %v", nama, err)
 			}
@@ -252,10 +262,7 @@ func main() {
 			}
 		}
 
-		statusLabel := "URUS BERKAS"
-		if tglDibayar != nil && nomMasuk != nil {
-			statusLabel = "SELESAI"
-		}
+		statusLabel := strings.ToUpper(status)
 		action := "BARU"
 		if !isNew {
 			action = "UPDATE"

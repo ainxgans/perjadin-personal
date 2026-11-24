@@ -12,12 +12,13 @@ export interface Trip {
   tujuan: string;
   tanggal_mulai: string;
   tanggal_selesai: string;
+  status: string;
   uang_dinas: number | null;
   nominal_monita: number | null;
   tanggal_dibayar: string | null;
   catatan: string;
   link_monita: string;
-  status: string;
+  settlement_note: string;
   total_pengeluaran: number;
   saldo: number;
   created_at: string;
