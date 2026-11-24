@@ -53,6 +53,11 @@ func main() {
 	mux.Handle("PUT /api/admin/payment-methods/{id}", authMW(adminMW(http.HandlerFunc(handler.UpdatePaymentMethod(database)))))
 	mux.Handle("DELETE /api/admin/payment-methods/{id}", authMW(adminMW(http.HandlerFunc(handler.DeletePaymentMethod(database)))))
 
+	// Admin — User Management & Stats
+	mux.Handle("GET /api/admin/users", authMW(adminMW(http.HandlerFunc(handler.ListAdminUsers(database)))))
+	mux.Handle("PUT /api/admin/users/{id}/role", authMW(adminMW(http.HandlerFunc(handler.UpdateUserRole(database)))))
+	mux.Handle("GET /api/admin/stats", authMW(adminMW(http.HandlerFunc(handler.GetAdminStats(database)))))
+
 	// User read — Master Data
 	mux.Handle("GET /api/categories", authMW(http.HandlerFunc(handler.ListCategories(database))))
 	mux.Handle("GET /api/payment-methods", authMW(http.HandlerFunc(handler.ListPaymentMethods(database))))
