@@ -64,7 +64,6 @@ body {
 /* Page Frame */
 .page {
   position: relative;
-  z-index: 1;
   max-width: var(--max-w);
   margin: 0 auto;
   padding: 0.875rem 1rem 6.5rem 1rem;
@@ -770,12 +769,19 @@ h1, h2, h3, h4 {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(8px);
-  z-index: 60;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 1000;
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  padding: 0;
+}
+
+body:has(.modal-overlay) .bottom-dock-wrapper,
+body:has(.modal-overlay) .floating-action-dock {
+  display: none !important;
 }
 
 .modal-content {
@@ -784,7 +790,11 @@ h1, h2, h3, h4 {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: 24px 24px 0 0;
-  padding: 1.25rem 1.25rem 2.5rem 1.25rem;
+  padding: 1.25rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom, 0px)) 1.25rem;
+  max-height: 88dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  box-shadow: 0 -12px 48px rgba(0, 0, 0, 0.75);
 }
 
 .modal-handle {
@@ -802,6 +812,17 @@ h1, h2, h3, h4 {
   margin-bottom: 1rem;
 }
 
+.modal-form-actions {
+  position: sticky;
+  bottom: 0;
+  background: var(--bg-surface);
+  margin-top: 1.5rem;
+  padding-top: 0.875rem;
+  padding-bottom: 0.5rem;
+  border-top: 1px solid var(--border-subtle);
+  z-index: 10;
+}
+
 .form-actions {
   display: flex;
   gap: 0.75rem;
@@ -810,6 +831,51 @@ h1, h2, h3, h4 {
 
 .form-actions .btn {
   flex: 1;
+}
+
+/* Quick Amount Shortcut Chips */
+.quick-amount-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 0.625rem;
+}
+
+.quick-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0.5rem;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--dur-fast) var(--ease-spring);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.quick-chip:hover {
+  background: var(--bg-surface-hover);
+  border-color: var(--border-hover);
+  color: #ffffff;
+}
+
+.quick-chip:active {
+  transform: scale(0.96);
+}
+
+.quick-chip.active {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: var(--sky);
+  color: var(--sky);
+  font-weight: 700;
+  box-shadow: 0 0 0 1px var(--sky);
 }
 
 /* Category groups in detail view */

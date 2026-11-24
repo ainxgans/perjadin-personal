@@ -27,6 +27,7 @@ import {
   XIcon,
   SearchIcon,
 } from '../components/Icons';
+import { formatDateIndo, formatTripDateIndo } from '../utils/date';
 
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n);
@@ -174,12 +175,16 @@ const TripDetail: Component = () => {
               <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem;">
                 <div>
                   <div class="detail-hero-title">{t().nama}</div>
-                  <div class="detail-hero-subtitle" style="display: flex; align-items: center; gap: 0.375rem;">
-                    <MapPinIcon size={13} style="color: var(--text-muted);" />
-                    <span>{t().tujuan}</span>
+                  <div class="detail-hero-subtitle" style="display: flex; align-items: center; gap: 0.375rem; flex-wrap: wrap;">
+                    <span style="display: inline-flex; align-items: center; gap: 0.25rem;">
+                      <MapPinIcon size={13} style="color: var(--text-muted);" />
+                      <span>{t().tujuan}</span>
+                    </span>
                     <span style="margin: 0 0.125rem;">·</span>
-                    <CalendarIcon size={13} style="color: var(--text-muted);" />
-                    <span>{t().tanggal_mulai} — {t().tanggal_selesai}</span>
+                    <span style="display: inline-flex; align-items: center; gap: 0.25rem;">
+                      <CalendarIcon size={13} style="color: var(--text-muted);" />
+                      <span>{formatTripDateIndo(t().tanggal_mulai, t().tanggal_selesai)}</span>
+                    </span>
                   </div>
                 </div>
                 <StatusBadge status={t().status} />
@@ -374,7 +379,7 @@ const TripDetail: Component = () => {
                               <div style="flex: 1; min-width: 0;">
                                 <div class="expense-row-desc">{exp.deskripsi || '-'}</div>
                                 <div class="expense-row-meta">
-                                  <span>{exp.tanggal}</span>
+                                  <span>{formatDateIndo(exp.tanggal)}</span>
                                   <span>·</span>
                                   <span class={getPaymentBadgeClass(exp.payment_method_nama)}>
                                     {exp.payment_method_nama}

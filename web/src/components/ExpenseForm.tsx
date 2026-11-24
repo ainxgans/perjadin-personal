@@ -1,5 +1,15 @@
-import { Component, createSignal, createResource, Show, For } from 'solid-js';
+import { Component, createSignal, createResource, Show, For, onMount, onCleanup } from 'solid-js';
 import { getCategories, getPaymentMethods, createExpense, updateExpense, type Expense } from '../api';
+import { XIcon } from './Icons';
+
+const QUICK_AMOUNTS = [
+  { label: '25rb', value: '25000' },
+  { label: '50rb', value: '50000' },
+  { label: '100rb', value: '100000' },
+  { label: '250rb', value: '250000' },
+  { label: '500rb', value: '500000' },
+  { label: '1 Jt', value: '1000000' },
+];
 
 const ExpenseForm: Component<{
   tripId: string;
@@ -18,6 +28,13 @@ const ExpenseForm: Component<{
   const [tanggal, setTanggal] = createSignal(props.expense?.tanggal || new Date().toISOString().slice(0, 10));
   const [error, setError] = createSignal('');
   const [loading, setLoading] = createSignal(false);
+
+  onMount(() => {
+    document.body.style.overflow = 'hidden';
+  });
+  onCleanup(() => {
+    document.body.style.overflow = '';
+  });
 
   const handleSubmit = async (e: Event) => {
     e.preventDefault();
@@ -53,8 +70,19 @@ const ExpenseForm: Component<{
     <div class="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) props.onClose(); }}>
       <div class="modal-content">
         <div class="modal-handle" />
-        <div class="modal-title">{isEdit ? 'Edit Pengeluaran' : 'Catat Pengeluaran Baru'}</div>
-        <form onSubmit={handleSubmit}>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h3 class="modal-title" style="margin: 0;">{isEdit ? 'Edit Pengeluaran' : 'Catat Pengeluaran Baru'}</h3>
+          <button
+            type="button"
+            class="btn-icon-subtle"
+            onClick={props.onClose}
+            aria-label="Tutup"
+          >
+            <XIcon size={18} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} class="modal-form-body">
           <div class="form-group">
             <label>Kategori</label>
             <Show when={categories()}>
@@ -90,13 +118,22 @@ const ExpenseForm: Component<{
           </div>
 
           <div class="form-group">
-            <label>Jumlah Nominal (Rp)</label>
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.375rem;">
+              <label style="margin-bottom: 0;">Jumlah Nominal (Rp)</label>
+              <span style="font-size: 0.75rem; color: var(--text-muted);">Pilih shortcut atau ketik</span>
+            </div>
             <div class="quick-amount-row">
-              <button type="button" class="quick-chip" onClick={() => setJumlah('25000')}>25rb</button>
-              <button type="button" class="quick-chip" onClick={() => setJumlah('50000')}>50rb</button>
-              <button type="button" class="quick-chip" onClick={() => setJumlah('100000')}>100rb</button>
-              <button type="button" class="quick-chip" onClick={() => setJumlah('250000')}>250rb</button>
-              <button type="button" class="quick-chip" onClick={() => setJumlah('500000')}>500rb</button>
+              <For each={QUICK_AMOUNTS}>
+                {(item) => (
+                  <button
+                    type="button"
+                    class={`quick-chip ${jumlah() === item.value ? 'active' : ''}`}
+                    onClick={() => setJumlah(item.value)}
+                  >
+                    {item.label}
+                  </button>
+                )}
+              </For>
             </div>
             <input
               class="form-control amount"
@@ -106,6 +143,7 @@ const ExpenseForm: Component<{
               min="1"
               placeholder="0"
               required
+              style="font-size: 1.125rem; font-weight: 700;"
             />
           </div>
 
@@ -122,7 +160,7 @@ const ExpenseForm: Component<{
 
           {error() && <p class="text-rose" style="margin-bottom: 1rem; font-size: 0.8125rem;">{error()}</p>}
 
-          <div class="form-actions">
+          <div class="form-actions modal-form-actions">
             <button type="button" class="btn btn-outline" onClick={props.onClose}>Batal</button>
             <button type="submit" class="btn btn-primary" disabled={loading()}>
               {loading() ? 'Menyimpan...' : 'Simpan'}
