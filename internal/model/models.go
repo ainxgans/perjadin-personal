@@ -74,6 +74,7 @@ type SBMRate struct {
 	ID         string    `json:"id"`
 	Provinsi   string    `json:"provinsi"`
 	Ibukota    string    `json:"ibukota"`
+	Kota       []string  `json:"kota"`
 	UangHarian int64     `json:"uang_harian"`
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`

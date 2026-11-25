@@ -86,3 +86,44 @@ func TestSBM_CreateUpsertAndList(t *testing.T) {
 		t.Errorf("expected to find Kalimantan Selatan in list")
 	}
 }
+
+func TestSBM_KotaArrayAndSearch(t *testing.T) {
+	if testDB == nil {
+		t.Skip("skipping db test: no testDB")
+	}
+	cleanupTestData(t)
+
+	adminID := createTestUser(t, "sbm-admin-2", "sbmadmin2@example.com", "admin")
+	cookie := authCookie(t, adminID, "admin")
+
+	createHandler := CreateSBM(testDB)
+	listHandler := ListSBM(testDB)
+
+	// 1. Create SBM with kota array
+	body := `{"provinsi":"Jawa Barat","kota":["Bandung","Bogor","Bekasi"],"uang_harian":430000}`
+	rec := doRequest(t, createHandler, "POST", "/api/admin/sbm", body, cookie)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	res := parseJSON(t, rec)
+	data := res["data"].(map[string]interface{})
+	kotaList, ok := data["kota"].([]interface{})
+	if !ok || len(kotaList) != 3 {
+		t.Fatalf("expected kota array with 3 items, got: %v", data["kota"])
+	}
+
+	// 2. Search by city name "bogor"
+	recSearch := doRequest(t, listHandler, "GET", "/api/sbm?q=bogor", "", cookie)
+	if recSearch.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", recSearch.Code, recSearch.Body.String())
+	}
+	resSearch := parseJSON(t, recSearch)
+	searchData, ok := resSearch["data"].([]interface{})
+	if !ok || len(searchData) == 0 {
+		t.Fatalf("expected at least 1 record when searching ?q=bogor, got: %v", resSearch)
+	}
+	first := searchData[0].(map[string]interface{})
+	if !strings.EqualFold(first["provinsi"].(string), "Jawa Barat") {
+		t.Errorf("expected Jawa Barat for q=bogor, got %v", first["provinsi"])
+	}
+}
