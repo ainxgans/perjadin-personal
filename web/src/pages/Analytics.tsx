@@ -17,8 +17,11 @@ const COLORS = [
 ];
 
 const Analytics: Component = () => {
-  const [selectedYear, setSelectedYear] = createSignal<number | undefined>(undefined);
-  const [data] = createResource(selectedYear, (yr) => getAnalytics(typeof yr === 'number' ? yr : undefined));
+  const [selectedYear, setSelectedYear] = createSignal<number | null>(null);
+  const [data] = createResource(
+    () => ({ year: selectedYear() }),
+    ({ year }) => getAnalytics(year || undefined)
+  );
 
   return (
     <div class="page" style="padding-bottom: 6rem;">
@@ -41,8 +44,8 @@ const Analytics: Component = () => {
         <div class="filter-chips" style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem; overflow-x: auto; padding-bottom: 0.25rem;">
           <button
             type="button"
-            class={`filter-chip ${selectedYear() === undefined ? 'active' : ''}`}
-            onClick={() => setSelectedYear(undefined)}
+            class={`filter-chip ${selectedYear() === null ? 'active' : ''}`}
+            onClick={() => setSelectedYear(null)}
           >
             Semua Tahun
           </button>
