@@ -92,6 +92,8 @@ func ParseNaskahDinas(text string, knownLocations []string) ParseResult {
 	// 3. Tanggal (Hari, tanggal / Hari/tanggal / Tanggal)
 	// Pattern A: Full range across months: D M YYYY - D M YYYY
 	reDateRangeFull := regexp.MustCompile(`(?i)(?:Hari[,/]\s*tanggal|Tanggal)\s*:\s*(?:[A-Za-z’'\s–-]+[/]\s*)?(?:[A-Za-z’'\s]+[,/]\s*)?(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})\s*[-–—s\.d\s]+\s*(?:[A-Za-z’'\s]+[,/]\s*)?(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})`)
+	// Pattern A2: "Hari s.d. Hari /DD s.d. DD Bulan YYYY" — day names with s.d. then slash then numeric range
+	reDateRangeSlashSep := regexp.MustCompile(`(?i)(?:Hari[,/]\s*tanggal|Tanggal)\s*:.*?/\s*(\d{1,2})\s*(?:[-–—]|\bs\.?d\.?)\s*(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})`)
 	// Pattern B: Range within same month: D - D M YYYY or D s.d D M YYYY or D-D M YYYY
 	reDateRangeSameMonth := regexp.MustCompile(`(?i)(?:Hari[,/]\s*tanggal|Tanggal)\s*:\s*(?:[A-Za-z’'\s–-]+[/]\s*)?(?:[A-Za-z’'\s]+[,/]\s*)?(\d{1,2})\s*(?:[-–—]|\bs\.?d\.?\b)\s*(?:[A-Za-z’'\s]+[,/]\s*)?(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})`)
 	// Pattern C: Single date: D M YYYY
@@ -100,6 +102,15 @@ func ParseNaskahDinas(text string, knownLocations []string) ParseResult {
 	if m := reDateRangeFull.FindStringSubmatch(text); len(m) > 6 {
 		t1, err1 := parseDateIndo(m[1], m[2], m[3])
 		t2, err2 := parseDateIndo(m[4], m[5], m[6])
+		if err1 == nil {
+			res.TanggalMulai = t1.Format("2006-01-02")
+		}
+		if err2 == nil {
+			res.TanggalSelesai = t2.Format("2006-01-02")
+		}
+	} else if m := reDateRangeSlashSep.FindStringSubmatch(text); len(m) > 4 {
+		t1, err1 := parseDateIndo(m[1], m[3], m[4])
+		t2, err2 := parseDateIndo(m[2], m[3], m[4])
 		if err1 == nil {
 			res.TanggalMulai = t1.Format("2006-01-02")
 		}

@@ -137,6 +137,11 @@ func TestParseDateFormats(t *testing.T) {
 			wantMulai:   "2026-11-05",
 			wantSelesai: "2026-11-07",
 		},
+		{
+			input:       "hari/tanggal : Selasa s.d. Jumat /17 s.d. 20 November 2026",
+			wantMulai:   "2026-11-17",
+			wantSelesai: "2026-11-20",
+		},
 	}
 
 	for _, tt := range tests {
