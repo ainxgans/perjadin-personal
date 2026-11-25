@@ -101,23 +101,24 @@ func ResolveWorkspaceID(r *http.Request, db *sql.DB, userID string) (string, err
 		return headerWS, nil
 	}
 
-	// Fallback to user's first workspace
+	// Ensure user always has a personal workspace
+	personalWS, _ := EnsurePersonalWorkspace(db, userID, "")
+
+	// Fallback: prioritize user's owned workspace, then first joined workspace
 	var defaultWS string
 	err := db.QueryRow(`
 		SELECT w.id
 		FROM workspaces w
 		JOIN workspace_members wm ON wm.workspace_id = w.id
 		WHERE wm.user_id = $1
-		ORDER BY wm.created_at ASC
+		ORDER BY (w.owner_id = $1) DESC, wm.created_at ASC
 		LIMIT 1
 	`, userID).Scan(&defaultWS)
-	if err == sql.ErrNoRows {
-		// Auto-provision if none exists
-		return EnsurePersonalWorkspace(db, userID, "")
+	if err == nil && defaultWS != "" {
+		return defaultWS, nil
 	}
-	if err != nil {
-		return "", err
+	if personalWS != "" {
+		return personalWS, nil
 	}
-
-	return defaultWS, nil
+	return EnsurePersonalWorkspace(db, userID, "")
 }
