@@ -1,4 +1,4 @@
-import { Component, createSignal, createResource, For, Show } from 'solid-js';
+import { Component, createSignal, createResource, For, Show, onMount, onCleanup } from 'solid-js';
 import { A } from '@solidjs/router';
 import {
   getCategories,
@@ -25,6 +25,7 @@ import {
   PlusIcon,
   SearchIcon,
   XIcon,
+  CheckIcon,
 } from '../../components/Icons';
 
 const formatRp = (n: number) =>
@@ -170,6 +171,18 @@ const SBMRateManager: Component<{
   const [formUangHarian, setFormUangHarian] = createSignal('');
   const [error, setError] = createSignal('');
   const [submitting, setSubmitting] = createSignal(false);
+  const [isProvOpen, setIsProvOpen] = createSignal(false);
+  let provDropdownRef: HTMLDivElement | undefined;
+
+  onMount(() => {
+    const handleDocClick = (e: MouseEvent) => {
+      if (provDropdownRef && !provDropdownRef.contains(e.target as Node)) {
+        setIsProvOpen(false);
+      }
+    };
+    window.addEventListener('click', handleDocClick);
+    onCleanup(() => window.removeEventListener('click', handleDocClick));
+  });
 
   const filteredRates = () => {
     const q = search().toLowerCase().trim();
@@ -181,6 +194,23 @@ const SBMRateManager: Component<{
     );
   };
 
+  const matchingProvinces = () => {
+    const q = formProvinsi().toLowerCase().trim();
+    const rates = props.rates() || [];
+    if (!q) return rates;
+    return rates.filter(
+      (r) =>
+        r.provinsi.toLowerCase().includes(q) ||
+        (r.ibukota && r.ibukota.toLowerCase().includes(q))
+    );
+  };
+
+  const existingRateForInput = () => {
+    const q = formProvinsi().toLowerCase().trim();
+    if (!q) return undefined;
+    return (props.rates() || []).find((r) => r.provinsi.toLowerCase() === q);
+  };
+
   const openAdd = () => {
     setEditingItem(null);
     setFormProvinsi('');
@@ -188,6 +218,7 @@ const SBMRateManager: Component<{
     setFormUangHarian('');
     setError('');
     setIsAdding(true);
+    setIsProvOpen(false);
   };
 
   const openEdit = (rate: SBMRate) => {
@@ -197,6 +228,14 @@ const SBMRateManager: Component<{
     setFormIbukota(rate.ibukota || '');
     setFormUangHarian(String(rate.uang_harian));
     setError('');
+    setIsProvOpen(false);
+  };
+
+  const handleSelectProvince = (rate: SBMRate) => {
+    setFormProvinsi(rate.provinsi);
+    setFormIbukota(rate.ibukota || '');
+    setFormUangHarian(String(rate.uang_harian));
+    setIsProvOpen(false);
   };
 
   const handleSave = async (e: Event) => {
@@ -219,11 +258,22 @@ const SBMRateManager: Component<{
         });
         setEditingItem(null);
       } else {
-        await createSBMRate({
-          provinsi: prov,
-          ibukota: formIbukota().trim(),
-          uang_harian: uang,
-        });
+        const existing = (props.rates() || []).find(
+          (r) => r.provinsi.toLowerCase() === prov.toLowerCase()
+        );
+        if (existing) {
+          await updateSBMRate(existing.id, {
+            provinsi: prov,
+            ibukota: formIbukota().trim(),
+            uang_harian: uang,
+          });
+        } else {
+          await createSBMRate({
+            provinsi: prov,
+            ibukota: formIbukota().trim(),
+            uang_harian: uang,
+          });
+        }
         setIsAdding(false);
       }
       props.refetch();
@@ -343,16 +393,103 @@ const SBMRateManager: Component<{
               {error() && <p class="text-rose" style="font-size: 0.8125rem; margin-bottom: 0.75rem;">{error()}</p>}
 
               <form onSubmit={handleSave}>
-                <div class="form-group">
-                  <label for="provinsi">Nama Provinsi</label>
-                  <input
-                    id="provinsi"
-                    class="form-control"
-                    value={formProvinsi()}
-                    onInput={(e) => setFormProvinsi(e.currentTarget.value)}
-                    placeholder="Contoh: Jawa Timur"
-                    required
-                  />
+                <div class="form-group" ref={provDropdownRef} style="position: relative;">
+                  <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.375rem;">
+                    <label for="provinsi" style="margin-bottom: 0;">Nama Provinsi</label>
+                    <span style="font-size: 0.6875rem; color: var(--text-muted);">Pilih terdaftar atau buat baru</span>
+                  </div>
+                  <div style="position: relative;">
+                    <input
+                      id="provinsi"
+                      class="form-control"
+                      value={formProvinsi()}
+                      onFocus={() => setIsProvOpen(true)}
+                      onInput={(e) => {
+                        setFormProvinsi(e.currentTarget.value);
+                        setIsProvOpen(true);
+                      }}
+                      placeholder="Cari atau ketik provinsi (contoh: Jawa Timur)..."
+                      autocomplete="off"
+                      required
+                    />
+                    <Show when={formProvinsi().trim()}>
+                      <button
+                        type="button"
+                        class="btn-icon-subtle"
+                        style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); padding: 0.25rem;"
+                        onClick={() => {
+                          setFormProvinsi('');
+                          setFormIbukota('');
+                          setFormUangHarian('');
+                          setIsProvOpen(true);
+                        }}
+                        title="Hapus"
+                      >
+                        <XIcon size={14} />
+                      </button>
+                    </Show>
+                  </div>
+
+                  {/* Dropdown Select-or-Create Options */}
+                  <Show when={isProvOpen()}>
+                    <div
+                      style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 100; max-height: 220px; overflow-y: auto; background: var(--bg-surface-elevated); border: 1px solid var(--border-hover); border-radius: 12px; box-shadow: 0 12px 32px rgba(0,0,0,0.6);"
+                    >
+                      <Show when={formProvinsi().trim() && !existingRateForInput()}>
+                        <button
+                          type="button"
+                          onClick={() => setIsProvOpen(false)}
+                          style="width: 100%; text-align: left; padding: 0.625rem 0.875rem; background: var(--sky-bg); border: none; border-bottom: 1px solid var(--border-subtle); color: var(--sky); font-size: 0.8125rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.375rem;"
+                        >
+                          <PlusIcon size={14} />
+                          <span>Gunakan sebagai provinsi baru: "{formProvinsi().trim()}"</span>
+                        </button>
+                      </Show>
+
+                      <For
+                        each={matchingProvinces()}
+                        fallback={
+                          <div style="padding: 0.75rem; font-size: 0.8125rem; color: var(--text-muted); text-align: center;">
+                            Tidak ada provinsi cocok. Ketik untuk membuat baru.
+                          </div>
+                        }
+                      >
+                        {(rate) => (
+                          <button
+                            type="button"
+                            onClick={() => handleSelectProvince(rate)}
+                            style={`width: 100%; text-align: left; padding: 0.5rem 0.875rem; display: flex; justify-content: space-between; align-items: center; border: none; background: ${formProvinsi().toLowerCase().trim() === rate.provinsi.toLowerCase() ? 'rgba(56, 189, 248, 0.12)' : 'transparent'}; color: var(--text-primary); cursor: pointer; border-bottom: 1px solid var(--border-subtle);`}
+                          >
+                            <div>
+                              <div style="font-size: 0.8125rem; font-weight: 600;">{rate.provinsi}</div>
+                              <Show when={rate.ibukota}>
+                                <div style="font-size: 0.6875rem; color: var(--text-muted);">{rate.ibukota}</div>
+                              </Show>
+                            </div>
+                            <div class="amount text-emerald" style="font-size: 0.75rem; font-weight: 700;">
+                              {formatRp(rate.uang_harian)}
+                            </div>
+                          </button>
+                        )}
+                      </For>
+                    </div>
+                  </Show>
+
+                  {/* Informational Hint Tag */}
+                  <Show when={existingRateForInput()}>
+                    {(rate) => (
+                      <div style="font-size: 0.75rem; color: var(--sky); margin-top: 0.375rem; display: flex; align-items: center; gap: 0.25rem;">
+                        <CheckIcon size={13} />
+                        <span>Provinsi terdaftar — simpan untuk perbarui tarif ({formatRp(rate().uang_harian)}/hari)</span>
+                      </div>
+                    )}
+                  </Show>
+                  <Show when={formProvinsi().trim() && !existingRateForInput()}>
+                    <div style="font-size: 0.75rem; color: var(--emerald); margin-top: 0.375rem; display: flex; align-items: center; gap: 0.25rem;">
+                      <PlusIcon size={13} />
+                      <span>Provinsi baru akan ditambahkan ke master SBM</span>
+                    </div>
+                  </Show>
                 </div>
 
                 <div class="form-group">

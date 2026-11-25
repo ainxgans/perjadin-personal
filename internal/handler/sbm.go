@@ -72,15 +72,19 @@ func CreateSBM(db *sql.DB) http.HandlerFunc {
 		err := db.QueryRow(`
 			INSERT INTO sbm_rates (provinsi, ibukota, uang_harian)
 			VALUES ($1, $2, $3)
+			ON CONFLICT (LOWER(provinsi)) DO UPDATE
+			SET ibukota = CASE WHEN EXCLUDED.ibukota <> '' THEN EXCLUDED.ibukota ELSE sbm_rates.ibukota END,
+			    uang_harian = EXCLUDED.uang_harian,
+			    updated_at = now()
 			RETURNING id, provinsi, ibukota, uang_harian, created_at, updated_at
 		`, input.Provinsi, strings.TrimSpace(input.Ibukota), input.UangHarian).
 			Scan(&item.ID, &item.Provinsi, &item.Ibukota, &item.UangHarian, &item.CreatedAt, &item.UpdatedAt)
 
 		if err != nil {
-			writeJSON(w, http.StatusConflict, map[string]string{"error": "provinsi already exists"})
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
 		}
-		writeJSON(w, http.StatusCreated, map[string]interface{}{"data": item})
+		writeJSON(w, http.StatusOK, map[string]interface{}{"data": item})
 	}
 }
 

@@ -26,6 +26,9 @@ import {
   UserPlusIcon,
   XIcon,
   SearchIcon,
+  CheckIcon,
+  CopyIcon,
+  ExternalLinkIcon,
 } from '../components/Icons';
 import { formatDateIndo, formatTripDateIndo } from '../utils/date';
 
@@ -56,6 +59,33 @@ const TripDetail: Component = () => {
   const [searchResults, setSearchResults] = createSignal<UserSearchItem[]>([]);
   const [searchLoading, setSearchLoading] = createSignal(false);
   const [inviteError, setInviteError] = createSignal('');
+
+  const [copiedLink, setCopiedLink] = createSignal(false);
+
+  const handleCopyLink = async (url: string) => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = url;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    } catch {
+      // fallback
+    }
+  };
+
+  const normalizeUrl = (url: string) => {
+    if (!url) return '';
+    if (/^https?:\/\//i.test(url)) return url;
+    return `https://${url}`;
+  };
 
   const handleDeleteTrip = async () => {
     if (!confirm('Hapus perjalanan dinas ini?')) return;
@@ -224,15 +254,30 @@ const TripDetail: Component = () => {
 
               <Show when={t().link_monita}>
                 <div style="margin-bottom: 0.75rem;">
-                  <a
-                    href={t().link_monita}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="btn btn-sm btn-outline"
-                    style="width: 100%; font-size: 0.75rem; text-decoration: none;"
-                  >
-                    Buka Transaksi Monita ↗
-                  </a>
+                  <div style="display: flex; gap: 0.5rem; align-items: stretch;">
+                    <a
+                      href={normalizeUrl(t().link_monita)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="btn btn-sm btn-outline"
+                      style="flex: 1; font-size: 0.75rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem;"
+                    >
+                      <ExternalLinkIcon size={14} />
+                      <span>Buka Transaksi Monita</span>
+                    </a>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-secondary"
+                      style="font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.375rem 0.875rem;"
+                      onClick={() => handleCopyLink(t().link_monita)}
+                      title="Salin tautan Monita"
+                    >
+                      <Show when={copiedLink()} fallback={<><CopyIcon size={14} /><span>Salin</span></>}>
+                        <CheckIcon size={14} style="color: var(--emerald);" />
+                        <span class="text-emerald">Tersalin!</span>
+                      </Show>
+                    </button>
+                  </div>
                 </div>
               </Show>
 
