@@ -49,6 +49,7 @@ export interface SBMRate {
   id: string;
   provinsi: string;
   ibukota: string;
+  kota?: string[];
   uang_harian: number;
   created_at: string;
   updated_at: string;

@@ -31,29 +31,56 @@ const CreatableSelect: Component<CreatableSelectProps> = (props) => {
   window.addEventListener('click', handleClickOutside);
   onCleanup(() => window.removeEventListener('click', handleClickOutside));
 
+  const allItems = () => {
+    const items: { display: string; title: string; rate: SBMRate }[] = [];
+    const rates = props.options || [];
+    for (const r of rates) {
+      if (r.kota && r.kota.length > 0) {
+        for (const k of r.kota) {
+          items.push({
+            display: `${k}, ${r.provinsi}`,
+            title: k,
+            rate: r,
+          });
+        }
+      } else if (r.ibukota) {
+        items.push({
+          display: `${r.ibukota}, ${r.provinsi}`,
+          title: r.ibukota,
+          rate: r,
+        });
+      }
+      items.push({
+        display: r.provinsi,
+        title: r.provinsi,
+        rate: r,
+      });
+    }
+    return items;
+  };
+
   const filtered = () => {
     const q = searchTerm().toLowerCase().trim();
-    if (!q) return props.options || [];
-    return (props.options || []).filter(
-      (opt) =>
-        opt.provinsi.toLowerCase().includes(q) ||
-        (opt.ibukota && opt.ibukota.toLowerCase().includes(q))
+    if (!q) return allItems();
+    return allItems().filter(
+      (item) =>
+        item.display.toLowerCase().includes(q) ||
+        item.title.toLowerCase().includes(q)
     );
   };
 
   const exactMatch = () => {
     const q = searchTerm().toLowerCase().trim();
-    return (props.options || []).some(
-      (opt) =>
-        opt.provinsi.toLowerCase() === q ||
-        (opt.ibukota && opt.ibukota.toLowerCase() === q)
+    return allItems().some(
+      (item) =>
+        item.display.toLowerCase() === q ||
+        item.title.toLowerCase() === q
     );
   };
 
-  const handleSelect = (opt: SBMRate) => {
-    const displayVal = opt.ibukota ? `${opt.ibukota}, ${opt.provinsi}` : opt.provinsi;
-    setSearchTerm(displayVal);
-    props.onChange(displayVal, opt);
+  const handleSelect = (item: { display: string; rate: SBMRate }) => {
+    setSearchTerm(item.display);
+    props.onChange(item.display, item.rate);
     setIsOpen(false);
   };
 
@@ -155,14 +182,13 @@ const CreatableSelect: Component<CreatableSelectProps> = (props) => {
             }
           >
             <For each={filtered()}>
-              {(opt) => {
-                const label = opt.ibukota ? `${opt.ibukota}, ${opt.provinsi}` : opt.provinsi;
-                const isSelected = props.value === label || props.value === opt.provinsi;
+              {(item) => {
+                const isSelected = props.value === item.display || props.value === item.title;
                 return (
                   <button
                     type="button"
                     class="dropdown-item-btn"
-                    onClick={() => handleSelect(opt)}
+                    onClick={() => handleSelect(item)}
                     style={{
                       width: '100%',
                       'text-align': 'left',
@@ -181,11 +207,15 @@ const CreatableSelect: Component<CreatableSelectProps> = (props) => {
                   >
                     <div>
                       <div style="font-weight: 600; color: var(--text-primary);">
-                        {opt.provinsi}
-                        {opt.ibukota ? ` (${opt.ibukota})` : ''}
+                        {item.title}
+                        <Show when={item.title !== item.rate.provinsi}>
+                          <span style="font-weight: 400; color: var(--text-secondary); font-size: 0.75rem; margin-left: 0.375rem;">
+                            ({item.rate.provinsi})
+                          </span>
+                        </Show>
                       </div>
                       <div style="font-size: 0.6875rem; color: var(--text-muted);">
-                        Standar Biaya: <span class="amount text-emerald">{formatRp(opt.uang_harian)}</span> / hari
+                        Standar Biaya: <span class="amount text-emerald">{formatRp(item.rate.uang_harian)}</span> / hari
                       </div>
                     </div>
                     <Show when={isSelected}>
