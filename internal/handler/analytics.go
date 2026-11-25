@@ -27,6 +27,7 @@ type AnalyticsData struct {
 	TotalUangDinasRp     int64                   `json:"total_uang_dinas_rp"`
 	AverageExpenseTrip   int64                   `json:"average_expense_trip"`
 	TotalDays            int                     `json:"total_days"`
+	TotalTrips           int                     `json:"total_trips"`
 	DailyBurnRate        int64                   `json:"daily_burn_rate"`
 	PersonalSharePct     int                     `json:"personal_share_pct"`
 	BudgetRealizationPct int                     `json:"budget_realization_pct"`
@@ -86,6 +87,7 @@ func GetAnalytics(db *sql.DB) http.HandlerFunc {
 				AND ($2 = 0 OR EXTRACT(YEAR FROM t.tanggal_mulai) = $2)
 		`, userID, year).Scan(&tripCount)
 
+		data.TotalTrips = tripCount
 		if tripCount > 0 {
 			data.AverageExpenseTrip = data.TotalExpensesRp / int64(tripCount)
 		}

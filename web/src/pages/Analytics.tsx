@@ -64,15 +64,56 @@ const Analytics: Component = () => {
       </Show>
 
       <Show when={data()} fallback={<p style="text-align: center; color: var(--text-muted); padding: 2rem 0;">Memuat analitik...</p>}>
+        {/* Cashflow Summary Card */}
+        <div class="doppel-card" style="margin-bottom: 0.875rem;">
+          <div class="doppel-inner" style="padding: 1.125rem;">
+            <span style="font-size: 0.6875rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.05em; display: block; margin-bottom: 0.75rem;">
+              Ringkasan Arus Kas Dinas
+            </span>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.875rem; margin-bottom: 0.875rem;">
+              <div>
+                <span style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">
+                  Total Uang Dinas
+                </span>
+                <span class="amount text-emerald" style="font-size: 1.1875rem; font-weight: 800; display: block;">
+                  {formatRp(data()!.total_uang_dinas_rp)}
+                </span>
+              </div>
+              <div>
+                <span style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">
+                  Total Belanja
+                </span>
+                <span class="amount text-rose" style="font-size: 1.1875rem; font-weight: 800; display: block;">
+                  {formatRp(data()!.total_expenses_rp)}
+                </span>
+              </div>
+            </div>
+
+            <div style="border-top: 1px solid var(--border-subtle); padding-top: 0.75rem; display: flex; justify-content: space-between; align-items: baseline;">
+              <div>
+                <span style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600;">
+                  {data()!.total_uang_dinas_rp >= data()!.total_expenses_rp ? 'Sisa Uang Dinas (Surplus)' : 'Defisit (Lebih Belanja)'}
+                </span>
+              </div>
+              <span
+                class={'amount ' + (data()!.total_uang_dinas_rp >= data()!.total_expenses_rp ? 'text-sky' : 'text-rose')}
+                style="font-size: 1.0625rem; font-weight: 800;"
+              >
+                {formatRp(data()!.total_uang_dinas_rp - data()!.total_expenses_rp)}
+              </span>
+            </div>
+          </div>
+        </div>
+
         {/* Metric Cards: 2x3 Bento Grid */}
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.25rem;">
           <div class="doppel-card">
             <div class="doppel-inner">
               <span style="font-size: 0.6875rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.05em;">
-                Total Belanja
+                Total Perjalanan
               </span>
-              <div class="amount text-rose" style="font-size: 1.0625rem; font-weight: 700; margin-top: 0.25rem;">
-                {formatRp(data()!.total_expenses_rp)}
+              <div class="amount text-sky" style="font-size: 1.0625rem; font-weight: 700; margin-top: 0.25rem;">
+                {data()!.total_trips ?? '-'} <span style="font-size: 0.8125rem; font-weight: 500; color: var(--text-muted);">trip</span>
               </div>
             </div>
           </div>
@@ -82,7 +123,7 @@ const Analytics: Component = () => {
               <span style="font-size: 0.6875rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.05em;">
                 Rata-Rata / Trip
               </span>
-              <div class="amount text-sky" style="font-size: 1.0625rem; font-weight: 700; margin-top: 0.25rem;">
+              <div class="amount" style="font-size: 1.0625rem; font-weight: 700; margin-top: 0.25rem; color: var(--text-primary);">
                 {formatRp(data()!.average_expense_trip)}
               </div>
             </div>

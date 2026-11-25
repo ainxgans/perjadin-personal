@@ -126,6 +126,7 @@ export interface AnalyticsData {
   total_uang_dinas_rp: number;
   average_expense_trip: number;
   total_days: number;
+  total_trips?: number;
   daily_burn_rate: number;
   personal_share_pct: number;
   budget_realization_pct: number;

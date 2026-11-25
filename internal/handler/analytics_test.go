@@ -92,6 +92,9 @@ func TestGetAnalytics_YearFilter(t *testing.T) {
 	if data2025["total_expenses_rp"].(float64) != 500000 {
 		t.Errorf("expected 500000 for 2025, got %v", data2025["total_expenses_rp"])
 	}
+	if data2025["total_trips"].(float64) != 1 {
+		t.Errorf("expected 1 trip for 2025, got %v", data2025["total_trips"])
+	}
 
 	// Query year=2026
 	rec2026 := doRequest(t, h, "GET", "/api/analytics?year=2026", "", cookie)
@@ -102,6 +105,9 @@ func TestGetAnalytics_YearFilter(t *testing.T) {
 	if data2026["total_expenses_rp"].(float64) != 1000000 {
 		t.Errorf("expected 1000000 for 2026, got %v", data2026["total_expenses_rp"])
 	}
+	if data2026["total_trips"].(float64) != 1 {
+		t.Errorf("expected 1 trip for 2026, got %v", data2026["total_trips"])
+	}
 
 	// Query unfiltered (all years)
 	recAll := doRequest(t, h, "GET", "/api/analytics", "", cookie)
@@ -109,6 +115,9 @@ func TestGetAnalytics_YearFilter(t *testing.T) {
 		t.Fatalf("expected 200, got %d", recAll.Code)
 	}
 	dataAll := parseJSON(t, recAll)["data"].(map[string]interface{})
+	if dataAll["total_trips"].(float64) != 2 {
+		t.Errorf("expected 2 total trips, got %v", dataAll["total_trips"])
+	}
 	if dataAll["total_expenses_rp"].(float64) != 1500000 {
 		t.Errorf("expected 1500000 for all, got %v", dataAll["total_expenses_rp"])
 	}
