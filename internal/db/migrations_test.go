@@ -25,6 +25,7 @@ func TestMigrationFilesSyntax(t *testing.T) {
 	found006 := false
 	found007 := false
 	found008 := false
+	found009 := false
 	for _, f := range files {
 		content, err := os.ReadFile(f)
 		if err != nil {
@@ -80,6 +81,21 @@ func TestMigrationFilesSyntax(t *testing.T) {
 				t.Errorf("008 missing dokumen_nama TEXT")
 			}
 		}
+		if filepath.Base(f) == "009_create_workspaces.sql" {
+			found009 = true
+			if !strings.Contains(s, "workspaces") {
+				t.Errorf("009 missing workspaces table")
+			}
+			if !strings.Contains(s, "workspace_members") {
+				t.Errorf("009 missing workspace_members table")
+			}
+			if !strings.Contains(s, "workspace_id UUID") {
+				t.Errorf("009 missing workspace_id UUID column")
+			}
+			if !strings.Contains(s, "DROP TABLE IF EXISTS trip_members") {
+				t.Errorf("009 missing drop trip_members")
+			}
+		}
 	}
 
 	if !found004 {
@@ -96,6 +112,9 @@ func TestMigrationFilesSyntax(t *testing.T) {
 	}
 	if !found008 {
 		t.Errorf("008_add_trip_dokumen.sql not found in migrations")
+	}
+	if !found009 {
+		t.Errorf("009_create_workspaces.sql not found in migrations")
 	}
 }
 
