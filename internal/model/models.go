@@ -42,6 +42,7 @@ var ValidStatuses = map[string]bool{
 
 type Trip struct {
 	ID              string     `json:"id"`
+	WorkspaceID     string     `json:"workspace_id"`
 	UserID          string     `json:"user_id"`
 	Nama            string     `json:"nama"`
 	Tujuan          string     `json:"tujuan"`
@@ -59,6 +60,28 @@ type Trip struct {
 	SettlementNote  string     `json:"settlement_note"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
+}
+
+type Workspace struct {
+	ID          string    `json:"id"`
+	Nama        string    `json:"nama"`
+	OwnerID     string    `json:"owner_id"`
+	JoinCode    string    `json:"join_code,omitempty"`
+	Role        string    `json:"role,omitempty"`
+	MemberCount int       `json:"member_count,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+type WorkspaceMember struct {
+	ID          string    `json:"id"`
+	WorkspaceID string    `json:"workspace_id"`
+	UserID      string    `json:"user_id"`
+	Name        string    `json:"name"`
+	Email       string    `json:"email"`
+	AvatarURL   string    `json:"avatar_url"`
+	Role        string    `json:"role"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 type Expense struct {
