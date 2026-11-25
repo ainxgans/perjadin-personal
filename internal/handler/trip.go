@@ -19,6 +19,7 @@ type tripResponse struct {
 	Status             string    `json:"status"`
 	UangDinas          *int64    `json:"uang_dinas"`
 	NominalMonita      *int64    `json:"nominal_monita"`
+	EstimasiTransport  *int64    `json:"estimasi_transport,omitempty"`
 	TanggalDibayar     *string   `json:"tanggal_dibayar"`
 	Catatan            string    `json:"catatan"`
 	LinkMonita         string    `json:"link_monita"`
@@ -51,6 +52,7 @@ func tripToResponse(t model.Trip, totalExpense int64, isOwner bool, ownerName st
 		Status:             t.Status,
 		UangDinas:          t.UangDinas,
 		NominalMonita:      t.NominalMonita,
+		EstimasiTransport:  t.EstimasiTransport,
 		TanggalDibayar:     dibayarStr,
 		Catatan:            t.Catatan,
 		LinkMonita:         t.LinkMonita,
@@ -68,12 +70,12 @@ func tripToResponse(t model.Trip, totalExpense int64, isOwner bool, ownerName st
 const tripSelectCols = `t.id, t.nama, t.tujuan, t.tanggal_mulai, t.tanggal_selesai,
 	COALESCE(t.status, 'berlangsung'), t.uang_dinas, t.nominal_monita, t.tanggal_dibayar,
 	COALESCE(t.catatan, ''), COALESCE(t.link_monita, ''), COALESCE(t.settlement_note, ''),
-	t.created_at, t.updated_at`
+	t.estimasi_transport, t.created_at, t.updated_at`
 
 const tripInsertCols = `id, nama, tujuan, tanggal_mulai, tanggal_selesai,
 	COALESCE(status, 'berlangsung'), uang_dinas, nominal_monita, tanggal_dibayar,
 	COALESCE(catatan, ''), COALESCE(link_monita, ''), COALESCE(settlement_note, ''),
-	created_at, updated_at`
+	estimasi_transport, created_at, updated_at`
 
 func ListTrips(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -111,7 +113,7 @@ func ListTrips(db *sql.DB) http.HandlerFunc {
 				&t.ID, &t.Nama, &t.Tujuan, &t.TanggalMulai, &t.TanggalSelesai,
 				&t.Status, &t.UangDinas, &t.NominalMonita, &t.TanggalDibayar,
 				&t.Catatan, &t.LinkMonita, &t.SettlementNote,
-				&t.CreatedAt, &t.UpdatedAt,
+				&t.EstimasiTransport, &t.CreatedAt, &t.UpdatedAt,
 				&totalExpense, &isOwner, &ownerName, &collabsCount,
 			); err != nil {
 				continue
@@ -129,15 +131,16 @@ func CreateTrip(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID := auth.UserIDFromContext(r.Context())
 		var input struct {
-			Nama           string  `json:"nama"`
-			Tujuan         string  `json:"tujuan"`
-			TanggalMulai   string  `json:"tanggal_mulai"`
-			TanggalSelesai string  `json:"tanggal_selesai"`
-			UangDinas      *int64  `json:"uang_dinas"`
-			NominalMonita  *int64  `json:"nominal_monita"`
-			TanggalDibayar *string `json:"tanggal_dibayar"`
-			Catatan        string  `json:"catatan"`
-			LinkMonita     string  `json:"link_monita"`
+			Nama              string  `json:"nama"`
+			Tujuan            string  `json:"tujuan"`
+			TanggalMulai      string  `json:"tanggal_mulai"`
+			TanggalSelesai    string  `json:"tanggal_selesai"`
+			UangDinas         *int64  `json:"uang_dinas"`
+			NominalMonita     *int64  `json:"nominal_monita"`
+			EstimasiTransport *int64  `json:"estimasi_transport"`
+			TanggalDibayar    *string `json:"tanggal_dibayar"`
+			Catatan           string  `json:"catatan"`
+			LinkMonita        string  `json:"link_monita"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid json"})
@@ -171,15 +174,15 @@ func CreateTrip(db *sql.DB) http.HandlerFunc {
 
 		var trip model.Trip
 		err := db.QueryRow(`
-			INSERT INTO trips (user_id, nama, tujuan, tanggal_mulai, tanggal_selesai, status, uang_dinas, nominal_monita, tanggal_dibayar, catatan, link_monita)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+			INSERT INTO trips (user_id, nama, tujuan, tanggal_mulai, tanggal_selesai, status, uang_dinas, nominal_monita, tanggal_dibayar, catatan, link_monita, estimasi_transport)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 			RETURNING `+tripInsertCols+`
 		`, userID, input.Nama, input.Tujuan, mulai, selesai, model.StatusBerlangsung,
-			input.UangDinas, input.NominalMonita, dibayar, input.Catatan, input.LinkMonita).
+			input.UangDinas, input.NominalMonita, dibayar, input.Catatan, input.LinkMonita, input.EstimasiTransport).
 			Scan(&trip.ID, &trip.Nama, &trip.Tujuan, &trip.TanggalMulai, &trip.TanggalSelesai,
 				&trip.Status, &trip.UangDinas, &trip.NominalMonita, &trip.TanggalDibayar,
 				&trip.Catatan, &trip.LinkMonita, &trip.SettlementNote,
-				&trip.CreatedAt, &trip.UpdatedAt)
+				&trip.EstimasiTransport, &trip.CreatedAt, &trip.UpdatedAt)
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
@@ -220,7 +223,7 @@ func GetTrip(db *sql.DB) http.HandlerFunc {
 			&trip.ID, &trip.Nama, &trip.Tujuan, &trip.TanggalMulai, &trip.TanggalSelesai,
 			&trip.Status, &trip.UangDinas, &trip.NominalMonita, &trip.TanggalDibayar,
 			&trip.Catatan, &trip.LinkMonita, &trip.SettlementNote,
-			&trip.CreatedAt, &trip.UpdatedAt, &totalExpense,
+			&trip.EstimasiTransport, &trip.CreatedAt, &trip.UpdatedAt, &totalExpense,
 			&tripOwnerID, &ownerName, &collabsCount)
 
 		if err == sql.ErrNoRows {
@@ -244,17 +247,18 @@ func UpdateTrip(db *sql.DB) http.HandlerFunc {
 		id := r.PathValue("id")
 
 		var input struct {
-			Nama           *string `json:"nama"`
-			Tujuan         *string `json:"tujuan"`
-			TanggalMulai   *string `json:"tanggal_mulai"`
-			TanggalSelesai *string `json:"tanggal_selesai"`
-			Status         *string `json:"status"`
-			UangDinas      *int64  `json:"uang_dinas"`
-			NominalMonita  *int64  `json:"nominal_monita"`
-			TanggalDibayar *string `json:"tanggal_dibayar"`
-			Catatan        *string `json:"catatan"`
-			LinkMonita     *string `json:"link_monita"`
-			SettlementNote *string `json:"settlement_note"`
+			Nama              *string `json:"nama"`
+			Tujuan            *string `json:"tujuan"`
+			TanggalMulai      *string `json:"tanggal_mulai"`
+			TanggalSelesai    *string `json:"tanggal_selesai"`
+			Status            *string `json:"status"`
+			UangDinas         *int64  `json:"uang_dinas"`
+			NominalMonita     *int64  `json:"nominal_monita"`
+			EstimasiTransport *int64  `json:"estimasi_transport"`
+			TanggalDibayar    *string `json:"tanggal_dibayar"`
+			Catatan           *string `json:"catatan"`
+			LinkMonita        *string `json:"link_monita"`
+			SettlementNote    *string `json:"settlement_note"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid json"})
@@ -269,7 +273,7 @@ func UpdateTrip(db *sql.DB) http.HandlerFunc {
 			Scan(&trip.ID, &trip.Nama, &trip.Tujuan, &trip.TanggalMulai, &trip.TanggalSelesai,
 				&trip.Status, &trip.UangDinas, &trip.NominalMonita, &trip.TanggalDibayar,
 				&trip.Catatan, &trip.LinkMonita, &trip.SettlementNote,
-				&trip.CreatedAt, &trip.UpdatedAt, &tripOwnerID)
+				&trip.EstimasiTransport, &trip.CreatedAt, &trip.UpdatedAt, &tripOwnerID)
 		if err == sql.ErrNoRows {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
 			return
@@ -319,6 +323,9 @@ func UpdateTrip(db *sql.DB) http.HandlerFunc {
 		if input.NominalMonita != nil {
 			trip.NominalMonita = input.NominalMonita
 		}
+		if input.EstimasiTransport != nil {
+			trip.EstimasiTransport = input.EstimasiTransport
+		}
 		if input.TanggalDibayar != nil {
 			t, err := time.Parse("2006-01-02", *input.TanggalDibayar)
 			if err != nil {
@@ -340,11 +347,11 @@ func UpdateTrip(db *sql.DB) http.HandlerFunc {
 		_, err = db.Exec(`
 			UPDATE trips SET nama=$1, tujuan=$2, tanggal_mulai=$3, tanggal_selesai=$4,
 				status=$5, uang_dinas=$6, nominal_monita=$7, tanggal_dibayar=$8,
-				catatan=$9, link_monita=$10, settlement_note=$11, updated_at=now()
-			WHERE id=$12
+				catatan=$9, link_monita=$10, settlement_note=$11, estimasi_transport=$12, updated_at=now()
+			WHERE id=$13
 		`, trip.Nama, trip.Tujuan, trip.TanggalMulai, trip.TanggalSelesai,
 			trip.Status, trip.UangDinas, trip.NominalMonita, trip.TanggalDibayar,
-			trip.Catatan, trip.LinkMonita, trip.SettlementNote, id)
+			trip.Catatan, trip.LinkMonita, trip.SettlementNote, trip.EstimasiTransport, id)
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return

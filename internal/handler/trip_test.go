@@ -153,3 +153,63 @@ func TestTripSQLConstants(t *testing.T) {
 		t.Errorf("tripInsertCols cannot contain 't.' table alias because it is used in INSERT RETURNING clauses")
 	}
 }
+
+func TestTrip_EstimasiTransport(t *testing.T) {
+	cleanupTestData(t)
+	userID := createTestUser(t, "google-user", "user@test.com", "user")
+	cookie := authCookie(t, userID, "user")
+	handler := setupTripRoutes()
+
+	// 1. Create trip with estimasi_transport
+	rec := doRequest(t, handler, "POST", "/api/trips", `{
+		"nama": "Dinas Bandung",
+		"tujuan": "Bandung",
+		"tanggal_mulai": "2026-11-20",
+		"tanggal_selesai": "2026-11-22",
+		"nominal_monita": 1830000,
+		"estimasi_transport": 540000
+	}`, cookie)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", rec.Code, rec.Body.String())
+	}
+	body := parseJSON(t, rec)
+	data := body["data"].(map[string]interface{})
+	tripID := data["id"].(string)
+
+	if data["estimasi_transport"] == nil {
+		t.Fatalf("expected estimasi_transport in create response, got nil")
+	}
+	if val := int64(data["estimasi_transport"].(float64)); val != 540000 {
+		t.Errorf("expected estimasi_transport 540000, got %d", val)
+	}
+
+	// 2. GetTrip must return estimasi_transport
+	recGet := doRequest(t, handler, "GET", "/api/trips/"+tripID, "", cookie)
+	if recGet.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", recGet.Code, recGet.Body.String())
+	}
+	bodyGet := parseJSON(t, recGet)
+	dataGet := bodyGet["data"].(map[string]interface{})
+	if dataGet["estimasi_transport"] == nil {
+		t.Fatalf("expected estimasi_transport in get response, got nil")
+	}
+	if val := int64(dataGet["estimasi_transport"].(float64)); val != 540000 {
+		t.Errorf("expected estimasi_transport 540000, got %d", val)
+	}
+
+	// 3. Update estimasi_transport
+	recPut := doRequest(t, handler, "PUT", "/api/trips/"+tripID, `{
+		"estimasi_transport": 750000
+	}`, cookie)
+	if recPut.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", recPut.Code, recPut.Body.String())
+	}
+	bodyPut := parseJSON(t, recPut)
+	dataPut := bodyPut["data"].(map[string]interface{})
+	if dataPut["estimasi_transport"] == nil {
+		t.Fatalf("expected estimasi_transport in put response, got nil")
+	}
+	if val := int64(dataPut["estimasi_transport"].(float64)); val != 750000 {
+		t.Errorf("expected estimasi_transport 750000, got %d", val)
+	}
+}
