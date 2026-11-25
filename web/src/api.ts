@@ -58,15 +58,32 @@ export interface SBMRate {
   updated_at: string;
 }
 
-export interface TripMember {
+export interface Workspace {
   id: string;
-  trip_id: string;
+  nama: string;
+  owner_id: string;
+  join_code?: string;
+  role?: string;
+  member_count?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WorkspaceMember {
+  id: string;
+  workspace_id: string;
   user_id: string;
-  role: string;
   name: string;
   email: string;
   avatar_url: string;
+  role: string;
   created_at: string;
+}
+
+export interface CurrentWorkspaceData {
+  workspace: Workspace;
+  members: WorkspaceMember[];
+  join_code?: string;
 }
 
 export interface UserSearchItem {
@@ -139,13 +156,19 @@ export interface AnalyticsData {
 }
 
 async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
+  const activeWsId = typeof localStorage !== 'undefined' ? localStorage.getItem('active_workspace_id') : null;
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(opts?.headers as Record<string, string> || {}),
+  };
+  if (activeWsId && !headers['X-Workspace-ID']) {
+    headers['X-Workspace-ID'] = activeWsId;
+  }
+
   const res = await fetch(path, {
     ...opts,
     credentials: 'same-origin',
-    headers: {
-      'Content-Type': 'application/json',
-      ...opts?.headers,
-    },
+    headers,
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -225,10 +248,13 @@ export const searchUsers = (q?: string) => {
   return apiFetch<UserSearchItem[]>(`/api/users${query}`);
 };
 
-// Trip Collaborators
-export const getTripMembers = (tripId: string) => apiFetch<TripMember[]>(`/api/trips/${tripId}/members`);
-export const addTripMember = (tripId: string, data: { user_id?: string; email?: string }) => apiFetch<TripMember>(`/api/trips/${tripId}/members`, { method: 'POST', body: JSON.stringify(data) });
-export const removeTripMember = (tripId: string, userId: string) => apiFetch<void>(`/api/trips/${tripId}/members/${userId}`, { method: 'DELETE' });
+// Workspaces
+export const getWorkspaces = () => apiFetch<Workspace[]>('/api/workspaces');
+export const createWorkspace = (data: { nama: string }) => apiFetch<Workspace>('/api/workspaces', { method: 'POST', body: JSON.stringify(data) });
+export const getCurrentWorkspace = () => apiFetch<CurrentWorkspaceData>('/api/workspaces/current');
+export const joinWorkspace = (code: string) => apiFetch<Workspace>('/api/workspaces/join', { method: 'POST', body: JSON.stringify({ code }) });
+export const regenerateJoinCode = () => apiFetch<{ join_code: string }>('/api/workspaces/regenerate-code', { method: 'POST' });
+export const removeWorkspaceMember = (workspaceId: string, userId: string) => apiFetch<void>(`/api/workspaces/${workspaceId}/members/${userId}`, { method: 'DELETE' });
 
 // Admin
 export const getAdminUsers = () => apiFetch<AdminUser[]>('/api/admin/users');

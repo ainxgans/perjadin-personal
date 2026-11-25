@@ -5,12 +5,7 @@ import {
   getExpenses,
   deleteTrip,
   deleteExpense,
-  getTripMembers,
-  addTripMember,
-  removeTripMember,
-  searchUsers,
   type Expense,
-  type UserSearchItem,
 } from '../api';
 import StatusBadge from '../components/StatusBadge';
 import ExpenseForm from '../components/ExpenseForm';
@@ -23,9 +18,6 @@ import {
   CalendarIcon,
   MapPinIcon,
   UsersIcon,
-  UserPlusIcon,
-  XIcon,
-  SearchIcon,
   CheckIcon,
   CopyIcon,
   ExternalLinkIcon,
@@ -49,18 +41,9 @@ const TripDetail: Component = () => {
   const navigate = useNavigate();
   const [trip, { refetch: refetchTrip }] = createResource(() => params.id, getTrip);
   const [expenses, { refetch: refetchExpenses }] = createResource(() => params.id, getExpenses);
-  const [members, { refetch: refetchMembers }] = createResource(() => params.id, getTripMembers);
 
   const [showForm, setShowForm] = createSignal(false);
   const [editingExpense, setEditingExpense] = createSignal<Expense | null>(null);
-
-  // Collaborator invite modal state
-  const [showMemberModal, setShowMemberModal] = createSignal(false);
-  const [memberSearchQuery, setMemberSearchQuery] = createSignal('');
-  const [searchResults, setSearchResults] = createSignal<UserSearchItem[]>([]);
-  const [searchLoading, setSearchLoading] = createSignal(false);
-  const [inviteError, setInviteError] = createSignal('');
-
   const [copiedLink, setCopiedLink] = createSignal(false);
 
   const handleCopyLink = async (rawUrl: string) => {
@@ -123,67 +106,6 @@ const TripDetail: Component = () => {
   const openEdit = (exp: Expense) => {
     setEditingExpense(exp);
     setShowForm(true);
-  };
-
-  const handleSearchUsers = async (q: string) => {
-    setMemberSearchQuery(q);
-    setInviteError('');
-    if (!q.trim()) {
-      setSearchResults([]);
-      return;
-    }
-    setSearchLoading(true);
-    try {
-      const res = await searchUsers(q);
-      // Filter out existing members
-      const existingUserIds = new Set((members() || []).map((m) => m.user_id));
-      setSearchResults(res.filter((u) => !existingUserIds.has(u.id)));
-    } catch {
-      setSearchResults([]);
-    } finally {
-      setSearchLoading(false);
-    }
-  };
-
-  const handleInviteUser = async (user: UserSearchItem) => {
-    setInviteError('');
-    try {
-      await addTripMember(params.id!, { user_id: user.id });
-      setMemberSearchQuery('');
-      setSearchResults([]);
-      setShowMemberModal(false);
-      refetchMembers();
-      refetchTrip();
-    } catch (err: any) {
-      setInviteError(err.message);
-    }
-  };
-
-  const handleInviteByEmail = async () => {
-    const email = memberSearchQuery().trim();
-    if (!email) return;
-    setInviteError('');
-    try {
-      await addTripMember(params.id!, { email });
-      setMemberSearchQuery('');
-      setSearchResults([]);
-      setShowMemberModal(false);
-      refetchMembers();
-      refetchTrip();
-    } catch (err: any) {
-      setInviteError(err.message);
-    }
-  };
-
-  const handleRemoveMember = async (userId: string) => {
-    if (!confirm('Hapus rekan ini dari perjalanan?')) return;
-    try {
-      await removeTripMember(params.id!, userId);
-      refetchMembers();
-      refetchTrip();
-    } catch (err: any) {
-      alert(err.message);
-    }
   };
 
   const groupedExpenses = () => {
@@ -362,59 +284,6 @@ const TripDetail: Component = () => {
               </div>
             </div>
 
-            {/* Collaborators Roster Section */}
-            <div class="collaborator-section">
-              <div class="collaborator-header">
-                <div class="collaborator-title">
-                  <UsersIcon size={16} />
-                  <span>Tim & Kolaborator</span>
-                </div>
-                <Show when={t().is_owner}>
-                  <button
-                    type="button"
-                    class="btn btn-sm btn-outline"
-                    style="font-size: 0.75rem; padding: 0.25rem 0.625rem; gap: 0.25rem;"
-                    onClick={() => {
-                      setShowMemberModal(true);
-                      setMemberSearchQuery('');
-                      setSearchResults([]);
-                    }}
-                  >
-                    <UserPlusIcon size={14} /> + Undang Rekan
-                  </button>
-                </Show>
-              </div>
-
-              <div class="collaborator-pills">
-                <For each={members() || []}>
-                  {(m) => (
-                    <div class="collaborator-pill">
-                      <Show
-                        when={m.avatar_url}
-                        fallback={<span class="collaborator-avatar">{m.name.charAt(0).toUpperCase()}</span>}
-                      >
-                        <img src={m.avatar_url} alt={m.name} class="collaborator-avatar" />
-                      </Show>
-                      <span style="font-weight: 600;">{m.name}</span>
-                      <span class={`collaborator-role-tag ${m.role === 'owner' ? 'role-owner' : 'role-member'}`}>
-                        {m.role === 'owner' ? 'Pemilik' : 'Rekan'}
-                      </span>
-                      <Show when={t().is_owner && m.role !== 'owner'}>
-                        <button
-                          type="button"
-                          class="btn-remove-collab"
-                          title="Hapus kolaborator"
-                          onClick={() => handleRemoveMember(m.user_id)}
-                        >
-                          <XIcon size={12} />
-                        </button>
-                      </Show>
-                    </div>
-                  )}
-                </For>
-              </div>
-            </div>
-
             {/* Expenses Header */}
             <div class="section-heading">
               <h2>Rincian Pengeluaran</h2>
@@ -530,123 +399,6 @@ const TripDetail: Component = () => {
           onClose={() => { setShowForm(false); setEditingExpense(null); }}
           onSaved={handleExpenseSaved}
         />
-      </Show>
-
-      {/* Modal Invite Collaborator */}
-      <Show when={showMemberModal()}>
-        <div class="modal-overlay" onClick={() => setShowMemberModal(false)}>
-          <div class="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div class="modal-handle" />
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-              <h3 class="modal-title" style="margin: 0;">Undang Rekan ke Perjalanan</h3>
-              <button
-                type="button"
-                class="btn-icon-subtle"
-                onClick={() => setShowMemberModal(false)}
-                aria-label="Tutup"
-              >
-                <XIcon size={18} />
-              </button>
-            </div>
-
-            <div class="search-input-wrap" style="margin-bottom: 0.75rem;">
-              <span class="search-input-icon">
-                <SearchIcon size={16} />
-              </span>
-              <input
-                type="text"
-                class="form-control"
-                placeholder="Cari nama atau email rekan..."
-                value={memberSearchQuery()}
-                onInput={(e) => handleSearchUsers(e.currentTarget.value)}
-                autofocus
-              />
-            </div>
-
-            <Show when={inviteError()}>
-              <p class="text-rose" style="font-size: 0.75rem; margin-bottom: 0.75rem;">
-                {inviteError()}
-              </p>
-            </Show>
-
-            <div style="max-height: 200px; overflow-y: auto; margin-bottom: 1rem;">
-              <Show when={searchLoading()}>
-                <p style="text-align: center; color: var(--text-muted); font-size: 0.75rem; padding: 1rem;">
-                  Mencari...
-                </p>
-              </Show>
-
-              <Show when={!searchLoading() && searchResults().length > 0}>
-                <For each={searchResults()}>
-                  {(user) => (
-                    <div
-                      style={{
-                        display: 'flex',
-                        'align-items': 'center',
-                        'justify-content': 'space-between',
-                        padding: '0.625rem 0.75rem',
-                        background: 'var(--bg-surface-elevated)',
-                        border: '1px solid var(--border-subtle)',
-                        'border-radius': '10px',
-                        'margin-bottom': '0.375rem',
-                      }}
-                    >
-                      <div style="display: flex; align-items: center; gap: 0.625rem;">
-                        <Show
-                          when={user.avatar_url}
-                          fallback={
-                            <span class="collaborator-avatar">{user.name.charAt(0).toUpperCase()}</span>
-                          }
-                        >
-                          <img src={user.avatar_url} alt={user.name} class="collaborator-avatar" />
-                        </Show>
-                        <div>
-                          <div style="font-size: 0.8125rem; font-weight: 600; color: var(--text-primary);">
-                            {user.name}
-                          </div>
-                          <div style="font-size: 0.6875rem; color: var(--text-muted);">{user.email}</div>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        class="btn btn-sm btn-primary"
-                        style="padding: 0.25rem 0.625rem; font-size: 0.75rem;"
-                        onClick={() => handleInviteUser(user)}
-                      >
-                        Pilih
-                      </button>
-                    </div>
-                  )}
-                </For>
-              </Show>
-
-              <Show
-                when={
-                  !searchLoading() &&
-                  memberSearchQuery().trim() &&
-                  searchResults().length === 0
-                }
-              >
-                <div style="text-align: center; padding: 1rem; color: var(--text-muted); font-size: 0.75rem;">
-                  Tidak ada pengguna ditemukan dengan kata kunci ini.
-                </div>
-              </Show>
-            </div>
-
-            <Show when={memberSearchQuery().includes('@')}>
-              <div style="padding-top: 0.5rem; border-top: 1px solid var(--border-subtle);">
-                <button
-                  type="button"
-                  class="btn btn-secondary"
-                  style="width: 100%; font-size: 0.8125rem;"
-                  onClick={handleInviteByEmail}
-                >
-                  Undang lewat email: {memberSearchQuery().trim()}
-                </button>
-              </div>
-            </Show>
-          </div>
-        </div>
       </Show>
     </div>
   );
