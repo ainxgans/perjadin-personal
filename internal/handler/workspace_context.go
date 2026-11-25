@@ -24,8 +24,8 @@ func GenerateRandomJoinCode() string {
 	return strings.ToUpper(hex.EncodeToString(b))
 }
 
-// EnsurePersonalWorkspace guarantees that the user has at least one workspace.
-// If the user already belongs to a workspace, it returns the first one.
+// EnsurePersonalWorkspace guarantees that the user has at least one workspace owned by them.
+// If the user already owns a workspace, it returns the first one.
 func EnsurePersonalWorkspace(db *sql.DB, userID, userName string) (string, error) {
 	if db == nil {
 		return "", errors.New("db is nil")
@@ -35,9 +35,8 @@ func EnsurePersonalWorkspace(db *sql.DB, userID, userName string) (string, error
 	err := db.QueryRow(`
 		SELECT w.id
 		FROM workspaces w
-		JOIN workspace_members wm ON wm.workspace_id = w.id
-		WHERE wm.user_id = $1
-		ORDER BY wm.created_at ASC
+		WHERE w.owner_id = $1
+		ORDER BY w.created_at ASC
 		LIMIT 1
 	`, userID).Scan(&existingID)
 	if err == nil && existingID != "" {

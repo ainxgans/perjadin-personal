@@ -71,8 +71,16 @@ func main() {
 	mux.Handle("PUT /api/admin/sbm/{id}", authMW(adminMW(http.HandlerFunc(handler.UpdateSBM(database)))))
 	mux.Handle("DELETE /api/admin/sbm/{id}", authMW(adminMW(http.HandlerFunc(handler.DeleteSBM(database)))))
 
-	// User search (for trip collaborators picker)
+	// User search
 	mux.Handle("GET /api/users", authMW(http.HandlerFunc(handler.SearchUsers(database))))
+
+	// Workspaces
+	mux.Handle("GET /api/workspaces", authMW(http.HandlerFunc(handler.ListWorkspaces(database))))
+	mux.Handle("POST /api/workspaces", authMW(http.HandlerFunc(handler.CreateWorkspace(database))))
+	mux.Handle("GET /api/workspaces/current", authMW(http.HandlerFunc(handler.GetCurrentWorkspace(database))))
+	mux.Handle("POST /api/workspaces/join", authMW(http.HandlerFunc(handler.JoinWorkspace(database))))
+	mux.Handle("POST /api/workspaces/regenerate-code", authMW(http.HandlerFunc(handler.RegenerateJoinCode(database))))
+	mux.Handle("DELETE /api/workspaces/{id}/members/{userID}", authMW(http.HandlerFunc(handler.RemoveWorkspaceMember(database))))
 
 	// Trips
 	uploadDir := os.Getenv("UPLOAD_DIR")
