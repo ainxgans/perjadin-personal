@@ -294,7 +294,7 @@ const SBMRateManager: Component<{
   };
 
   const handleDelete = async (id: string, prov: string) => {
-    if (!confirm(`Hapus tarif SBM untuk ${prov}?`)) return;
+    if (!confirm(`Hapus tarif uang harian untuk ${prov}?`)) return;
     try {
       await deleteSBMRate(id);
       props.refetch();
@@ -308,10 +308,10 @@ const SBMRateManager: Component<{
       <div class="doppel-inner">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.875rem;">
           <h3 style="font-size: 0.8125rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0;">
-            Standar Biaya Masukan (Uang Harian)
+            Tarif Uang Harian Wilayah
           </h3>
           <button type="button" class="btn btn-primary btn-sm" onClick={openAdd}>
-            <PlusIcon size={14} /> Tambah SBM
+            <PlusIcon size={14} /> Tambah Tarif
           </button>
         </div>
 
@@ -330,8 +330,8 @@ const SBMRateManager: Component<{
 
         {/* List of SBM Rates */}
         <div style="display: flex; flex-direction: column; max-height: 480px; overflow-y: auto;">
-          <Show when={props.rates()} fallback={<p style="font-size: 0.8125rem; color: var(--text-muted); padding: 0.5rem 0;">Memuat SBM...</p>}>
-            <Show when={filteredRates().length > 0} fallback={<p style="font-size: 0.8125rem; color: var(--text-muted); padding: 0.5rem 0;">Tidak ada data tarif SBM</p>}>
+          <Show when={props.rates()} fallback={<p style="font-size: 0.8125rem; color: var(--text-muted); padding: 0.5rem 0;">Memuat tarif uang harian...</p>}>
+            <Show when={filteredRates().length > 0} fallback={<p style="font-size: 0.8125rem; color: var(--text-muted); padding: 0.5rem 0;">Tidak ada data tarif uang harian</p>}>
               <For each={filteredRates()}>
                 {(rate) => (
                   <div class="admin-item-row" style="padding: 0.75rem 0;">
@@ -365,7 +365,7 @@ const SBMRateManager: Component<{
                         class="btn-icon-subtle"
                         onClick={() => openEdit(rate)}
                         title="Edit"
-                        aria-label="Edit SBM"
+                        aria-label="Edit Tarif"
                       >
                         <EditIcon size={14} />
                       </button>
@@ -375,7 +375,7 @@ const SBMRateManager: Component<{
                         style="color: var(--rose);"
                         onClick={() => handleDelete(rate.id, rate.provinsi)}
                         title="Hapus"
-                        aria-label="Hapus SBM"
+                        aria-label="Hapus Tarif"
                       >
                         <TrashIcon size={14} />
                       </button>
@@ -394,7 +394,7 @@ const SBMRateManager: Component<{
               <div class="modal-handle" />
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                 <h3 class="modal-title" style="margin: 0;">
-                  {editingItem() ? 'Edit Tarif SBM' : 'Tambah Tarif SBM Baru'}
+                  {editingItem() ? 'Edit Tarif Uang Harian' : 'Tambah Tarif Uang Harian Baru'}
                 </h3>
                 <button
                   type="button"
@@ -503,7 +503,7 @@ const SBMRateManager: Component<{
                   <Show when={formProvinsi().trim() && !existingRateForInput()}>
                     <div style="font-size: 0.75rem; color: var(--emerald); margin-top: 0.375rem; display: flex; align-items: center; gap: 0.25rem;">
                       <PlusIcon size={13} />
-                      <span>Provinsi baru akan ditambahkan ke master SBM</span>
+                      <span>Provinsi baru akan ditambahkan ke master tarif wilayah</span>
                     </div>
                   </Show>
                 </div>
@@ -519,7 +519,7 @@ const SBMRateManager: Component<{
                     placeholder="Contoh: Bandung, Bogor, Bekasi..."
                   />
                   <span style="font-size: 0.6875rem; color: var(--text-muted); display: block; margin-top: 0.25rem;">
-                    Daftar kota/kabupaten yang berlaku tarif SBM provinsi ini
+                    Daftar kota/kabupaten yang berlaku tarif uang harian provinsi ini
                   </span>
                 </div>
 
@@ -575,7 +575,7 @@ const AdminMaster: Component = () => {
             Master Data
           </h2>
           <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0;">
-            Kategori, Pembayaran & Tarif Standar Biaya Masukan
+            Kategori, Pembayaran & Tarif Uang Harian Wilayah
           </p>
         </div>
       </div>
@@ -604,7 +604,7 @@ const AdminMaster: Component = () => {
           onClick={() => setTab('sbm')}
         >
           <MapPinIcon size={14} />
-          <span>Tarif SBM ({sbmRates()?.length || 0})</span>
+          <span>Uang Harian ({sbmRates()?.length || 0})</span>
         </button>
       </div>
 

@@ -176,7 +176,7 @@ const CreatableSelect: Component<CreatableSelectProps> = (props) => {
             fallback={
               !searchTerm().trim() ? (
                 <div style="padding: 0.75rem; text-align: center; color: var(--text-muted); font-size: 0.75rem;">
-                  Ketik nama kota atau pilih dari daftar SBM
+                  Ketik nama kota atau pilih dari daftar tarif wilayah
                 </div>
               ) : null
             }
@@ -215,7 +215,7 @@ const CreatableSelect: Component<CreatableSelectProps> = (props) => {
                         </Show>
                       </div>
                       <div style="font-size: 0.6875rem; color: var(--text-muted);">
-                        Standar Biaya: <span class="amount text-emerald">{formatRp(item.rate.uang_harian)}</span> / hari
+                        Uang Harian: <span class="amount text-emerald">{formatRp(item.rate.uang_harian)}</span> / hari
                       </div>
                     </div>
                     <Show when={isSelected}>

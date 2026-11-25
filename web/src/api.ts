@@ -15,6 +15,7 @@ export interface Trip {
   status: string;
   uang_dinas: number | null;
   nominal_monita: number | null;
+  estimasi_transport?: number | null;
   tanggal_dibayar: string | null;
   catatan: string;
   link_monita: string;
