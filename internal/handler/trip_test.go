@@ -1,12 +1,20 @@
 package handler
 
 import (
+	"bytes"
+	"mime/multipart"
 	"net/http"
+	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
 	"github.com/maulana/perjadin-personal/internal/auth"
+	"github.com/maulana/perjadin-personal/internal/storage"
 )
+
+var testStorageDir, _ = os.MkdirTemp("", "perjadin_test_storage_*")
+var testStorage = storage.NewLocalStorage(testStorageDir)
 
 func setupTripRoutes() http.Handler {
 	mux := http.NewServeMux()
@@ -17,6 +25,8 @@ func setupTripRoutes() http.Handler {
 	mux.Handle("GET /api/trips/{id}", authMW(http.HandlerFunc(GetTrip(testDB))))
 	mux.Handle("PUT /api/trips/{id}", authMW(http.HandlerFunc(UpdateTrip(testDB))))
 	mux.Handle("DELETE /api/trips/{id}", authMW(http.HandlerFunc(DeleteTrip(testDB))))
+	mux.Handle("POST /api/trips/parse-document", authMW(http.HandlerFunc(ParseDocumentHandler(testDB, testStorage))))
+	mux.Handle("GET /api/trips/{id}/dokumen", authMW(http.HandlerFunc(ServeTripDokumenHandler(testDB, testStorage))))
 	return mux
 }
 
@@ -211,5 +221,157 @@ func TestTrip_EstimasiTransport(t *testing.T) {
 	}
 	if val := int64(dataPut["estimasi_transport"].(float64)); val != 750000 {
 		t.Errorf("expected estimasi_transport 750000, got %d", val)
+	}
+}
+
+func TestTrip_WithDokumen(t *testing.T) {
+	cleanupTestData(t)
+	userID := createTestUser(t, "google-user", "user@test.com", "user")
+	cookie := authCookie(t, userID, "user")
+	handler := setupTripRoutes()
+
+	// 1. Create trip with dokumen_url and dokumen_nama
+	rec := doRequest(t, handler, "POST", "/api/trips", `{
+		"nama": "Monitoring Cimahi",
+		"tujuan": "Cimahi, Jawa Barat",
+		"tanggal_mulai": "2026-04-08",
+		"tanggal_selesai": "2026-04-10",
+		"dokumen_url": "trips/test_doc.pdf",
+		"dokumen_nama": "692.ST.DBBM.2026 Cimahi 8-10 April 26.pdf"
+	}`, cookie)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", rec.Code, rec.Body.String())
+	}
+	body := parseJSON(t, rec)
+	data := body["data"].(map[string]interface{})
+	tripID := data["id"].(string)
+
+	if data["dokumen_url"] == nil || data["dokumen_url"] != "trips/test_doc.pdf" {
+		t.Fatalf("expected dokumen_url 'trips/test_doc.pdf', got %v", data["dokumen_url"])
+	}
+	if data["dokumen_nama"] == nil || data["dokumen_nama"] != "692.ST.DBBM.2026 Cimahi 8-10 April 26.pdf" {
+		t.Fatalf("expected dokumen_nama '692.ST.DBBM.2026 Cimahi 8-10 April 26.pdf', got %v", data["dokumen_nama"])
+	}
+
+	// 2. GET trip returns dokumen_url and dokumen_nama
+	recGet := doRequest(t, handler, "GET", "/api/trips/"+tripID, "", cookie)
+	if recGet.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", recGet.Code, recGet.Body.String())
+	}
+	bodyGet := parseJSON(t, recGet)
+	dataGet := bodyGet["data"].(map[string]interface{})
+	if dataGet["dokumen_url"] != "trips/test_doc.pdf" {
+		t.Errorf("expected dokumen_url 'trips/test_doc.pdf', got %v", dataGet["dokumen_url"])
+	}
+	if dataGet["dokumen_nama"] != "692.ST.DBBM.2026 Cimahi 8-10 April 26.pdf" {
+		t.Errorf("expected dokumen_nama '692.ST.DBBM.2026 Cimahi 8-10 April 26.pdf', got %v", dataGet["dokumen_nama"])
+	}
+}
+
+func TestParseDocument_JSON(t *testing.T) {
+	cleanupTestData(t)
+	userID := createTestUser(t, "google-user", "user@test.com", "user")
+	cookie := authCookie(t, userID, "user")
+	handler := setupTripRoutes()
+
+	rawText := `
+SURAT TUGAS
+Nomor : 629/ST/DBBM/2026
+Hari, tanggal : Rabu, 8 April 2026 - Jumat, 10 April 2026
+Tempat : Cimahi
+A. Koordinasi Implementasi Surat Rekomendasi BBM di Kota Cimahi
+`
+	reqBody := `{"text": "` + strings.ReplaceAll(strings.ReplaceAll(rawText, "\n", "\\n"), "\"", "\\\"") + `"}`
+	rec := doRequest(t, handler, "POST", "/api/trips/parse-document", reqBody, cookie)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	body := parseJSON(t, rec)
+	data := body["data"].(map[string]interface{})
+	if data["doc_type"] != "surat_tugas" {
+		t.Errorf("expected doc_type surat_tugas, got %v", data["doc_type"])
+	}
+	if data["nomor_surat"] != "629/ST/DBBM/2026" {
+		t.Errorf("expected 629/ST/DBBM/2026, got %v", data["nomor_surat"])
+	}
+	if data["tanggal_mulai"] != "2026-04-08" || data["tanggal_selesai"] != "2026-04-10" {
+		t.Errorf("expected 2026-04-08..2026-04-10, got %v..%v", data["tanggal_mulai"], data["tanggal_selesai"])
+	}
+}
+
+func TestParseDocument_PDFAndServe(t *testing.T) {
+	cleanupTestData(t)
+	userID := createTestUser(t, "google-user", "user@test.com", "user")
+	cookie := authCookie(t, userID, "user")
+	handler := setupTripRoutes()
+
+	pdfPath := "/home/maulana/Documents/BPH Migas/692.ST.DBBM.2026 Cimahi 8-10 April 26.pdf"
+	pdfContent, err := os.ReadFile(pdfPath)
+	if err != nil {
+		t.Skipf("sample pdf not available: %v", err)
+	}
+
+	// Prepare multipart request
+	var b bytes.Buffer
+	w := multipart.NewWriter(&b)
+	part, err := w.CreateFormFile("file", "692.ST.DBBM.2026 Cimahi 8-10 April 26.pdf")
+	if err != nil {
+		t.Fatalf("CreateFormFile err: %v", err)
+	}
+	_, _ = part.Write(pdfContent)
+	_ = w.Close()
+
+	req := httptest.NewRequest("POST", "/api/trips/parse-document", &b)
+	req.Header.Set("Content-Type", w.FormDataContentType())
+	req.AddCookie(cookie)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	body := parseJSON(t, rec)
+	data := body["data"].(map[string]interface{})
+
+	storedURL := data["dokumen_url"].(string)
+	if storedURL == "" {
+		t.Fatalf("expected non-empty dokumen_url")
+	}
+	if data["dokumen_nama"] != "692.ST.DBBM.2026 Cimahi 8-10 April 26.pdf" {
+		t.Errorf("expected original filename, got %v", data["dokumen_nama"])
+	}
+
+	// Create trip with this storedURL
+	recTrip := doRequest(t, handler, "POST", "/api/trips", `{
+		"nama": "`+data["nama"].(string)+`",
+		"tujuan": "`+data["tujuan"].(string)+`",
+		"tanggal_mulai": "`+data["tanggal_mulai"].(string)+`",
+		"tanggal_selesai": "`+data["tanggal_selesai"].(string)+`",
+		"dokumen_url": "`+storedURL+`",
+		"dokumen_nama": "`+data["dokumen_nama"].(string)+`"
+	}`, cookie)
+	if recTrip.Code != http.StatusCreated {
+		t.Fatalf("create trip err: %d: %s", recTrip.Code, recTrip.Body.String())
+	}
+	tripID := parseJSON(t, recTrip)["data"].(map[string]interface{})["id"].(string)
+
+	// Now download the document via GET /api/trips/{id}/dokumen
+	recDoc := doRequest(t, handler, "GET", "/api/trips/"+tripID+"/dokumen", "", cookie)
+	if recDoc.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK for dokumen, got %d: %s", recDoc.Code, recDoc.Body.String())
+	}
+	if ct := recDoc.Header().Get("Content-Type"); ct != "application/pdf" {
+		t.Errorf("expected Content-Type application/pdf, got %s", ct)
+	}
+	if recDoc.Body.Len() != len(pdfContent) {
+		t.Errorf("expected body length %d, got %d", len(pdfContent), recDoc.Body.Len())
+	}
+
+	// Verify unauthorized stranger cannot download
+	strangerID := createTestUser(t, "stranger-user", "stranger@test.com", "user")
+	strangerCookie := authCookie(t, strangerID, "user")
+	recStranger := doRequest(t, handler, "GET", "/api/trips/"+tripID+"/dokumen", "", strangerCookie)
+	if recStranger.Code != http.StatusNotFound {
+		t.Errorf("expected 404 for unauthorized stranger, got %d", recStranger.Code)
 	}
 }

@@ -20,6 +20,8 @@ type tripResponse struct {
 	UangDinas          *int64    `json:"uang_dinas"`
 	NominalMonita      *int64    `json:"nominal_monita"`
 	EstimasiTransport  *int64    `json:"estimasi_transport,omitempty"`
+	DokumenURL         *string   `json:"dokumen_url,omitempty"`
+	DokumenNama        *string   `json:"dokumen_nama,omitempty"`
 	TanggalDibayar     *string   `json:"tanggal_dibayar"`
 	Catatan            string    `json:"catatan"`
 	LinkMonita         string    `json:"link_monita"`
@@ -53,6 +55,8 @@ func tripToResponse(t model.Trip, totalExpense int64, isOwner bool, ownerName st
 		UangDinas:          t.UangDinas,
 		NominalMonita:      t.NominalMonita,
 		EstimasiTransport:  t.EstimasiTransport,
+		DokumenURL:         t.DokumenURL,
+		DokumenNama:        t.DokumenNama,
 		TanggalDibayar:     dibayarStr,
 		Catatan:            t.Catatan,
 		LinkMonita:         t.LinkMonita,
@@ -70,12 +74,12 @@ func tripToResponse(t model.Trip, totalExpense int64, isOwner bool, ownerName st
 const tripSelectCols = `t.id, t.nama, t.tujuan, t.tanggal_mulai, t.tanggal_selesai,
 	COALESCE(t.status, 'berlangsung'), t.uang_dinas, t.nominal_monita, t.tanggal_dibayar,
 	COALESCE(t.catatan, ''), COALESCE(t.link_monita, ''), COALESCE(t.settlement_note, ''),
-	t.estimasi_transport, t.created_at, t.updated_at`
+	t.estimasi_transport, t.dokumen_url, t.dokumen_nama, t.created_at, t.updated_at`
 
 const tripInsertCols = `id, nama, tujuan, tanggal_mulai, tanggal_selesai,
 	COALESCE(status, 'berlangsung'), uang_dinas, nominal_monita, tanggal_dibayar,
 	COALESCE(catatan, ''), COALESCE(link_monita, ''), COALESCE(settlement_note, ''),
-	estimasi_transport, created_at, updated_at`
+	estimasi_transport, dokumen_url, dokumen_nama, created_at, updated_at`
 
 func ListTrips(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -113,7 +117,7 @@ func ListTrips(db *sql.DB) http.HandlerFunc {
 				&t.ID, &t.Nama, &t.Tujuan, &t.TanggalMulai, &t.TanggalSelesai,
 				&t.Status, &t.UangDinas, &t.NominalMonita, &t.TanggalDibayar,
 				&t.Catatan, &t.LinkMonita, &t.SettlementNote,
-				&t.EstimasiTransport, &t.CreatedAt, &t.UpdatedAt,
+				&t.EstimasiTransport, &t.DokumenURL, &t.DokumenNama, &t.CreatedAt, &t.UpdatedAt,
 				&totalExpense, &isOwner, &ownerName, &collabsCount,
 			); err != nil {
 				continue
@@ -138,6 +142,8 @@ func CreateTrip(db *sql.DB) http.HandlerFunc {
 			UangDinas         *int64  `json:"uang_dinas"`
 			NominalMonita     *int64  `json:"nominal_monita"`
 			EstimasiTransport *int64  `json:"estimasi_transport"`
+			DokumenURL        *string `json:"dokumen_url"`
+			DokumenNama       *string `json:"dokumen_nama"`
 			TanggalDibayar    *string `json:"tanggal_dibayar"`
 			Catatan           string  `json:"catatan"`
 			LinkMonita        string  `json:"link_monita"`
@@ -174,15 +180,15 @@ func CreateTrip(db *sql.DB) http.HandlerFunc {
 
 		var trip model.Trip
 		err := db.QueryRow(`
-			INSERT INTO trips (user_id, nama, tujuan, tanggal_mulai, tanggal_selesai, status, uang_dinas, nominal_monita, tanggal_dibayar, catatan, link_monita, estimasi_transport)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+			INSERT INTO trips (user_id, nama, tujuan, tanggal_mulai, tanggal_selesai, status, uang_dinas, nominal_monita, tanggal_dibayar, catatan, link_monita, estimasi_transport, dokumen_url, dokumen_nama)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 			RETURNING `+tripInsertCols+`
 		`, userID, input.Nama, input.Tujuan, mulai, selesai, model.StatusBerlangsung,
-			input.UangDinas, input.NominalMonita, dibayar, input.Catatan, input.LinkMonita, input.EstimasiTransport).
+			input.UangDinas, input.NominalMonita, dibayar, input.Catatan, input.LinkMonita, input.EstimasiTransport, input.DokumenURL, input.DokumenNama).
 			Scan(&trip.ID, &trip.Nama, &trip.Tujuan, &trip.TanggalMulai, &trip.TanggalSelesai,
 				&trip.Status, &trip.UangDinas, &trip.NominalMonita, &trip.TanggalDibayar,
 				&trip.Catatan, &trip.LinkMonita, &trip.SettlementNote,
-				&trip.EstimasiTransport, &trip.CreatedAt, &trip.UpdatedAt)
+				&trip.EstimasiTransport, &trip.DokumenURL, &trip.DokumenNama, &trip.CreatedAt, &trip.UpdatedAt)
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
@@ -223,7 +229,7 @@ func GetTrip(db *sql.DB) http.HandlerFunc {
 			&trip.ID, &trip.Nama, &trip.Tujuan, &trip.TanggalMulai, &trip.TanggalSelesai,
 			&trip.Status, &trip.UangDinas, &trip.NominalMonita, &trip.TanggalDibayar,
 			&trip.Catatan, &trip.LinkMonita, &trip.SettlementNote,
-			&trip.EstimasiTransport, &trip.CreatedAt, &trip.UpdatedAt, &totalExpense,
+			&trip.EstimasiTransport, &trip.DokumenURL, &trip.DokumenNama, &trip.CreatedAt, &trip.UpdatedAt, &totalExpense,
 			&tripOwnerID, &ownerName, &collabsCount)
 
 		if err == sql.ErrNoRows {
@@ -259,6 +265,8 @@ func UpdateTrip(db *sql.DB) http.HandlerFunc {
 			Catatan           *string `json:"catatan"`
 			LinkMonita        *string `json:"link_monita"`
 			SettlementNote    *string `json:"settlement_note"`
+			DokumenURL        *string `json:"dokumen_url"`
+			DokumenNama       *string `json:"dokumen_nama"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid json"})
@@ -273,7 +281,7 @@ func UpdateTrip(db *sql.DB) http.HandlerFunc {
 			Scan(&trip.ID, &trip.Nama, &trip.Tujuan, &trip.TanggalMulai, &trip.TanggalSelesai,
 				&trip.Status, &trip.UangDinas, &trip.NominalMonita, &trip.TanggalDibayar,
 				&trip.Catatan, &trip.LinkMonita, &trip.SettlementNote,
-				&trip.EstimasiTransport, &trip.CreatedAt, &trip.UpdatedAt, &tripOwnerID)
+				&trip.EstimasiTransport, &trip.DokumenURL, &trip.DokumenNama, &trip.CreatedAt, &trip.UpdatedAt, &tripOwnerID)
 		if err == sql.ErrNoRows {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
 			return
@@ -343,15 +351,23 @@ func UpdateTrip(db *sql.DB) http.HandlerFunc {
 		if input.SettlementNote != nil {
 			trip.SettlementNote = *input.SettlementNote
 		}
+		if input.DokumenURL != nil {
+			trip.DokumenURL = input.DokumenURL
+		}
+		if input.DokumenNama != nil {
+			trip.DokumenNama = input.DokumenNama
+		}
 
 		_, err = db.Exec(`
 			UPDATE trips SET nama=$1, tujuan=$2, tanggal_mulai=$3, tanggal_selesai=$4,
 				status=$5, uang_dinas=$6, nominal_monita=$7, tanggal_dibayar=$8,
-				catatan=$9, link_monita=$10, settlement_note=$11, estimasi_transport=$12, updated_at=now()
-			WHERE id=$13
+				catatan=$9, link_monita=$10, settlement_note=$11, estimasi_transport=$12,
+				dokumen_url=$13, dokumen_nama=$14, updated_at=now()
+			WHERE id=$15
 		`, trip.Nama, trip.Tujuan, trip.TanggalMulai, trip.TanggalSelesai,
 			trip.Status, trip.UangDinas, trip.NominalMonita, trip.TanggalDibayar,
-			trip.Catatan, trip.LinkMonita, trip.SettlementNote, trip.EstimasiTransport, id)
+			trip.Catatan, trip.LinkMonita, trip.SettlementNote, trip.EstimasiTransport,
+			trip.DokumenURL, trip.DokumenNama, id)
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return

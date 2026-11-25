@@ -51,6 +51,8 @@ type Trip struct {
 	UangDinas       *int64     `json:"uang_dinas"`
 	NominalMonita   *int64     `json:"nominal_monita"`
 	EstimasiTransport *int64   `json:"estimasi_transport,omitempty"`
+	DokumenURL      *string    `json:"dokumen_url,omitempty"`
+	DokumenNama     *string    `json:"dokumen_nama,omitempty"`
 	TanggalDibayar  *time.Time `json:"tanggal_dibayar"`
 	Catatan         string     `json:"catatan"`
 	LinkMonita      string     `json:"link_monita"`

@@ -12,6 +12,7 @@ import (
 	"github.com/maulana/perjadin-personal/internal/config"
 	"github.com/maulana/perjadin-personal/internal/db"
 	"github.com/maulana/perjadin-personal/internal/handler"
+	"github.com/maulana/perjadin-personal/internal/storage"
 )
 
 func main() {
@@ -74,9 +75,17 @@ func main() {
 	mux.Handle("GET /api/users", authMW(http.HandlerFunc(handler.SearchUsers(database))))
 
 	// Trips
+	uploadDir := os.Getenv("UPLOAD_DIR")
+	if uploadDir == "" {
+		uploadDir = "uploads"
+	}
+	docStorage := storage.NewLocalStorage(uploadDir)
+
 	mux.Handle("GET /api/trips", authMW(http.HandlerFunc(handler.ListTrips(database))))
 	mux.Handle("POST /api/trips", authMW(http.HandlerFunc(handler.CreateTrip(database))))
+	mux.Handle("POST /api/trips/parse-document", authMW(http.HandlerFunc(handler.ParseDocumentHandler(database, docStorage))))
 	mux.Handle("GET /api/trips/{id}", authMW(http.HandlerFunc(handler.GetTrip(database))))
+	mux.Handle("GET /api/trips/{id}/dokumen", authMW(http.HandlerFunc(handler.ServeTripDokumenHandler(database, docStorage))))
 	mux.Handle("PUT /api/trips/{id}", authMW(http.HandlerFunc(handler.UpdateTrip(database))))
 	mux.Handle("DELETE /api/trips/{id}", authMW(http.HandlerFunc(handler.DeleteTrip(database))))
 
