@@ -88,6 +88,16 @@ const TripDetail: Component = () => {
     return `https://${url}`;
   };
 
+  const getInitialExpenseDate = () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const tripData = trip();
+    if (!tripData) return today;
+    const start = tripData.tanggal_mulai;
+    const end = tripData.tanggal_selesai || start;
+    if (today >= start && today <= end) return today;
+    return start;
+  };
+
   const handleDeleteTrip = async () => {
     if (!confirm('Hapus perjalanan dinas ini?')) return;
     if (!params.id) return;
@@ -489,6 +499,7 @@ const TripDetail: Component = () => {
         <ExpenseForm
           tripId={params.id!}
           expense={editingExpense()}
+          defaultDate={getInitialExpenseDate()}
           onClose={() => { setShowForm(false); setEditingExpense(null); }}
           onSaved={handleExpenseSaved}
         />

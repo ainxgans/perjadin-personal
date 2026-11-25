@@ -136,11 +136,21 @@ const Dashboard: Component = () => {
       </div>
 
       {/* Heading */}
-      <div class="section-heading">
-        <h2>Daftar Perjalanan</h2>
-        <span style="font-size: 0.75rem; color: var(--text-muted);">
-          {filteredTrips().length} ditemukan
-        </span>
+      <div class="section-heading" style="display: flex; align-items: center; justify-content: space-between;">
+        <div>
+          <h2>Daftar Perjalanan</h2>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">
+            {filteredTrips().length} ditemukan
+          </span>
+        </div>
+        <A
+          href="/trips/new"
+          class="btn btn-primary btn-sm"
+          style="font-size: 0.8125rem; padding: 0.375rem 0.75rem; display: inline-flex; align-items: center; gap: 0.375rem; text-decoration: none;"
+        >
+          <PlusIcon size={14} />
+          <span>Perjalanan</span>
+        </A>
       </div>
 
       {/* Trip List & Empty State */}

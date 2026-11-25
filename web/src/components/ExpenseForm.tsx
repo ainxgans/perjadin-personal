@@ -14,6 +14,7 @@ const QUICK_AMOUNTS = [
 const ExpenseForm: Component<{
   tripId: string;
   expense: Expense | null;
+  defaultDate?: string;
   onClose: () => void;
   onSaved: () => void;
 }> = (props) => {
@@ -25,7 +26,7 @@ const ExpenseForm: Component<{
   const [pmId, setPmId] = createSignal(props.expense?.payment_method_id || '');
   const [deskripsi, setDeskripsi] = createSignal(props.expense?.deskripsi || '');
   const [jumlah, setJumlah] = createSignal(props.expense?.jumlah?.toString() || '');
-  const [tanggal, setTanggal] = createSignal(props.expense?.tanggal || new Date().toISOString().slice(0, 10));
+  const [tanggal, setTanggal] = createSignal(props.expense?.tanggal || props.defaultDate || new Date().toISOString().slice(0, 10));
   const [error, setError] = createSignal('');
   const [loading, setLoading] = createSignal(false);
 
