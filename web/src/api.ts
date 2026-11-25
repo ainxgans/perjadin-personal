@@ -130,6 +130,7 @@ export interface AnalyticsData {
   budget_realization_pct: number;
   categories: CategorySpending[];
   payment_methods: PaymentMethodSpending[];
+  available_years?: number[];
 }
 
 async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
@@ -156,7 +157,10 @@ export const logout = () => fetch('/auth/logout', { method: 'POST', credentials:
 
 // Dashboard & Analytics
 export const getDashboard = () => apiFetch<Dashboard>('/api/dashboard');
-export const getAnalytics = () => apiFetch<AnalyticsData>('/api/analytics');
+export const getAnalytics = (year?: number) => {
+  const query = typeof year === 'number' && year > 0 ? `?year=${year}` : '';
+  return apiFetch<AnalyticsData>(`/api/analytics${query}`);
+};
 
 // Trips
 export const getTrips = () => apiFetch<Trip[]>('/api/trips');

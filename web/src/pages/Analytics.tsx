@@ -1,4 +1,4 @@
-import { Component, createResource, For, Show } from 'solid-js';
+import { Component, createResource, createSignal, For, Show } from 'solid-js';
 import { A } from '@solidjs/router';
 import { getAnalytics } from '../api';
 import { ArrowLeftIcon, CalendarIcon, WalletIcon, ReceiptIcon, CreditCardIcon } from '../components/Icons';
@@ -17,7 +17,8 @@ const COLORS = [
 ];
 
 const Analytics: Component = () => {
-  const [data] = createResource(getAnalytics);
+  const [selectedYear, setSelectedYear] = createSignal<number | undefined>(undefined);
+  const [data] = createResource(selectedYear, (yr) => getAnalytics(typeof yr === 'number' ? yr : undefined));
 
   return (
     <div class="page" style="padding-bottom: 6rem;">
@@ -34,6 +35,30 @@ const Analytics: Component = () => {
           </p>
         </div>
       </div>
+
+      {/* Year Filter Chips */}
+      <Show when={data()?.available_years && data()!.available_years!.length > 0}>
+        <div class="filter-chips" style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem; overflow-x: auto; padding-bottom: 0.25rem;">
+          <button
+            type="button"
+            class={`filter-chip ${selectedYear() === undefined ? 'active' : ''}`}
+            onClick={() => setSelectedYear(undefined)}
+          >
+            Semua Tahun
+          </button>
+          <For each={data()!.available_years}>
+            {(yr) => (
+              <button
+                type="button"
+                class={`filter-chip ${selectedYear() === yr ? 'active' : ''}`}
+                onClick={() => setSelectedYear(yr)}
+              >
+                {yr}
+              </button>
+            )}
+          </For>
+        </div>
+      </Show>
 
       <Show when={data()} fallback={<p style="text-align: center; color: var(--text-muted); padding: 2rem 0;">Memuat analitik...</p>}>
         {/* Metric Cards: 2x3 Bento Grid */}
