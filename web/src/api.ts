@@ -206,6 +206,8 @@ export const updateUserRole = (id: string, role: string) => apiFetch<{ id: strin
   body: JSON.stringify({ role }),
 });
 export const getAdminStats = () => apiFetch<AdminStats>('/api/admin/stats');
+export const createAdminUser = (data: { email: string; name: string; role: 'admin' | 'user' }) =>
+  apiFetch<AdminUser>('/api/admin/users', { method: 'POST', body: JSON.stringify(data) });
 export const createCategory = (nama: string) => apiFetch<Category>('/api/admin/categories', { method: 'POST', body: JSON.stringify({ nama }) });
 export const updateCategory = (id: string, nama: string) => apiFetch<Category>(`/api/admin/categories/${id}`, { method: 'PUT', body: JSON.stringify({ nama }) });
 export const deleteCategoryApi = (id: string) => apiFetch<void>(`/api/admin/categories/${id}`, { method: 'DELETE' });
