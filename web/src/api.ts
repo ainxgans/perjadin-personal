@@ -174,13 +174,19 @@ export const deleteExpense = (id: string) => apiFetch<void>(`/api/expenses/${id}
 // Master data
 export const getCategories = () => apiFetch<Category[]>('/api/categories');
 export const getPaymentMethods = () => apiFetch<PaymentMethod[]>('/api/payment-methods');
-export const getSBMRates = (q?: string) => apiFetch<SBMRate[]>(q ? `/api/sbm?q=${encodeURIComponent(q)}` : '/api/sbm');
+export const getSBMRates = (q?: string) => {
+  const query = typeof q === 'string' && q.trim() ? `?q=${encodeURIComponent(q.trim())}` : '';
+  return apiFetch<SBMRate[]>(`/api/sbm${query}`);
+};
 export const createSBMRate = (data: Partial<SBMRate>) => apiFetch<SBMRate>('/api/admin/sbm', { method: 'POST', body: JSON.stringify(data) });
 export const updateSBMRate = (id: string, data: Partial<SBMRate>) => apiFetch<SBMRate>(`/api/admin/sbm/${id}`, { method: 'PUT', body: JSON.stringify(data) });
 export const deleteSBMRate = (id: string) => apiFetch<void>(`/api/admin/sbm/${id}`, { method: 'DELETE' });
 
 // Users search
-export const searchUsers = (q?: string) => apiFetch<UserSearchItem[]>(q ? `/api/users?q=${encodeURIComponent(q)}` : '/api/users');
+export const searchUsers = (q?: string) => {
+  const query = typeof q === 'string' && q.trim() ? `?q=${encodeURIComponent(q.trim())}` : '';
+  return apiFetch<UserSearchItem[]>(`/api/users${query}`);
+};
 
 // Trip Collaborators
 export const getTripMembers = (tripId: string) => apiFetch<TripMember[]>(`/api/trips/${tripId}/members`);

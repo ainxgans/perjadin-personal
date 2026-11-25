@@ -276,6 +276,7 @@ const SBMRateManager: Component<{
         }
         setIsAdding(false);
       }
+      setSearch('');
       props.refetch();
     } catch (err: any) {
       setError(err.message);
@@ -542,7 +543,7 @@ const AdminMaster: Component = () => {
   const [tab, setTab] = createSignal<'categories' | 'payment_methods' | 'sbm'>('categories');
   const [categories, { refetch: refetchCats }] = createResource(getCategories);
   const [paymentMethods, { refetch: refetchPMs }] = createResource(getPaymentMethods);
-  const [sbmRates, { refetch: refetchSBM }] = createResource(getSBMRates);
+  const [sbmRates, { refetch: refetchSBM }] = createResource(() => getSBMRates());
 
   return (
     <div class="page" style="padding-bottom: 6rem;">

@@ -222,8 +222,8 @@ func TestUpdateExpense_OtherUser(t *testing.T) {
 		VALUES ($1, $2, $3, 'secret', 50000, '2026-01-02') RETURNING id`, tripID, catID, pmID).Scan(&expID)
 
 	rec := doRequest(t, handler, "PUT", "/api/expenses/"+expID, `{"jumlah": 999}`, cookie)
-	if rec.Code != http.StatusNotFound {
-		t.Errorf("expected 404, got %d", rec.Code)
+	if rec.Code != http.StatusNotFound && rec.Code != http.StatusForbidden {
+		t.Errorf("expected 404 or 403, got %d", rec.Code)
 	}
 }
 

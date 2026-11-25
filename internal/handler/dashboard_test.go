@@ -52,8 +52,8 @@ func TestDashboard_PemasukanBulanLalu(t *testing.T) {
 	handler := setupDashboardRoutes()
 
 	// Create selesai trip paid last month
-	testDB.Exec(`INSERT INTO trips (user_id, nama, tujuan, tanggal_mulai, tanggal_selesai, uang_dinas, tanggal_dibayar)
-		VALUES ($1, 'Done', 'A', '2026-10-01', '2026-10-05', 3000000,
+	testDB.Exec(`INSERT INTO trips (user_id, nama, tujuan, tanggal_mulai, tanggal_selesai, status, uang_dinas, tanggal_dibayar)
+		VALUES ($1, 'Done', 'A', '2026-10-01', '2026-10-05', 'lunas', 3000000,
 			date_trunc('month', now() - interval '1 month') + interval '15 days')`, userID)
 
 	rec := doRequest(t, handler, "GET", "/api/dashboard", "", cookie)

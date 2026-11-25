@@ -4,4 +4,5 @@ web/node_modules/
 web/dist/
 deploy.log
 .last_deployed_commit
+.playwright-mcp/
 

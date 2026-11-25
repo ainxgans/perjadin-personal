@@ -40,6 +40,7 @@ func main() {
 	// Auth routes
 	mux.HandleFunc("GET /auth/google", auth.GoogleLoginHandler(cfg))
 	mux.HandleFunc("GET /auth/google/callback", auth.GoogleCallbackHandler(cfg, database))
+	mux.HandleFunc("GET /auth/dev-login", auth.DevLoginHandler(cfg, database))
 	mux.Handle("GET /auth/me", authMW(http.HandlerFunc(auth.MeHandler(database))))
 	mux.HandleFunc("POST /auth/logout", auth.LogoutHandler())
 

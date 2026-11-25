@@ -20,6 +20,9 @@ const Login: Component = () => {
             </svg>
             <span>Masuk dengan Google</span>
           </a>
+          <a href="/auth/dev-login?redirect=/" class="btn btn-outline" style="margin-top: 0.75rem; width: 100%; font-size: 0.8125rem; text-decoration: none; justify-content: center;">
+            Bypass Login (Dev Admin)
+          </a>
         </div>
       </div>
     </div>

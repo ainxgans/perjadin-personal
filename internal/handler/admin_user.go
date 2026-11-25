@@ -103,7 +103,7 @@ func UpdateUserRole(db *sql.DB) http.HandlerFunc {
 			}
 		}
 
-		res, err := db.Exec("UPDATE users SET role = $1, updated_at = NOW() WHERE id = $2", req.Role, targetID)
+		res, err := db.Exec("UPDATE users SET role = $1 WHERE id = $2", req.Role, targetID)
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "db error"})
 			return

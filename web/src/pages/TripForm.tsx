@@ -12,7 +12,7 @@ const TripForm: Component = () => {
   const navigate = useNavigate();
   const isEdit = !!params.id;
 
-  const [sbmRates] = createResource(getSBMRates);
+  const [sbmRates] = createResource(() => getSBMRates());
 
   const [nama, setNama] = createSignal('');
   const [tujuan, setTujuan] = createSignal('');

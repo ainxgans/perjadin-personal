@@ -22,6 +22,9 @@ type collaboratorResponse struct {
 }
 
 func canAccessTrip(db *sql.DB, tripID, userID, role string) (bool, bool, error) {
+	if db == nil {
+		return false, false, sql.ErrConnDone
+	}
 	var ownerID string
 	err := db.QueryRow("SELECT user_id FROM trips WHERE id = $1", tripID).Scan(&ownerID)
 	if err == sql.ErrNoRows {

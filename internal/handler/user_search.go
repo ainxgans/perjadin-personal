@@ -28,7 +28,7 @@ func SearchUsers(db *sql.DB) http.HandlerFunc {
 			rows, err = db.Query(`
 				SELECT id, email, name, COALESCE(avatar_url, ''), role
 				FROM users
-				WHERE id != $1 AND (name ILIKE '%' || $2 || '%' OR email ILIKE '%' || $2 || '%')
+				WHERE (NULLIF($1, '')::uuid IS NULL OR id != NULLIF($1, '')::uuid) AND (name ILIKE '%' || $2 || '%' OR email ILIKE '%' || $2 || '%')
 				ORDER BY name ASC
 				LIMIT 20
 			`, currentUserID, q)
@@ -36,7 +36,7 @@ func SearchUsers(db *sql.DB) http.HandlerFunc {
 			rows, err = db.Query(`
 				SELECT id, email, name, COALESCE(avatar_url, ''), role
 				FROM users
-				WHERE id != $1
+				WHERE (NULLIF($1, '')::uuid IS NULL OR id != NULLIF($1, '')::uuid)
 				ORDER BY name ASC
 				LIMIT 20
 			`, currentUserID)
