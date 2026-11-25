@@ -167,7 +167,7 @@ const SBMRateManager: Component<{
 
   // Form states
   const [formProvinsi, setFormProvinsi] = createSignal('');
-  const [formIbukota, setFormIbukota] = createSignal('');
+  const [formKota, setFormKota] = createSignal('');
   const [formUangHarian, setFormUangHarian] = createSignal('');
   const [error, setError] = createSignal('');
   const [submitting, setSubmitting] = createSignal(false);
@@ -190,7 +190,8 @@ const SBMRateManager: Component<{
     return (props.rates() || []).filter(
       (r) =>
         r.provinsi.toLowerCase().includes(q) ||
-        (r.ibukota && r.ibukota.toLowerCase().includes(q))
+        (r.ibukota && r.ibukota.toLowerCase().includes(q)) ||
+        (r.kota && r.kota.some((k) => k.toLowerCase().includes(q)))
     );
   };
 
@@ -201,7 +202,8 @@ const SBMRateManager: Component<{
     return rates.filter(
       (r) =>
         r.provinsi.toLowerCase().includes(q) ||
-        (r.ibukota && r.ibukota.toLowerCase().includes(q))
+        (r.ibukota && r.ibukota.toLowerCase().includes(q)) ||
+        (r.kota && r.kota.some((k) => k.toLowerCase().includes(q)))
     );
   };
 
@@ -214,7 +216,7 @@ const SBMRateManager: Component<{
   const openAdd = () => {
     setEditingItem(null);
     setFormProvinsi('');
-    setFormIbukota('');
+    setFormKota('');
     setFormUangHarian('');
     setError('');
     setIsAdding(true);
@@ -225,7 +227,7 @@ const SBMRateManager: Component<{
     setIsAdding(false);
     setEditingItem(rate);
     setFormProvinsi(rate.provinsi);
-    setFormIbukota(rate.ibukota || '');
+    setFormKota(rate.kota && rate.kota.length > 0 ? rate.kota.join(', ') : (rate.ibukota || ''));
     setFormUangHarian(String(rate.uang_harian));
     setError('');
     setIsProvOpen(false);
@@ -233,7 +235,7 @@ const SBMRateManager: Component<{
 
   const handleSelectProvince = (rate: SBMRate) => {
     setFormProvinsi(rate.provinsi);
-    setFormIbukota(rate.ibukota || '');
+    setFormKota(rate.kota && rate.kota.length > 0 ? rate.kota.join(', ') : (rate.ibukota || ''));
     setFormUangHarian(String(rate.uang_harian));
     setIsProvOpen(false);
   };
@@ -248,12 +250,18 @@ const SBMRateManager: Component<{
       return;
     }
 
+    const parsedKota = formKota()
+      .split(',')
+      .map((k) => k.trim())
+      .filter((k) => k.length > 0);
+
     setSubmitting(true);
     try {
       if (editingItem()) {
         await updateSBMRate(editingItem()!.id, {
           provinsi: prov,
-          ibukota: formIbukota().trim(),
+          ibukota: parsedKota[0] || '',
+          kota: parsedKota,
           uang_harian: uang,
         });
         setEditingItem(null);
@@ -264,13 +272,15 @@ const SBMRateManager: Component<{
         if (existing) {
           await updateSBMRate(existing.id, {
             provinsi: prov,
-            ibukota: formIbukota().trim(),
+            ibukota: parsedKota[0] || '',
+            kota: parsedKota,
             uang_harian: uang,
           });
         } else {
           await createSBMRate({
             provinsi: prov,
-            ibukota: formIbukota().trim(),
+            ibukota: parsedKota[0] || '',
+            kota: parsedKota,
             uang_harian: uang,
           });
         }
@@ -330,11 +340,9 @@ const SBMRateManager: Component<{
                     <div>
                       <div style="font-size: 0.875rem; font-weight: 600; color: var(--text-primary);">
                         {rate.provinsi}
-                        {rate.ibukota ? (
-                          <span style="font-size: 0.75rem; color: var(--text-muted); margin-left: 0.375rem;">
-                            ({rate.ibukota})
-                          </span>
-                        ) : null}
+                      </div>
+                      <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.125rem;">
+                        {rate.kota && rate.kota.length > 0 ? rate.kota.join(', ') : (rate.ibukota || '-')}
                       </div>
                       <div class="amount text-emerald" style="font-size: 0.8125rem; font-weight: 700; margin-top: 0.125rem;">
                         {formatRp(rate.uang_harian)}{' '}
@@ -494,14 +502,20 @@ const SBMRateManager: Component<{
                 </div>
 
                 <div class="form-group">
-                  <label for="ibukota">Ibukota / Wilayah Pusat (Opsional)</label>
+                  <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.375rem;">
+                    <label for="kota" style="margin-bottom: 0;">Daftar Kota / Kabupaten</label>
+                    <span style="font-size: 0.6875rem; color: var(--text-muted);">Pisahkan dengan koma</span>
+                  </div>
                   <input
-                    id="ibukota"
+                    id="kota"
                     class="form-control"
-                    value={formIbukota()}
-                    onInput={(e) => setFormIbukota(e.currentTarget.value)}
-                    placeholder="Contoh: Surabaya"
+                    value={formKota()}
+                    onInput={(e) => setFormKota(e.currentTarget.value)}
+                    placeholder="Contoh: Bandung, Bogor, Bekasi, Depok, Cirebon"
                   />
+                  <span style="font-size: 0.6875rem; color: var(--text-muted); display: block; margin-top: 0.25rem;">
+                    Daftar kota/kabupaten yang berlaku tarif SBM provinsi ini
+                  </span>
                 </div>
 
                 <div class="form-group">

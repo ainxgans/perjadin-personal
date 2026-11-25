@@ -60,7 +60,8 @@ const TripForm: Component = () => {
     return sbmRates()?.find(
       (r) =>
         dest.includes(r.provinsi.toLowerCase()) ||
-        (r.ibukota && dest.includes(r.ibukota.toLowerCase()))
+        (r.ibukota && dest.includes(r.ibukota.toLowerCase())) ||
+        (r.kota && r.kota.some((k) => dest.includes(k.toLowerCase())))
     );
   };
 
