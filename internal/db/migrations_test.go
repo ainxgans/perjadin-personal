@@ -24,6 +24,7 @@ func TestMigrationFilesSyntax(t *testing.T) {
 	found005 := false
 	found006 := false
 	found007 := false
+	found008 := false
 	for _, f := range files {
 		content, err := os.ReadFile(f)
 		if err != nil {
@@ -70,6 +71,15 @@ func TestMigrationFilesSyntax(t *testing.T) {
 				t.Errorf("007 missing estimasi_transport BIGINT")
 			}
 		}
+		if filepath.Base(f) == "008_add_trip_dokumen.sql" {
+			found008 = true
+			if !strings.Contains(s, "dokumen_url TEXT") {
+				t.Errorf("008 missing dokumen_url TEXT")
+			}
+			if !strings.Contains(s, "dokumen_nama TEXT") {
+				t.Errorf("008 missing dokumen_nama TEXT")
+			}
+		}
 	}
 
 	if !found004 {
@@ -83,6 +93,9 @@ func TestMigrationFilesSyntax(t *testing.T) {
 	}
 	if !found007 {
 		t.Errorf("007_add_estimasi_transport.sql not found in migrations")
+	}
+	if !found008 {
+		t.Errorf("008_add_trip_dokumen.sql not found in migrations")
 	}
 }
 
