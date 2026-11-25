@@ -22,6 +22,7 @@ func TestMigrationFilesSyntax(t *testing.T) {
 
 	found004 := false
 	found005 := false
+	found006 := false
 	for _, f := range files {
 		content, err := os.ReadFile(f)
 		if err != nil {
@@ -56,6 +57,12 @@ func TestMigrationFilesSyntax(t *testing.T) {
 				t.Errorf("005 missing Bogor seed for Jawa Barat")
 			}
 		}
+		if filepath.Base(f) == "006_users_pre_register.sql" {
+			found006 = true
+			if !strings.Contains(s, "ALTER COLUMN google_id DROP NOT NULL") {
+				t.Errorf("006 missing ALTER COLUMN google_id DROP NOT NULL")
+			}
+		}
 	}
 
 	if !found004 {
@@ -63,6 +70,9 @@ func TestMigrationFilesSyntax(t *testing.T) {
 	}
 	if !found005 {
 		t.Errorf("005_sbm_multi_city.sql not found in migrations")
+	}
+	if !found006 {
+		t.Errorf("006_users_pre_register.sql not found in migrations")
 	}
 }
 
