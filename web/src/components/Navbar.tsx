@@ -2,6 +2,7 @@ import { Component, Show } from 'solid-js';
 import { A } from '@solidjs/router';
 import { logout, type User } from '../api';
 import { PlaneIcon, LogoutIcon } from './Icons';
+import WorkspaceSwitcher from './WorkspaceSwitcher';
 
 const Navbar: Component<{ user: User | null; onLogout: () => void }> = (props) => {
   const handleLogout = async () => {
@@ -20,6 +21,7 @@ const Navbar: Component<{ user: User | null; onLogout: () => void }> = (props) =
         </A>
         <Show when={props.user}>
           <div class="nav-right">
+            <WorkspaceSwitcher />
             <span class="nav-user-pill">{props.user!.name}</span>
             <button
               onClick={handleLogout}

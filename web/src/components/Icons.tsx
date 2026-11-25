@@ -498,6 +498,43 @@ export const FileTextIcon: Component<IconProps> = (props) => (
   </svg>
 );
 
+export const ChevronDownIcon: Component<IconProps> = (props) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={props.size ?? defaultProps.size}
+    height={props.size ?? defaultProps.size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width={props.strokeWidth ?? defaultProps.strokeWidth}
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    class={props.class}
+    style={props.style}
+  >
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
+
+export const BriefcaseIcon: Component<IconProps> = (props) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={props.size ?? defaultProps.size}
+    height={props.size ?? defaultProps.size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width={props.strokeWidth ?? defaultProps.strokeWidth}
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    class={props.class}
+    style={props.style}
+  >
+    <rect width="20" height="14" x="2" y="7" rx="2" ry="2" />
+    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+  </svg>
+);
+
 export const UploadIcon: Component<IconProps> = (props) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
