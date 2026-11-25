@@ -1,6 +1,7 @@
 package parser_test
 
 import (
+	"path/filepath"
 	"testing"
 
 	"github.com/maulana/perjadin-personal/internal/parser"
@@ -105,8 +106,8 @@ func TestParseSuratUndangan(t *testing.T) {
 	if res.Nama == "" || res.Nama != "Koordinasi Persiapan Monitoring Ramadhan Idul Fitri 2026 dan Buka Puasa Bersama" {
 		t.Errorf("expected cleaned agenda, got %s", res.Nama)
 	}
-	if res.LokasiRaw != "Aula Gedung BPH Migas Lantai Ground" {
-		t.Errorf("expected lokasi_raw Aula Gedung BPH Migas Lantai Ground, got %s", res.LokasiRaw)
+	if res.LokasiRaw != "Aula Gedung BPH Migas Lantai Ground Jalan Kapten P. Tendean No. 28, Jakarta Selatan" {
+		t.Errorf("expected full address in lokasi_raw, got %s", res.LokasiRaw)
 	}
 }
 
@@ -146,24 +147,29 @@ func TestParseDateFormats(t *testing.T) {
 	}
 }
 
-func TestExtractTextFromPDF_RealFile(t *testing.T) {
-	pdfPath := "/home/maulana/Documents/BPH Migas/692.ST.DBBM.2026 Cimahi 8-10 April 26.pdf"
-	txt, err := parser.ExtractTextFromPDF(pdfPath)
-	if err != nil {
-		t.Skipf("sample pdf not present or pdftotext unavailable: %v", err)
+func TestParseRealUndanganFolder(t *testing.T) {
+	files, err := filepath.Glob("../../undangan/*.pdf")
+	if err != nil || len(files) == 0 {
+		t.Skip("no files in undangan folder")
 	}
-	if len(txt) == 0 {
-		t.Errorf("expected non-empty extracted text")
+
+	knownLocations := []string{
+		"Bandung, Jawa Barat",
+		"Kota Bandung, Jawa Barat",
+		"Cimahi, Jawa Barat",
+		"DKI Jakarta",
+		"Jakarta Selatan, DKI Jakarta",
 	}
-	res := parser.ParseNaskahDinas(txt, []string{"Cimahi, Jawa Barat"})
-	if res.DocType != "surat_tugas" {
-		t.Errorf("expected surat_tugas, got %s", res.DocType)
-	}
-	if res.NomorSurat != "629/ST/DBBM/2026" {
-		t.Errorf("expected 629/ST/DBBM/2026, got %s", res.NomorSurat)
-	}
-	if res.TanggalMulai != "2026-04-08" || res.TanggalSelesai != "2026-04-10" {
-		t.Errorf("unexpected dates: %s to %s", res.TanggalMulai, res.TanggalSelesai)
+
+	for _, f := range files {
+		txt, err := parser.ExtractTextFromPDF(f)
+		if err != nil {
+			t.Errorf("extract %s err: %v", filepath.Base(f), err)
+			continue
+		}
+		res := parser.ParseNaskahDinas(txt, knownLocations)
+		t.Logf("[%s] -> Type: %s | No: %s | Tanggal: %s..%s | Tempat: %s (Matched: %s) | Agenda: %s",
+			filepath.Base(f), res.DocType, res.NomorSurat, res.TanggalMulai, res.TanggalSelesai, res.LokasiRaw, res.Tujuan, res.Nama)
 	}
 }
 

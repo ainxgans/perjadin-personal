@@ -17,7 +17,7 @@ RUN CGO_ENABLED=0 go build -o /seed ./cmd/seed
 
 # Stage 3: Minimal runtime
 FROM alpine:3.20
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates poppler-utils && mkdir -p /app/uploads
 WORKDIR /app
 COPY --from=backend /perjadin .
 COPY --from=backend /seed .

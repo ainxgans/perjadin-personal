@@ -5,4 +5,7 @@ web/dist/
 deploy.log
 .last_deployed_commit
 .playwright-mcp/
+uploads/
+dokumen/
+undangan/
 

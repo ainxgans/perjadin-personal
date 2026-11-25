@@ -8,6 +8,8 @@ services:
       - "${APP_PORT:-8010}:8080"
     env_file:
       - .env
+    volumes:
+      - ./uploads:/app/uploads
     restart: unless-stopped
     networks:
       - reusable-network

@@ -90,12 +90,12 @@ func ParseNaskahDinas(text string, knownLocations []string) ParseResult {
 	}
 
 	// 3. Tanggal (Hari, tanggal / Hari/tanggal / Tanggal)
-	// Pattern A: Full range across months or days: D M YYYY - D M YYYY
-	reDateRangeFull := regexp.MustCompile(`(?i)(?:Hari[,/]\s*tanggal|Tanggal)\s*:\s*(?:[A-Za-z’'\s]+[,/]\s*)?(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})\s*[-–—s\.d\s]+\s*(?:[A-Za-z’'\s]+[,/]\s*)?(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})`)
-	// Pattern B: Range within same month: D - D M YYYY or D s.d D M YYYY
-	reDateRangeSameMonth := regexp.MustCompile(`(?i)(?:Hari[,/]\s*tanggal|Tanggal)\s*:\s*(?:[A-Za-z’'\s]+[,/]\s*)?(\d{1,2})\s*(?:[-–—]|\bs\.?d\.?\b)\s*(?:[A-Za-z’'\s]+[,/]\s*)?(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})`)
+	// Pattern A: Full range across months: D M YYYY - D M YYYY
+	reDateRangeFull := regexp.MustCompile(`(?i)(?:Hari[,/]\s*tanggal|Tanggal)\s*:\s*(?:[A-Za-z’'\s–-]+[/]\s*)?(?:[A-Za-z’'\s]+[,/]\s*)?(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})\s*[-–—s\.d\s]+\s*(?:[A-Za-z’'\s]+[,/]\s*)?(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})`)
+	// Pattern B: Range within same month: D - D M YYYY or D s.d D M YYYY or D-D M YYYY
+	reDateRangeSameMonth := regexp.MustCompile(`(?i)(?:Hari[,/]\s*tanggal|Tanggal)\s*:\s*(?:[A-Za-z’'\s–-]+[/]\s*)?(?:[A-Za-z’'\s]+[,/]\s*)?(\d{1,2})\s*(?:[-–—]|\bs\.?d\.?\b)\s*(?:[A-Za-z’'\s]+[,/]\s*)?(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})`)
 	// Pattern C: Single date: D M YYYY
-	reSingleDate := regexp.MustCompile(`(?i)(?:Hari[,/]\s*tanggal|Tanggal)\s*:\s*(?:[A-Za-z’'\s]+[,/]\s*)?(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})`)
+	reSingleDate := regexp.MustCompile(`(?i)(?:Hari[,/]\s*tanggal|Tanggal)\s*:\s*(?:[A-Za-z’'\s–-]+[/]\s*)?(?:[A-Za-z’'\s]+[,/]\s*)?(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})`)
 
 	if m := reDateRangeFull.FindStringSubmatch(text); len(m) > 6 {
 		t1, err1 := parseDateIndo(m[1], m[2], m[3])
@@ -124,9 +124,9 @@ func ParseNaskahDinas(text string, knownLocations []string) ParseResult {
 	}
 
 	// 4. Tempat / Lokasi
-	reTempat := regexp.MustCompile(`(?i)Tempat\s*:\s*([^\n\r]+)`)
+	reTempat := regexp.MustCompile(`(?i)Tempat\s*:\s*([^\n\r]+(?:\n\s{15,}[^\n\r]+)*)`)
 	if m := reTempat.FindStringSubmatch(text); len(m) > 1 {
-		res.LokasiRaw = strings.TrimSpace(m[1])
+		res.LokasiRaw = strings.Join(strings.Fields(m[1]), " ")
 	}
 
 	// Match lokasi to knownLocations
@@ -147,13 +147,20 @@ func ParseNaskahDinas(text string, knownLocations []string) ParseResult {
 
 	// 5. Agenda / Nama Kegiatan
 	if res.DocType == "surat_undangan" {
-		// Look for Hal : ...
-		reHal := regexp.MustCompile(`(?i)Hal\s*:\s*([^\n\r]+(?:\n\s{10,}[^\n\r]+)*)`)
-		if m := reHal.FindStringSubmatch(text); len(m) > 1 {
+		// First check for explicit Agenda / Acara section
+		reAgenda := regexp.MustCompile(`(?i)(?:Agenda|Acara)\s*:\s*([^\n\r]+(?:\n\s{10,}[^\n\r]+)*)`)
+		if m := reAgenda.FindStringSubmatch(text); len(m) > 1 && len(strings.TrimSpace(m[1])) > 5 {
 			cleaned := strings.Join(strings.Fields(m[1]), " ")
-			cleaned = strings.TrimPrefix(cleaned, "Undangan ")
-			cleaned = strings.TrimPrefix(cleaned, "undangan ")
 			res.Nama = strings.TrimSpace(cleaned)
+		} else {
+			// Fallback to Hal : ...
+			reHal := regexp.MustCompile(`(?i)Hal\s*:\s*([^\n\r]+(?:\n\s{10,}[^\n\r]+)*)`)
+			if m := reHal.FindStringSubmatch(text); len(m) > 1 {
+				cleaned := strings.Join(strings.Fields(m[1]), " ")
+				cleaned = strings.TrimPrefix(cleaned, "Undangan ")
+				cleaned = strings.TrimPrefix(cleaned, "undangan ")
+				res.Nama = strings.TrimSpace(cleaned)
+			}
 		}
 	} else {
 		// Surat Tugas: look for task lines below "Tempat :"
