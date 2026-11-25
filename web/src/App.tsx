@@ -12,8 +12,8 @@ import AdminHub from './pages/admin/AdminHub';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminMaster from './pages/admin/AdminMaster';
 
-const [user, setUser] = createSignal<User | null>(null);
-const [loading, setLoading] = createSignal(true);
+export const [user, setUser] = createSignal<User | null>(null);
+export const [loading, setLoading] = createSignal(true);
 
 const Protected: Component<{ children: any }> = (props) => {
   const navigate = useNavigate();

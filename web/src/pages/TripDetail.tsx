@@ -62,8 +62,9 @@ const TripDetail: Component = () => {
 
   const [copiedLink, setCopiedLink] = createSignal(false);
 
-  const handleCopyLink = async (url: string) => {
+  const handleCopyLink = async (rawUrl: string) => {
     try {
+      const url = normalizeUrl(rawUrl);
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(url);
       } else {

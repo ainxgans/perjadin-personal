@@ -1,7 +1,17 @@
-import { Component } from 'solid-js';
+import { Component, createEffect } from 'solid-js';
+import { useNavigate } from '@solidjs/router';
 import { PlaneIcon } from '../components/Icons';
+import { user, loading } from '../App';
 
 const Login: Component = () => {
+  const navigate = useNavigate();
+
+  createEffect(() => {
+    if (!loading() && user()) {
+      navigate('/', { replace: true });
+    }
+  });
+
   return (
     <div class="login-hero">
       <div class="login-card-doppel">

@@ -92,7 +92,11 @@ const TripForm: Component = () => {
       };
       if (uangDinas()) data.uang_dinas = parseInt(uangDinas());
       if (nominalMonita()) data.nominal_monita = parseInt(nominalMonita());
-      data.link_monita = linkMonita();
+      let normalizedLink = linkMonita().trim();
+      if (normalizedLink && !/^https?:\/\//i.test(normalizedLink)) {
+        normalizedLink = 'https://' + normalizedLink;
+      }
+      data.link_monita = normalizedLink;
       data.catatan = catatan();
       data.settlement_note = settlementNote();
       if (isEdit) data.status = status();
