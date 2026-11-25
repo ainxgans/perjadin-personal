@@ -27,6 +27,7 @@ import {
   XIcon,
   CheckIcon,
 } from '../../components/Icons';
+import ChipsInput from '../../components/ChipsInput';
 
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n);
@@ -167,7 +168,7 @@ const SBMRateManager: Component<{
 
   // Form states
   const [formProvinsi, setFormProvinsi] = createSignal('');
-  const [formKota, setFormKota] = createSignal('');
+  const [formKota, setFormKota] = createSignal<string[]>([]);
   const [formUangHarian, setFormUangHarian] = createSignal('');
   const [error, setError] = createSignal('');
   const [submitting, setSubmitting] = createSignal(false);
@@ -216,7 +217,7 @@ const SBMRateManager: Component<{
   const openAdd = () => {
     setEditingItem(null);
     setFormProvinsi('');
-    setFormKota('');
+    setFormKota([]);
     setFormUangHarian('');
     setError('');
     setIsAdding(true);
@@ -227,7 +228,7 @@ const SBMRateManager: Component<{
     setIsAdding(false);
     setEditingItem(rate);
     setFormProvinsi(rate.provinsi);
-    setFormKota(rate.kota && rate.kota.length > 0 ? rate.kota.join(', ') : (rate.ibukota || ''));
+    setFormKota(rate.kota && rate.kota.length > 0 ? [...rate.kota] : (rate.ibukota ? [rate.ibukota] : []));
     setFormUangHarian(String(rate.uang_harian));
     setError('');
     setIsProvOpen(false);
@@ -235,7 +236,7 @@ const SBMRateManager: Component<{
 
   const handleSelectProvince = (rate: SBMRate) => {
     setFormProvinsi(rate.provinsi);
-    setFormKota(rate.kota && rate.kota.length > 0 ? rate.kota.join(', ') : (rate.ibukota || ''));
+    setFormKota(rate.kota && rate.kota.length > 0 ? [...rate.kota] : (rate.ibukota ? [rate.ibukota] : []));
     setFormUangHarian(String(rate.uang_harian));
     setIsProvOpen(false);
   };
@@ -250,10 +251,7 @@ const SBMRateManager: Component<{
       return;
     }
 
-    const parsedKota = formKota()
-      .split(',')
-      .map((k) => k.trim())
-      .filter((k) => k.length > 0);
+    const parsedKota = formKota();
 
     setSubmitting(true);
     try {
@@ -341,8 +339,17 @@ const SBMRateManager: Component<{
                       <div style="font-size: 0.875rem; font-weight: 600; color: var(--text-primary);">
                         {rate.provinsi}
                       </div>
-                      <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.125rem;">
-                        {rate.kota && rate.kota.length > 0 ? rate.kota.join(', ') : (rate.ibukota || '-')}
+                      <div class="city-pills">
+                        {(() => {
+                          const cities = rate.kota && rate.kota.length > 0 ? rate.kota : (rate.ibukota ? [rate.ibukota] : []);
+                          if (cities.length === 0) return <span class="city-pill">-</span>;
+                          const show = cities.slice(0, 3);
+                          const rest = cities.length - 3;
+                          return <>
+                            <For each={show}>{(c) => <span class="city-pill">{c}</span>}</For>
+                            {rest > 0 && <span class="city-pill-more" title={cities.slice(3).join(', ')}>+{rest} lainnya</span>}
+                          </>;
+                        })()}
                       </div>
                       <div class="amount text-emerald" style="font-size: 0.8125rem; font-weight: 700; margin-top: 0.125rem;">
                         {formatRp(rate.uang_harian)}{' '}
@@ -504,14 +511,12 @@ const SBMRateManager: Component<{
                 <div class="form-group">
                   <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.375rem;">
                     <label for="kota" style="margin-bottom: 0;">Daftar Kota / Kabupaten</label>
-                    <span style="font-size: 0.6875rem; color: var(--text-muted);">Pisahkan dengan koma</span>
+                    <span style="font-size: 0.6875rem; color: var(--text-muted);">Ketik lalu tekan Enter</span>
                   </div>
-                  <input
-                    id="kota"
-                    class="form-control"
-                    value={formKota()}
-                    onInput={(e) => setFormKota(e.currentTarget.value)}
-                    placeholder="Contoh: Bandung, Bogor, Bekasi, Depok, Cirebon"
+                  <ChipsInput
+                    values={formKota}
+                    onChange={setFormKota}
+                    placeholder="Contoh: Bandung, Bogor, Bekasi..."
                   />
                   <span style="font-size: 0.6875rem; color: var(--text-muted); display: block; margin-top: 0.25rem;">
                     Daftar kota/kabupaten yang berlaku tarif SBM provinsi ini
