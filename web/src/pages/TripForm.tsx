@@ -1,7 +1,7 @@
 import { Component, createSignal, createResource, Show } from 'solid-js';
 import { useNavigate, useParams } from '@solidjs/router';
-import { createTrip, updateTrip, getTrip, getSBMRates, type SBMRate } from '../api';
-import { ArrowLeftIcon } from '../components/Icons';
+import { createTrip, updateTrip, getTrip, getSBMRates, parseDocument, type SBMRate } from '../api';
+import { ArrowLeftIcon, UploadIcon, FileTextIcon, TrashIcon, CheckIcon } from '../components/Icons';
 import CreatableSelect from '../components/CreatableSelect';
 
 const formatRp = (n: number) =>
@@ -23,6 +23,10 @@ const TripForm: Component = () => {
   const [nominalMonita, setNominalMonita] = createSignal('');
   const [estimasiTransport, setEstimasiTransport] = createSignal('');
   const [linkMonita, setLinkMonita] = createSignal('');
+  const [dokumenUrl, setDokumenUrl] = createSignal<string | null>(null);
+  const [dokumenNama, setDokumenNama] = createSignal<string | null>(null);
+  const [parseLoading, setParseLoading] = createSignal(false);
+  const [parseSuccessMsg, setParseSuccessMsg] = createSignal('');
   const [catatan, setCatatan] = createSignal('');
   const [status, setStatus] = createSignal('berlangsung');
   const [settlementNote, setSettlementNote] = createSignal('');
@@ -39,6 +43,8 @@ const TripForm: Component = () => {
       if (t.uang_dinas != null) setUangDinas(String(t.uang_dinas));
       if (t.nominal_monita != null) setNominalMonita(String(t.nominal_monita));
       if (t.estimasi_transport != null) setEstimasiTransport(String(t.estimasi_transport));
+      if (t.dokumen_url) setDokumenUrl(t.dokumen_url);
+      if (t.dokumen_nama) setDokumenNama(t.dokumen_nama);
       if (t.link_monita) setLinkMonita(t.link_monita);
       if (t.catatan) setCatatan(t.catatan);
       if (t.tanggal_dibayar) setDibayar(t.tanggal_dibayar);
@@ -84,6 +90,37 @@ const TripForm: Component = () => {
     return uh + transportVal();
   };
 
+  const handleFileUpload = async (file: File) => {
+    if (!file) return;
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+      setError('Hanya file PDF yang didukung');
+      return;
+    }
+    setParseLoading(true);
+    setError('');
+    setParseSuccessMsg('');
+    try {
+      const res = await parseDocument(file);
+      if (res.nama) setNama(res.nama);
+      if (res.tujuan) setTujuan(res.tujuan);
+      if (res.tanggal_mulai) setMulai(res.tanggal_mulai);
+      if (res.tanggal_selesai) setSelesai(res.tanggal_selesai);
+      if (res.catatan) {
+        setCatatan((prev) => (prev ? prev + '\n' + res.catatan : res.catatan));
+      }
+      if (res.dokumen_url) setDokumenUrl(res.dokumen_url);
+      if (res.dokumen_nama) setDokumenNama(res.dokumen_nama);
+
+      setParseSuccessMsg(
+        `Berhasil membaca ${res.doc_type === 'surat_tugas' ? 'Surat Tugas' : 'Undangan'}: ${res.nomor_surat || file.name}`
+      );
+    } catch (err: any) {
+      setError('Gagal membaca dokumen PDF: ' + err.message);
+    } finally {
+      setParseLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: Event) => {
     e.preventDefault();
     setError('');
@@ -105,6 +142,13 @@ const TripForm: Component = () => {
         data.estimasi_transport = parseInt(estimasiTransport());
       } else if (isEdit) {
         data.estimasi_transport = null;
+      }
+      if (dokumenUrl()) {
+        data.dokumen_url = dokumenUrl();
+        data.dokumen_nama = dokumenNama();
+      } else if (isEdit) {
+        data.dokumen_url = null;
+        data.dokumen_nama = null;
       }
       let normalizedLink = linkMonita().trim();
       if (normalizedLink && !/^https?:\/\//i.test(normalizedLink)) {
@@ -149,6 +193,106 @@ const TripForm: Component = () => {
       <div class="doppel-card">
         <div class="doppel-inner">
           <form onSubmit={handleSubmit}>
+            {/* Import PDF Surat Tugas / Undangan */}
+            <div style="margin-bottom: 1.25rem;">
+              <input
+                id="doc-upload-input"
+                type="file"
+                accept=".pdf,application/pdf"
+                style="display: none;"
+                onChange={(e) => {
+                  const f = e.currentTarget.files?.[0];
+                  if (f) handleFileUpload(f);
+                  e.currentTarget.value = '';
+                }}
+              />
+
+              <Show
+                when={dokumenUrl()}
+                fallback={
+                  <div
+                    id="dropzone-doc"
+                    style={{
+                      border: '1px dashed var(--border-subtle)',
+                      'border-radius': '10px',
+                      padding: '1rem',
+                      'text-align': 'center',
+                      background: 'rgba(255, 255, 255, 0.02)',
+                      cursor: parseLoading() ? 'wait' : 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                    onClick={() => !parseLoading() && document.getElementById('doc-upload-input')?.click()}
+                  >
+                    <Show when={parseLoading()} fallback={
+                      <div style="display: flex; flex-direction: column; align-items: center; gap: 0.375rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--sky); font-size: 0.8125rem; font-weight: 600;">
+                          <UploadIcon size={16} />
+                          <span>Import dari Surat Tugas / Undangan (PDF)</span>
+                        </div>
+                        <div style="font-size: 0.6875rem; color: var(--text-muted);">
+                          Deteksi otomatis agenda, lokasi, dan tanggal dinas
+                        </div>
+                      </div>
+                    }>
+                      <div style="font-size: 0.8125rem; color: var(--sky); font-weight: 600;">
+                        Sedang membaca dan menganalisis naskah dinas...
+                      </div>
+                    </Show>
+                  </div>
+                }
+              >
+                <div
+                  style={{
+                    border: '1px solid rgba(56, 189, 248, 0.3)',
+                    'border-radius': '10px',
+                    padding: '0.625rem 0.875rem',
+                    background: 'rgba(56, 189, 248, 0.06)',
+                    display: 'flex',
+                    'align-items': 'center',
+                    'justify-content': 'space-between',
+                    gap: '0.75rem',
+                  }}
+                >
+                  <div style="display: flex; align-items: center; gap: 0.5rem; min-width: 0;">
+                    <FileTextIcon size={16} class="text-sky" />
+                    <div style="font-size: 0.8125rem; font-weight: 600; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                      {dokumenNama() || 'Dokumen Terlampir (PDF)'}
+                    </div>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-ghost"
+                      style="font-size: 0.6875rem; padding: 0.25rem 0.5rem;"
+                      onClick={() => document.getElementById('doc-upload-input')?.click()}
+                    >
+                      Ganti
+                    </button>
+                    <button
+                      type="button"
+                      class="btn-icon-subtle"
+                      style="color: var(--rose);"
+                      onClick={() => {
+                        setDokumenUrl(null);
+                        setDokumenNama(null);
+                        setParseSuccessMsg('');
+                      }}
+                      aria-label="Hapus Dokumen"
+                    >
+                      <TrashIcon size={14} />
+                    </button>
+                  </div>
+                </div>
+              </Show>
+
+              <Show when={parseSuccessMsg()}>
+                <div style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--emerald); display: flex; align-items: center; gap: 0.375rem;">
+                  <CheckIcon size={14} />
+                  <span>{parseSuccessMsg()}</span>
+                </div>
+              </Show>
+            </div>
+
             <div class="form-group">
               <label for="nama">Nama Perjalanan</label>
               <input

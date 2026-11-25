@@ -16,6 +16,8 @@ export interface Trip {
   uang_dinas: number | null;
   nominal_monita: number | null;
   estimasi_transport?: number | null;
+  dokumen_url?: string | null;
+  dokumen_nama?: string | null;
   tanggal_dibayar: string | null;
   catatan: string;
   link_monita: string;
@@ -154,6 +156,19 @@ async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
   return json.data !== undefined ? json.data : json;
 }
 
+export interface ParseDocumentResult {
+  doc_type: string;
+  nomor_surat: string;
+  nama: string;
+  tujuan: string;
+  lokasi_raw: string;
+  tanggal_mulai: string;
+  tanggal_selesai: string;
+  catatan: string;
+  dokumen_url?: string;
+  dokumen_nama?: string;
+}
+
 // Auth
 export const getMe = () => apiFetch<User>('/auth/me');
 export const logout = () => fetch('/auth/logout', { method: 'POST', credentials: 'same-origin' });
@@ -171,6 +186,21 @@ export const getTrip = (id: string) => apiFetch<Trip>(`/api/trips/${id}`);
 export const createTrip = (data: Partial<Trip>) => apiFetch<Trip>('/api/trips', { method: 'POST', body: JSON.stringify(data) });
 export const updateTrip = (id: string, data: Partial<Trip>) => apiFetch<Trip>(`/api/trips/${id}`, { method: 'PUT', body: JSON.stringify(data) });
 export const deleteTrip = (id: string) => apiFetch<void>(`/api/trips/${id}`, { method: 'DELETE' });
+export const parseDocument = async (file: File): Promise<ParseDocumentResult> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await fetch('/api/trips/parse-document', {
+    method: 'POST',
+    credentials: 'same-origin',
+    body: formData,
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `HTTP ${res.status}`);
+  }
+  const json = await res.json();
+  return json.data !== undefined ? json.data : json;
+};
 
 // Expenses
 export const getExpenses = (tripId: string) => apiFetch<Expense[]>(`/api/trips/${tripId}/expenses`);

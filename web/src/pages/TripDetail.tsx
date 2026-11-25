@@ -29,6 +29,7 @@ import {
   CheckIcon,
   CopyIcon,
   ExternalLinkIcon,
+  FileTextIcon,
 } from '../components/Icons';
 import { formatDateIndo, formatTripDateIndo } from '../utils/date';
 
@@ -269,6 +270,23 @@ const TripDetail: Component = () => {
                   <Show when={t().nominal_monita != null && t().nominal_monita! >= t().estimasi_transport!}>
                     <span>Porsi Uang Harian: <strong class="amount text-emerald">{formatRp(t().nominal_monita! - t().estimasi_transport!)}</strong></span>
                   </Show>
+                </div>
+              </Show>
+
+              <Show when={t().dokumen_url}>
+                <div style="margin-bottom: 0.75rem;">
+                  <a
+                    href={`/api/trips/${t().id}/dokumen`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="btn btn-sm btn-outline"
+                    style="width: 100%; font-size: 0.75rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem; border-color: rgba(56, 189, 248, 0.4); color: var(--sky);"
+                  >
+                    <FileTextIcon size={14} />
+                    <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                      {t().dokumen_nama || 'Dokumen Surat Tugas / Undangan (PDF)'}
+                    </span>
+                  </a>
                 </div>
               </Show>
 
