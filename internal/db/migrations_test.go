@@ -23,6 +23,7 @@ func TestMigrationFilesSyntax(t *testing.T) {
 	found004 := false
 	found005 := false
 	found006 := false
+	found007 := false
 	for _, f := range files {
 		content, err := os.ReadFile(f)
 		if err != nil {
@@ -63,6 +64,12 @@ func TestMigrationFilesSyntax(t *testing.T) {
 				t.Errorf("006 missing ALTER COLUMN google_id DROP NOT NULL")
 			}
 		}
+		if filepath.Base(f) == "007_add_estimasi_transport.sql" {
+			found007 = true
+			if !strings.Contains(s, "estimasi_transport BIGINT") {
+				t.Errorf("007 missing estimasi_transport BIGINT")
+			}
+		}
 	}
 
 	if !found004 {
@@ -73,6 +80,9 @@ func TestMigrationFilesSyntax(t *testing.T) {
 	}
 	if !found006 {
 		t.Errorf("006_users_pre_register.sql not found in migrations")
+	}
+	if !found007 {
+		t.Errorf("007_add_estimasi_transport.sql not found in migrations")
 	}
 }
 
