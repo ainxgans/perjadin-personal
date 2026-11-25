@@ -56,6 +56,7 @@ func main() {
 
 	// Admin — User Management & Stats
 	mux.Handle("GET /api/admin/users", authMW(adminMW(http.HandlerFunc(handler.ListAdminUsers(database)))))
+	mux.Handle("POST /api/admin/users", authMW(adminMW(http.HandlerFunc(handler.CreateAdminUser(database)))))
 	mux.Handle("PUT /api/admin/users/{id}/role", authMW(adminMW(http.HandlerFunc(handler.UpdateUserRole(database)))))
 	mux.Handle("GET /api/admin/stats", authMW(adminMW(http.HandlerFunc(handler.GetAdminStats(database)))))
 

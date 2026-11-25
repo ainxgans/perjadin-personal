@@ -13,6 +13,7 @@ func setupAdminUserRoutes() http.Handler {
 	adminMW := auth.AdminMiddleware()
 
 	mux.Handle("GET /api/admin/users", authMW(adminMW(http.HandlerFunc(ListAdminUsers(testDB)))))
+	mux.Handle("POST /api/admin/users", authMW(adminMW(http.HandlerFunc(CreateAdminUser(testDB)))))
 	mux.Handle("PUT /api/admin/users/{id}/role", authMW(adminMW(http.HandlerFunc(UpdateUserRole(testDB)))))
 	mux.Handle("GET /api/admin/stats", authMW(adminMW(http.HandlerFunc(GetAdminStats(testDB)))))
 	return mux
@@ -27,6 +28,55 @@ func TestListAdminUsers_ForbiddenForRegularUser(t *testing.T) {
 	rec := doRequest(t, h, "GET", "/api/admin/users", "", cookie)
 	if rec.Code != http.StatusForbidden {
 		t.Errorf("expected 403, got %d", rec.Code)
+	}
+}
+
+func TestCreateAdminUser_ForbiddenForRegularUser(t *testing.T) {
+	cleanupTestData(t)
+	userID := createTestUser(t, "user-reg", "reg@test.com", "user")
+	cookie := authCookie(t, userID, "user")
+	h := setupAdminUserRoutes()
+
+	rec := doRequest(t, h, "POST", "/api/admin/users", `{"email":"new@test.com","name":"New User","role":"user"}`, cookie)
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("expected 403, got %d", rec.Code)
+	}
+}
+
+func TestCreateAdminUser_Success(t *testing.T) {
+	cleanupTestData(t)
+	adminID := createTestUser(t, "admin-u", "admin@test.com", "admin")
+	cookie := authCookie(t, adminID, "admin")
+	h := setupAdminUserRoutes()
+
+	rec := doRequest(t, h, "POST", "/api/admin/users", `{"email":"collab@test.com","name":"Collab User","role":"user"}`, cookie)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", rec.Code, rec.Body.String())
+	}
+	body := parseJSON(t, rec)
+	data := body["data"].(map[string]interface{})
+	if data["email"] != "collab@test.com" || data["name"] != "Collab User" || data["role"] != "user" {
+		t.Errorf("unexpected user data: %v", data)
+	}
+
+	// Verify in DB
+	var count int
+	testDB.QueryRow("SELECT COUNT(*) FROM users WHERE email = 'collab@test.com'").Scan(&count)
+	if count != 1 {
+		t.Errorf("expected 1 user in DB, got %d", count)
+	}
+}
+
+func TestCreateAdminUser_DuplicateEmail(t *testing.T) {
+	cleanupTestData(t)
+	adminID := createTestUser(t, "admin-u", "admin@test.com", "admin")
+	createTestUser(t, "existing", "collab@test.com", "user")
+	cookie := authCookie(t, adminID, "admin")
+	h := setupAdminUserRoutes()
+
+	rec := doRequest(t, h, "POST", "/api/admin/users", `{"email":"collab@test.com","name":"Another","role":"user"}`, cookie)
+	if rec.Code != http.StatusConflict {
+		t.Errorf("expected 409 conflict, got %d: %s", rec.Code, rec.Body.String())
 	}
 }
 

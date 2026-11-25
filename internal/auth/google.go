@@ -79,18 +79,28 @@ func GoogleCallbackHandler(cfg config.Config, db *sql.DB) http.HandlerFunc {
 		}
 
 		// Upsert user, first user = admin
+		// First try to link with pre-registered user (has email but no google_id)
 		var userID, role string
 		err = db.QueryRow(`
-			INSERT INTO users (google_id, email, name, avatar_url, role)
-			VALUES ($1, $2, $3, $4,
-				CASE WHEN (SELECT count(*) FROM users) = 0 THEN 'admin' ELSE 'user' END
-			)
-			ON CONFLICT (google_id) DO UPDATE SET
-				email = EXCLUDED.email,
-				name = EXCLUDED.name,
-				avatar_url = EXCLUDED.avatar_url
+			UPDATE users SET google_id = $1, name = $2, avatar_url = $3
+			WHERE LOWER(email) = LOWER($4) AND (google_id IS NULL OR google_id = '')
 			RETURNING id, role
-		`, userInfo.ID, userInfo.Email, userInfo.Name, userInfo.Picture).Scan(&userID, &role)
+		`, userInfo.ID, userInfo.Name, userInfo.Picture, userInfo.Email).Scan(&userID, &role)
+
+		if err == sql.ErrNoRows {
+			// No pre-registered user found, do normal upsert
+			err = db.QueryRow(`
+				INSERT INTO users (google_id, email, name, avatar_url, role)
+				VALUES ($1, $2, $3, $4,
+					CASE WHEN (SELECT count(*) FROM users WHERE google_id IS NOT NULL AND google_id != '') = 0 THEN 'admin' ELSE 'user' END
+				)
+				ON CONFLICT (google_id) DO UPDATE SET
+					email = EXCLUDED.email,
+					name = EXCLUDED.name,
+					avatar_url = EXCLUDED.avatar_url
+				RETURNING id, role
+			`, userInfo.ID, userInfo.Email, userInfo.Name, userInfo.Picture).Scan(&userID, &role)
+		}
 		if err != nil {
 			http.Error(w, fmt.Sprintf(`{"error":"db upsert: %v"}`, err), http.StatusInternalServerError)
 			return

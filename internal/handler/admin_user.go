@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/maulana/perjadin-personal/internal/auth"
@@ -53,6 +54,55 @@ func ListAdminUsers(db *sql.DB) http.HandlerFunc {
 		}
 
 		writeJSON(w, http.StatusOK, map[string]interface{}{"data": users})
+	}
+}
+
+func CreateAdminUser(db *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Email string `json:"email"`
+			Name  string `json:"name"`
+			Role  string `json:"role"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid body"})
+			return
+		}
+
+		req.Email = strings.TrimSpace(req.Email)
+		req.Name = strings.TrimSpace(req.Name)
+		if req.Email == "" || req.Name == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "email dan nama wajib diisi"})
+			return
+		}
+		if !strings.Contains(req.Email, "@") {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "format email tidak valid"})
+			return
+		}
+		if req.Role != "admin" && req.Role != "user" {
+			req.Role = "user"
+		}
+
+		// Check duplicate email
+		var exists bool
+		db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE LOWER(email) = LOWER($1))", req.Email).Scan(&exists)
+		if exists {
+			writeJSON(w, http.StatusConflict, map[string]string{"error": "email sudah terdaftar"})
+			return
+		}
+
+		var u AdminUser
+		err := db.QueryRow(`
+			INSERT INTO users (email, name, role)
+			VALUES ($1, $2, $3)
+			RETURNING id, email, name, '', role, created_at
+		`, req.Email, req.Name, req.Role).Scan(&u.ID, &u.Email, &u.Name, &u.AvatarURL, &u.Role, &u.CreatedAt)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "db error: " + err.Error()})
+			return
+		}
+
+		writeJSON(w, http.StatusCreated, map[string]interface{}{"data": u})
 	}
 }
 
