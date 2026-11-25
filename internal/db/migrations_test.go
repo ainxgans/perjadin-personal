@@ -21,6 +21,7 @@ func TestMigrationFilesSyntax(t *testing.T) {
 	}
 
 	found004 := false
+	found005 := false
 	for _, f := range files {
 		content, err := os.ReadFile(f)
 		if err != nil {
@@ -46,10 +47,22 @@ func TestMigrationFilesSyntax(t *testing.T) {
 				t.Errorf("004 missing initial DKI Jakarta SBM rate")
 			}
 		}
+		if filepath.Base(f) == "005_sbm_multi_city.sql" {
+			found005 = true
+			if !strings.Contains(s, "kota TEXT[]") {
+				t.Errorf("005 missing kota TEXT[] column")
+			}
+			if !strings.Contains(s, "Bogor") {
+				t.Errorf("005 missing Bogor seed for Jawa Barat")
+			}
+		}
 	}
 
 	if !found004 {
 		t.Errorf("004_collab_and_sbm.sql not found in migrations")
+	}
+	if !found005 {
+		t.Errorf("005_sbm_multi_city.sql not found in migrations")
 	}
 }
 
