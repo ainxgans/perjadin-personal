@@ -263,6 +263,15 @@ const TripDetail: Component = () => {
                 </div>
               </Show>
 
+              <Show when={t().estimasi_transport != null && t().estimasi_transport! > 0}>
+                <div style="font-size: 0.6875rem; color: var(--text-muted); margin-bottom: 0.75rem; display: flex; justify-content: space-between; background: rgba(255, 255, 255, 0.03); padding: 0.375rem 0.625rem; border-radius: 6px; border: 1px solid var(--border-subtle);">
+                  <span>Estimasi Transport: <strong class="amount text-sky">{formatRp(t().estimasi_transport!)}</strong></span>
+                  <Show when={t().nominal_monita != null && t().nominal_monita! >= t().estimasi_transport!}>
+                    <span>Porsi Uang Harian: <strong class="amount text-emerald">{formatRp(t().nominal_monita! - t().estimasi_transport!)}</strong></span>
+                  </Show>
+                </div>
+              </Show>
+
               <Show when={t().link_monita}>
                 <div style="margin-bottom: 0.75rem;">
                   <div style="display: flex; gap: 0.5rem; align-items: stretch;">

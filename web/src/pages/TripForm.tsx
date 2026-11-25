@@ -21,6 +21,7 @@ const TripForm: Component = () => {
   const [selesai, setSelesai] = createSignal('');
   const [uangDinas, setUangDinas] = createSignal('');
   const [nominalMonita, setNominalMonita] = createSignal('');
+  const [estimasiTransport, setEstimasiTransport] = createSignal('');
   const [linkMonita, setLinkMonita] = createSignal('');
   const [catatan, setCatatan] = createSignal('');
   const [status, setStatus] = createSignal('berlangsung');
@@ -37,6 +38,7 @@ const TripForm: Component = () => {
       setSelesai(t.tanggal_selesai);
       if (t.uang_dinas != null) setUangDinas(String(t.uang_dinas));
       if (t.nominal_monita != null) setNominalMonita(String(t.nominal_monita));
+      if (t.estimasi_transport != null) setEstimasiTransport(String(t.estimasi_transport));
       if (t.link_monita) setLinkMonita(t.link_monita);
       if (t.catatan) setCatatan(t.catatan);
       if (t.tanggal_dibayar) setDibayar(t.tanggal_dibayar);
@@ -65,7 +67,7 @@ const TripForm: Component = () => {
     );
   };
 
-  const estimatedSBM = () => {
+  const estimatedUangHarian = () => {
     const r = matchedRate();
     const days = tripDays();
     if (!r || days <= 0) return null;
@@ -74,6 +76,12 @@ const TripForm: Component = () => {
       days,
       total: r.uang_harian * days,
     };
+  };
+
+  const transportVal = () => parseInt(estimasiTransport()) || 0;
+  const totalPaguEstimasi = () => {
+    const uh = estimatedUangHarian()?.total || 0;
+    return uh + transportVal();
   };
 
   const handleSubmit = async (e: Event) => {
@@ -93,6 +101,11 @@ const TripForm: Component = () => {
       };
       if (uangDinas()) data.uang_dinas = parseInt(uangDinas());
       if (nominalMonita()) data.nominal_monita = parseInt(nominalMonita());
+      if (estimasiTransport()) {
+        data.estimasi_transport = parseInt(estimasiTransport());
+      } else if (isEdit) {
+        data.estimasi_transport = null;
+      }
       let normalizedLink = linkMonita().trim();
       if (normalizedLink && !/^https?:\/\//i.test(normalizedLink)) {
         normalizedLink = 'https://' + normalizedLink;
@@ -186,39 +199,85 @@ const TripForm: Component = () => {
               />
             </div>
 
-            {/* SBM Auto-Estimation Chip/Banner */}
-            <Show when={estimatedSBM()}>
+            {/* Kalkulator Pagu Monita (Uang Harian + Transport) */}
+            <Show
+              when={estimatedUangHarian()}
+              fallback={
+                <div class="form-group">
+                  <label for="estimasiTransport">Estimasi Transport (Taksi / Tiket, Opsional)</label>
+                  <input
+                    id="estimasiTransport"
+                    type="number"
+                    class="form-control amount"
+                    value={estimasiTransport()}
+                    onInput={(e) => setEstimasiTransport(e.currentTarget.value)}
+                    placeholder="0"
+                    min="0"
+                  />
+                </div>
+              }
+            >
               {(est) => (
                 <div
                   style={{
-                    background: 'rgba(52, 211, 153, 0.08)',
-                    border: '1px solid rgba(52, 211, 153, 0.25)',
+                    background: 'rgba(56, 189, 248, 0.05)',
+                    border: '1px solid rgba(56, 189, 248, 0.25)',
                     'border-radius': '12px',
-                    padding: '0.75rem 1rem',
+                    padding: '0.875rem 1rem',
                     'margin-bottom': '1rem',
                     display: 'flex',
-                    'justify-content': 'space-between',
-                    'align-items': 'center',
-                    gap: '0.75rem',
+                    'flex-direction': 'column',
+                    gap: '0.625rem',
                   }}
                 >
-                  <div>
-                    <div style="font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; color: var(--emerald); letter-spacing: 0.05em;">
-                      Estimasi SBM ({est().rate.provinsi})
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; color: var(--sky); letter-spacing: 0.05em;">
+                      Kalkulator Pagu Monita
                     </div>
-                    <div style="font-size: 0.8125rem; color: var(--text-secondary); margin-top: 0.125rem;">
-                      {est().days} hari × {formatRp(est().rate.uang_harian)} ={' '}
-                      <strong class="amount text-emerald">{formatRp(est().total)}</strong>
-                    </div>
+                    <span style="font-size: 0.6875rem; color: var(--text-muted); font-weight: 600;">
+                      {est().rate.provinsi}
+                    </span>
                   </div>
-                  <button
-                    type="button"
-                    class="btn btn-sm"
-                    style="background: var(--emerald); color: #000; font-size: 0.75rem; font-weight: 700; padding: 0.375rem 0.75rem;"
-                    onClick={() => setNominalMonita(String(est().total))}
-                  >
-                    Gunakan
-                  </button>
+
+                  <div style="display: flex; justify-content: space-between; align-items: baseline; font-size: 0.8125rem;">
+                    <span style="color: var(--text-secondary);">
+                      Uang Harian ({est().days} hari × {formatRp(est().rate.uang_harian)})
+                    </span>
+                    <strong class="amount text-emerald">{formatRp(est().total)}</strong>
+                  </div>
+
+                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;">
+                    <label for="calc-transport" style="font-size: 0.8125rem; color: var(--text-secondary); margin: 0; flex: 1;">
+                      Estimasi Transport (Taksi/Tiket)
+                    </label>
+                    <input
+                      id="calc-transport"
+                      type="number"
+                      class="form-control amount"
+                      style="width: 140px; padding: 0.25rem 0.5rem; font-size: 0.8125rem; height: 32px; text-align: right;"
+                      placeholder="0"
+                      min="0"
+                      value={estimasiTransport()}
+                      onInput={(e) => setEstimasiTransport(e.currentTarget.value)}
+                    />
+                  </div>
+
+                  <div style="border-top: 1px dashed var(--border-subtle); padding-top: 0.5rem; display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                    <div>
+                      <div style="font-size: 0.6875rem; color: var(--text-muted);">Total Pagu Estimasi:</div>
+                      <div class="amount text-sky" style="font-size: 1rem; font-weight: 800;">
+                        {formatRp(totalPaguEstimasi())}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-primary"
+                      style="font-size: 0.75rem; font-weight: 700; padding: 0.375rem 0.75rem;"
+                      onClick={() => setNominalMonita(String(totalPaguEstimasi()))}
+                    >
+                      Gunakan sebagai Pagu Monita
+                    </button>
+                  </div>
                 </div>
               )}
             </Show>
