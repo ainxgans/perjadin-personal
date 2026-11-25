@@ -47,3 +47,33 @@ WHERE w.owner_id = t.user_id AND t.workspace_id IS NULL;
 
 -- 5. Drop legacy trip_members table
 DROP TABLE IF EXISTS trip_members;
+
+-- 6. Trigger to auto-assign default workspace if workspace_id is null
+CREATE OR REPLACE FUNCTION trg_set_default_trip_workspace()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_ws_id UUID;
+BEGIN
+    IF NEW.workspace_id IS NULL THEN
+        SELECT id INTO v_ws_id FROM workspaces WHERE owner_id = NEW.user_id ORDER BY created_at ASC LIMIT 1;
+        IF v_ws_id IS NULL THEN
+            INSERT INTO workspaces (nama, owner_id, join_code)
+            VALUES ('Workspace Pribadi', NEW.user_id, UPPER(SUBSTRING(MD5(NEW.user_id::text || now()::text || random()::text) FROM 1 FOR 6)))
+            RETURNING id INTO v_ws_id;
+
+            INSERT INTO workspace_members (workspace_id, user_id, role)
+            VALUES (v_ws_id, NEW.user_id, 'owner')
+            ON CONFLICT (workspace_id, user_id) DO NOTHING;
+        END IF;
+        NEW.workspace_id := v_ws_id;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS set_default_trip_workspace ON trips;
+CREATE TRIGGER set_default_trip_workspace
+BEFORE INSERT ON trips
+FOR EACH ROW
+EXECUTE FUNCTION trg_set_default_trip_workspace();
+

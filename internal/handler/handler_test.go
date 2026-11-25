@@ -53,6 +53,25 @@ func createTestUser(t *testing.T, googleID, email, role string) string {
 	if err != nil {
 		t.Fatalf("create test user: %v", err)
 	}
+	_, _ = EnsurePersonalWorkspace(testDB, id, email)
+	return id
+}
+
+func createTestTripWithWorkspace(t *testing.T, userID, nama, tujuan, mulai, selesai string) string {
+	t.Helper()
+	wsID, err := EnsurePersonalWorkspace(testDB, userID, "User")
+	if err != nil {
+		t.Fatalf("ensure ws: %v", err)
+	}
+	var id string
+	err = testDB.QueryRow(`
+		INSERT INTO trips (workspace_id, user_id, nama, tujuan, tanggal_mulai, tanggal_selesai)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id
+	`, wsID, userID, nama, tujuan, mulai, selesai).Scan(&id)
+	if err != nil {
+		t.Fatalf("create trip: %v", err)
+	}
 	return id
 }
 
@@ -96,6 +115,8 @@ func cleanupTestData(t *testing.T) {
 	t.Helper()
 	testDB.Exec("DELETE FROM expenses")
 	testDB.Exec("DELETE FROM trips")
+	testDB.Exec("DELETE FROM workspace_members")
+	testDB.Exec("DELETE FROM workspaces")
 	testDB.Exec("DELETE FROM users")
 	// Don't delete seed categories/payment_methods
 }

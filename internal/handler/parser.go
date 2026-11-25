@@ -141,7 +141,7 @@ func ServeTripDokumenHandler(db *sql.DB, st storage.Storage) http.HandlerFunc {
 			SELECT t.dokumen_url, t.dokumen_nama, t.user_id
 			FROM trips t
 			WHERE t.id = $1 AND (
-				t.user_id = $2 OR EXISTS (SELECT 1 FROM trip_members tm WHERE tm.trip_id = t.id AND tm.user_id = $2) OR $3 = 'admin'
+				t.user_id = $2 OR EXISTS (SELECT 1 FROM workspace_members wm WHERE wm.workspace_id = t.workspace_id AND wm.user_id = $2) OR $3 = 'admin'
 			)
 		`, tripID, userID, role).Scan(&dokumenURL, &dokumenNama, &tripOwnerID)
 

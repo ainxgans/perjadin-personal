@@ -12,6 +12,7 @@ import (
 
 type tripResponse struct {
 	ID                 string    `json:"id"`
+	WorkspaceID        string    `json:"workspace_id"`
 	Nama               string    `json:"nama"`
 	Tujuan             string    `json:"tujuan"`
 	TanggalMulai       string    `json:"tanggal_mulai"`
@@ -47,6 +48,7 @@ func tripToResponse(t model.Trip, totalExpense int64, isOwner bool, ownerName st
 	}
 	return tripResponse{
 		ID:                 t.ID,
+		WorkspaceID:        t.WorkspaceID,
 		Nama:               t.Nama,
 		Tujuan:             t.Tujuan,
 		TanggalMulai:       t.TanggalMulai.Format("2006-01-02"),
@@ -71,34 +73,69 @@ func tripToResponse(t model.Trip, totalExpense int64, isOwner bool, ownerName st
 	}
 }
 
-const tripSelectCols = `t.id, t.nama, t.tujuan, t.tanggal_mulai, t.tanggal_selesai,
+const tripSelectCols = `t.id, t.workspace_id, t.nama, t.tujuan, t.tanggal_mulai, t.tanggal_selesai,
 	COALESCE(t.status, 'berlangsung'), t.uang_dinas, t.nominal_monita, t.tanggal_dibayar,
 	COALESCE(t.catatan, ''), COALESCE(t.link_monita, ''), COALESCE(t.settlement_note, ''),
 	t.estimasi_transport, t.dokumen_url, t.dokumen_nama, t.created_at, t.updated_at`
 
-const tripInsertCols = `id, nama, tujuan, tanggal_mulai, tanggal_selesai,
+const tripInsertCols = `id, workspace_id, nama, tujuan, tanggal_mulai, tanggal_selesai,
 	COALESCE(status, 'berlangsung'), uang_dinas, nominal_monita, tanggal_dibayar,
 	COALESCE(catatan, ''), COALESCE(link_monita, ''), COALESCE(settlement_note, ''),
 	estimasi_transport, dokumen_url, dokumen_nama, created_at, updated_at`
 
+func canAccessTrip(db *sql.DB, tripID, userID, role string) (canAccess bool, isOwner bool, err error) {
+	if db == nil {
+		return false, false, sql.ErrConnDone
+	}
+	var tripOwnerID, wsID string
+	err = db.QueryRow("SELECT user_id, workspace_id FROM trips WHERE id = $1", tripID).Scan(&tripOwnerID, &wsID)
+	if err == sql.ErrNoRows {
+		return false, false, nil
+	}
+	if err != nil {
+		return false, false, err
+	}
+
+	if role == "admin" || tripOwnerID == userID {
+		return true, true, nil
+	}
+
+	var isMember bool
+	err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM workspace_members WHERE workspace_id = $1 AND user_id = $2)", wsID, userID).Scan(&isMember)
+	if err != nil {
+		return false, false, err
+	}
+
+	var wsRole string
+	_ = db.QueryRow("SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2", wsID, userID).Scan(&wsRole)
+	isWsOwner := (wsRole == "owner")
+
+	return isMember, isWsOwner, nil
+}
+
 func ListTrips(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID := auth.UserIDFromContext(r.Context())
+
+		wsID, err := ResolveWorkspaceID(r, db, userID)
+		if err != nil {
+			writeJSON(w, http.StatusForbidden, map[string]string{"error": err.Error()})
+			return
+		}
+
 		rows, err := db.Query(`
 			SELECT `+tripSelectCols+`,
 				COALESCE(SUM(e.jumlah), 0) as total_expense,
-				(t.user_id = $1) as is_owner,
+				(t.user_id = $2) as is_owner,
 				u.name as owner_name,
-				(SELECT COUNT(*) FROM trip_members tm WHERE tm.trip_id = t.id) as collabs_count
+				0 as collabs_count
 			FROM trips t
 			JOIN users u ON t.user_id = u.id
 			LEFT JOIN expenses e ON e.trip_id = t.id
-			WHERE t.user_id = $1 OR EXISTS (
-				SELECT 1 FROM trip_members tm WHERE tm.trip_id = t.id AND tm.user_id = $1
-			)
+			WHERE t.workspace_id = $1
 			GROUP BY t.id, u.name
 			ORDER BY t.tanggal_mulai DESC
-		`, userID)
+		`, wsID, userID)
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
@@ -114,7 +151,7 @@ func ListTrips(db *sql.DB) http.HandlerFunc {
 			var collabsCount int
 
 			if err := rows.Scan(
-				&t.ID, &t.Nama, &t.Tujuan, &t.TanggalMulai, &t.TanggalSelesai,
+				&t.ID, &t.WorkspaceID, &t.Nama, &t.Tujuan, &t.TanggalMulai, &t.TanggalSelesai,
 				&t.Status, &t.UangDinas, &t.NominalMonita, &t.TanggalDibayar,
 				&t.Catatan, &t.LinkMonita, &t.SettlementNote,
 				&t.EstimasiTransport, &t.DokumenURL, &t.DokumenNama, &t.CreatedAt, &t.UpdatedAt,
@@ -134,6 +171,13 @@ func ListTrips(db *sql.DB) http.HandlerFunc {
 func CreateTrip(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID := auth.UserIDFromContext(r.Context())
+
+		wsID, err := ResolveWorkspaceID(r, db, userID)
+		if err != nil {
+			writeJSON(w, http.StatusForbidden, map[string]string{"error": err.Error()})
+			return
+		}
+
 		var input struct {
 			Nama              string  `json:"nama"`
 			Tujuan            string  `json:"tujuan"`
@@ -179,13 +223,13 @@ func CreateTrip(db *sql.DB) http.HandlerFunc {
 		}
 
 		var trip model.Trip
-		err := db.QueryRow(`
-			INSERT INTO trips (user_id, nama, tujuan, tanggal_mulai, tanggal_selesai, status, uang_dinas, nominal_monita, tanggal_dibayar, catatan, link_monita, estimasi_transport, dokumen_url, dokumen_nama)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+		err = db.QueryRow(`
+			INSERT INTO trips (workspace_id, user_id, nama, tujuan, tanggal_mulai, tanggal_selesai, status, uang_dinas, nominal_monita, tanggal_dibayar, catatan, link_monita, estimasi_transport, dokumen_url, dokumen_nama)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 			RETURNING `+tripInsertCols+`
-		`, userID, input.Nama, input.Tujuan, mulai, selesai, model.StatusBerlangsung,
+		`, wsID, userID, input.Nama, input.Tujuan, mulai, selesai, model.StatusBerlangsung,
 			input.UangDinas, input.NominalMonita, dibayar, input.Catatan, input.LinkMonita, input.EstimasiTransport, input.DokumenURL, input.DokumenNama).
-			Scan(&trip.ID, &trip.Nama, &trip.Tujuan, &trip.TanggalMulai, &trip.TanggalSelesai,
+			Scan(&trip.ID, &trip.WorkspaceID, &trip.Nama, &trip.Tujuan, &trip.TanggalMulai, &trip.TanggalSelesai,
 				&trip.Status, &trip.UangDinas, &trip.NominalMonita, &trip.TanggalDibayar,
 				&trip.Catatan, &trip.LinkMonita, &trip.SettlementNote,
 				&trip.EstimasiTransport, &trip.DokumenURL, &trip.DokumenNama, &trip.CreatedAt, &trip.UpdatedAt)
@@ -206,43 +250,44 @@ func GetTrip(db *sql.DB) http.HandlerFunc {
 		role := auth.RoleFromContext(r.Context())
 		id := r.PathValue("id")
 
+		canAccess, isOwner, err := canAccessTrip(db, id, userID, role)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		if !canAccess {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
+			return
+		}
+
 		var trip model.Trip
 		var totalExpense int64
 		var tripOwnerID string
 		var ownerName string
-		var collabsCount int
 
-		err := db.QueryRow(`
+		err = db.QueryRow(`
 			SELECT `+tripSelectCols+`,
 				COALESCE(SUM(e.jumlah), 0),
 				t.user_id,
-				u.name as owner_name,
-				(SELECT COUNT(*) FROM trip_members tm WHERE tm.trip_id = t.id) as collabs_count
+				u.name as owner_name
 			FROM trips t
 			JOIN users u ON t.user_id = u.id
 			LEFT JOIN expenses e ON e.trip_id = t.id
-			WHERE t.id = $1 AND (
-				t.user_id = $2 OR EXISTS (SELECT 1 FROM trip_members tm WHERE tm.trip_id = t.id AND tm.user_id = $2) OR $3 = 'admin'
-			)
+			WHERE t.id = $1
 			GROUP BY t.id, u.name
-		`, id, userID, role).Scan(
-			&trip.ID, &trip.Nama, &trip.Tujuan, &trip.TanggalMulai, &trip.TanggalSelesai,
+		`, id).Scan(
+			&trip.ID, &trip.WorkspaceID, &trip.Nama, &trip.Tujuan, &trip.TanggalMulai, &trip.TanggalSelesai,
 			&trip.Status, &trip.UangDinas, &trip.NominalMonita, &trip.TanggalDibayar,
 			&trip.Catatan, &trip.LinkMonita, &trip.SettlementNote,
 			&trip.EstimasiTransport, &trip.DokumenURL, &trip.DokumenNama, &trip.CreatedAt, &trip.UpdatedAt, &totalExpense,
-			&tripOwnerID, &ownerName, &collabsCount)
+			&tripOwnerID, &ownerName)
 
-		if err == sql.ErrNoRows {
-			writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
-			return
-		}
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
 		}
 
-		isOwner := (tripOwnerID == userID) || (role == "admin")
-		writeJSON(w, http.StatusOK, map[string]interface{}{"data": tripToResponse(trip, totalExpense, isOwner, ownerName, collabsCount)})
+		writeJSON(w, http.StatusOK, map[string]interface{}{"data": tripToResponse(trip, totalExpense, isOwner, ownerName, 0)})
 	}
 }
 
@@ -251,6 +296,16 @@ func UpdateTrip(db *sql.DB) http.HandlerFunc {
 		userID := auth.UserIDFromContext(r.Context())
 		role := auth.RoleFromContext(r.Context())
 		id := r.PathValue("id")
+
+		canAccess, isOwner, err := canAccessTrip(db, id, userID, role)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		if !canAccess {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
+			return
+		}
 
 		var input struct {
 			Nama              *string `json:"nama"`
@@ -273,22 +328,16 @@ func UpdateTrip(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		// Only owner or admin can update trip metadata
 		var trip model.Trip
 		var tripOwnerID string
-		err := db.QueryRow(`SELECT `+tripSelectCols+`, t.user_id
+		err = db.QueryRow(`SELECT `+tripSelectCols+`, t.user_id
 			FROM trips t WHERE t.id = $1`, id).
-			Scan(&trip.ID, &trip.Nama, &trip.Tujuan, &trip.TanggalMulai, &trip.TanggalSelesai,
+			Scan(&trip.ID, &trip.WorkspaceID, &trip.Nama, &trip.Tujuan, &trip.TanggalMulai, &trip.TanggalSelesai,
 				&trip.Status, &trip.UangDinas, &trip.NominalMonita, &trip.TanggalDibayar,
 				&trip.Catatan, &trip.LinkMonita, &trip.SettlementNote,
 				&trip.EstimasiTransport, &trip.DokumenURL, &trip.DokumenNama, &trip.CreatedAt, &trip.UpdatedAt, &tripOwnerID)
-		if err == sql.ErrNoRows {
-			writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
-			return
-		}
-
-		if tripOwnerID != userID && role != "admin" {
-			writeJSON(w, http.StatusForbidden, map[string]string{"error": "hanya pemilik trip atau admin yang dapat mengubah detail trip"})
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
 		}
 
@@ -376,13 +425,11 @@ func UpdateTrip(db *sql.DB) http.HandlerFunc {
 		// Re-fetch with totals
 		var totalExpense int64
 		var ownerName string
-		var collabsCount int
 		db.QueryRow("SELECT COALESCE(SUM(jumlah), 0) FROM expenses WHERE trip_id = $1", id).Scan(&totalExpense)
 		db.QueryRow("SELECT updated_at FROM trips WHERE id = $1", id).Scan(&trip.UpdatedAt)
 		db.QueryRow("SELECT name FROM users WHERE id = $1", tripOwnerID).Scan(&ownerName)
-		db.QueryRow("SELECT COUNT(*) FROM trip_members WHERE trip_id = $1", id).Scan(&collabsCount)
 
-		writeJSON(w, http.StatusOK, map[string]interface{}{"data": tripToResponse(trip, totalExpense, true, ownerName, collabsCount)})
+		writeJSON(w, http.StatusOK, map[string]interface{}{"data": tripToResponse(trip, totalExpense, isOwner, ownerName, 0)})
 	}
 }
 
@@ -392,21 +439,24 @@ func DeleteTrip(db *sql.DB) http.HandlerFunc {
 		role := auth.RoleFromContext(r.Context())
 		id := r.PathValue("id")
 
-		var result sql.Result
-		var err error
-		if role == "admin" {
-			result, err = db.Exec("DELETE FROM trips WHERE id = $1", id)
-		} else {
-			result, err = db.Exec("DELETE FROM trips WHERE id = $1 AND user_id = $2", id, userID)
+		canAccess, isOwner, err := canAccessTrip(db, id, userID, role)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		if !canAccess || (!isOwner && role != "admin") {
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found or unauthorized"})
+			return
 		}
 
+		result, err := db.Exec("DELETE FROM trips WHERE id = $1", id)
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
 		}
 		rows, _ := result.RowsAffected()
 		if rows == 0 {
-			writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found or unauthorized"})
+			writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)

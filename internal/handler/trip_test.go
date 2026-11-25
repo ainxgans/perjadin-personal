@@ -375,3 +375,93 @@ func TestParseDocument_PDFAndServe(t *testing.T) {
 		t.Errorf("expected 404 for unauthorized stranger, got %d", recStranger.Code)
 	}
 }
+
+func TestWorkspace_CrossUserCollaboration(t *testing.T) {
+	cleanupTestData(t)
+	userA := createTestUser(t, "user-a", "a@test.com", "user")
+	cookieA := authCookie(t, userA, "user")
+	userB := createTestUser(t, "user-b", "b@test.com", "user")
+	cookieB := authCookie(t, userB, "user")
+	stranger := createTestUser(t, "user-c", "c@test.com", "user")
+	cookieStranger := authCookie(t, stranger, "user")
+
+	wsA, _ := EnsurePersonalWorkspace(testDB, userA, "User A")
+	wsB, _ := EnsurePersonalWorkspace(testDB, userB, "User B")
+
+	handler := setupTripRoutes()
+
+	// 1. User A creates Trip in Workspace A
+	reqCreate := httptest.NewRequest("POST", "/api/trips", strings.NewReader(`{
+		"nama": "Audit SPBU Surabaya",
+		"tujuan": "Surabaya",
+		"tanggal_mulai": "2026-05-01",
+		"tanggal_selesai": "2026-05-04",
+		"uang_dinas": 3000000
+	}`))
+	reqCreate.Header.Set("Content-Type", "application/json")
+	reqCreate.Header.Set("X-Workspace-ID", wsA)
+	reqCreate.AddCookie(cookieA)
+	recCreate := httptest.NewRecorder()
+	handler.ServeHTTP(recCreate, reqCreate)
+	if recCreate.Code != http.StatusCreated {
+		t.Fatalf("create trip err: %d: %s", recCreate.Code, recCreate.Body.String())
+	}
+	tripID := parseJSON(t, recCreate)["data"].(map[string]interface{})["id"].(string)
+
+	// 2. Add User B to Workspace A
+	_, err := testDB.Exec(`INSERT INTO workspace_members (workspace_id, user_id, role) VALUES ($1, $2, 'member')`, wsA, userB)
+	if err != nil {
+		t.Fatalf("add user B to wsA: %v", err)
+	}
+
+	// 3. User B lists trips in Workspace A via X-Workspace-ID header
+	reqListB := httptest.NewRequest("GET", "/api/trips", nil)
+	reqListB.Header.Set("X-Workspace-ID", wsA)
+	reqListB.AddCookie(cookieB)
+	recListB := httptest.NewRecorder()
+	handler.ServeHTTP(recListB, reqListB)
+	if recListB.Code != http.StatusOK {
+		t.Fatalf("user B list wsA expected 200, got %d: %s", recListB.Code, recListB.Body.String())
+	}
+	tripsB := parseJSON(t, recListB)["data"].([]interface{})
+	if len(tripsB) != 1 {
+		t.Fatalf("user B should see 1 trip in wsA, got %d", len(tripsB))
+	}
+	if tripsB[0].(map[string]interface{})["nama"] != "Audit SPBU Surabaya" {
+		t.Errorf("expected Audit SPBU Surabaya, got %v", tripsB[0].(map[string]interface{})["nama"])
+	}
+
+	// 4. User B gets single trip details
+	reqGetB := httptest.NewRequest("GET", "/api/trips/"+tripID, nil)
+	reqGetB.Header.Set("X-Workspace-ID", wsA)
+	reqGetB.AddCookie(cookieB)
+	recGetB := httptest.NewRecorder()
+	handler.ServeHTTP(recGetB, reqGetB)
+	if recGetB.Code != http.StatusOK {
+		t.Fatalf("user B get trip expected 200, got %d", recGetB.Code)
+	}
+
+	// 5. User B switches to their own Workspace B -> should see 0 trips
+	reqListOwnB := httptest.NewRequest("GET", "/api/trips", nil)
+	reqListOwnB.Header.Set("X-Workspace-ID", wsB)
+	reqListOwnB.AddCookie(cookieB)
+	recListOwnB := httptest.NewRecorder()
+	handler.ServeHTTP(recListOwnB, reqListOwnB)
+	if recListOwnB.Code != http.StatusOK {
+		t.Fatalf("user B list wsB expected 200, got %d", recListOwnB.Code)
+	}
+	tripsOwnB := parseJSON(t, recListOwnB)["data"].([]interface{})
+	if len(tripsOwnB) != 0 {
+		t.Errorf("user B should see 0 trips in wsB, got %d", len(tripsOwnB))
+	}
+
+	// 6. Stranger C (not in wsA) tries to access trip -> 404
+	reqGetStranger := httptest.NewRequest("GET", "/api/trips/"+tripID, nil)
+	reqGetStranger.AddCookie(cookieStranger)
+	recGetStranger := httptest.NewRecorder()
+	handler.ServeHTTP(recGetStranger, reqGetStranger)
+	if recGetStranger.Code != http.StatusNotFound {
+		t.Errorf("stranger should get 404, got %d", recGetStranger.Code)
+	}
+}
+

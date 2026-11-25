@@ -40,6 +40,12 @@ func GetAnalytics(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID := auth.UserIDFromContext(r.Context())
 
+		wsID, err := ResolveWorkspaceID(r, db, userID)
+		if err != nil {
+			writeJSON(w, http.StatusForbidden, map[string]string{"error": err.Error()})
+			return
+		}
+
 		year, _ := strconv.Atoi(r.URL.Query().Get("year"))
 		if year < 1900 || year > 2100 {
 			year = 0
@@ -51,13 +57,13 @@ func GetAnalytics(db *sql.DB) http.HandlerFunc {
 			AvailableYears: []int{},
 		}
 
-		// 0. Available years
+		// 0. Available years in this workspace
 		yRows, err := db.Query(`
 			SELECT DISTINCT EXTRACT(YEAR FROM t.tanggal_mulai)::int AS y
 			FROM trips t
-			WHERE (t.user_id = $1 OR EXISTS (SELECT 1 FROM trip_members tm WHERE tm.trip_id = t.id AND tm.user_id = $1))
+			WHERE t.workspace_id = $1
 			ORDER BY y DESC
-		`, userID)
+		`, wsID)
 		if err == nil {
 			defer yRows.Close()
 			for yRows.Next() {
@@ -68,37 +74,36 @@ func GetAnalytics(db *sql.DB) http.HandlerFunc {
 			}
 		}
 
-		// 1. Total expenses recorded by the user (or legacy rows of own trips)
+		// 1. Total expenses in this workspace
 		_ = db.QueryRow(`
 			SELECT COALESCE(SUM(e.jumlah), 0)
 			FROM expenses e
 			JOIN trips t ON e.trip_id = t.id
-			WHERE (e.user_id = $1 OR (e.user_id IS NULL AND t.user_id = $1))
-				AND (t.user_id = $1 OR EXISTS (SELECT 1 FROM trip_members tm WHERE tm.trip_id = t.id AND tm.user_id = $1))
+			WHERE t.workspace_id = $1
 				AND ($2 = 0 OR EXTRACT(YEAR FROM t.tanggal_mulai) = $2)
-		`, userID, year).Scan(&data.TotalExpensesRp)
+		`, wsID, year).Scan(&data.TotalExpensesRp)
 
-		// 2. Count of distinct trips user participated in
+		// 2. Count of distinct trips in this workspace
 		var tripCount int
 		_ = db.QueryRow(`
 			SELECT COUNT(DISTINCT t.id)
 			FROM trips t
-			WHERE (t.user_id = $1 OR EXISTS (SELECT 1 FROM trip_members tm WHERE tm.trip_id = t.id AND tm.user_id = $1))
+			WHERE t.workspace_id = $1
 				AND ($2 = 0 OR EXTRACT(YEAR FROM t.tanggal_mulai) = $2)
-		`, userID, year).Scan(&tripCount)
+		`, wsID, year).Scan(&tripCount)
 
 		data.TotalTrips = tripCount
 		if tripCount > 0 {
 			data.AverageExpenseTrip = data.TotalExpensesRp / int64(tripCount)
 		}
 
-		// 3. Total travel days participated
+		// 3. Total travel days in this workspace
 		_ = db.QueryRow(`
 			SELECT COALESCE(SUM(GREATEST(1, (t.tanggal_selesai - t.tanggal_mulai) + 1)), 0)
 			FROM trips t
-			WHERE (t.user_id = $1 OR EXISTS (SELECT 1 FROM trip_members tm WHERE tm.trip_id = t.id AND tm.user_id = $1))
+			WHERE t.workspace_id = $1
 				AND ($2 = 0 OR EXTRACT(YEAR FROM t.tanggal_mulai) = $2)
-		`, userID, year).Scan(&data.TotalDays)
+		`, wsID, year).Scan(&data.TotalDays)
 
 		if data.TotalDays > 0 {
 			data.DailyBurnRate = data.TotalExpensesRp / int64(data.TotalDays)
@@ -112,39 +117,38 @@ func GetAnalytics(db *sql.DB) http.HandlerFunc {
 			JOIN trips t ON e.trip_id = t.id
 			JOIN payment_methods pm ON e.payment_method_id = pm.id
 			WHERE pm.nama ILIKE '%Pribadi%'
-				AND (e.user_id = $1 OR (e.user_id IS NULL AND t.user_id = $1))
-				AND (t.user_id = $1 OR EXISTS (SELECT 1 FROM trip_members tm WHERE tm.trip_id = t.id AND tm.user_id = $1))
+				AND t.workspace_id = $1
 				AND ($2 = 0 OR EXTRACT(YEAR FROM t.tanggal_mulai) = $2)
-		`, userID, year).Scan(&personalExpense)
+		`, wsID, year).Scan(&personalExpense)
 
 		if data.TotalExpensesRp > 0 {
 			data.PersonalSharePct = int((personalExpense * 100) / data.TotalExpensesRp)
 		}
 
-		// 5. Total uang dinas of user's own trips
+		// 5. Total uang dinas of trips in this workspace
 		_ = db.QueryRow(`
 			SELECT COALESCE(SUM(uang_dinas), 0)
 			FROM trips
-			WHERE user_id = $1 AND uang_dinas IS NOT NULL
+			WHERE workspace_id = $1 AND uang_dinas IS NOT NULL
 				AND ($2 = 0 OR EXTRACT(YEAR FROM tanggal_mulai) = $2)
-		`, userID, year).Scan(&data.TotalUangDinasRp)
+		`, wsID, year).Scan(&data.TotalUangDinasRp)
 
 		// 6. Budget realization on lunas cohort
 		var lunasUangDinas, lunasExpenses int64
 		_ = db.QueryRow(`
 			SELECT COALESCE(SUM(uang_dinas), 0)
 			FROM trips
-			WHERE user_id = $1 AND status = 'lunas' AND uang_dinas IS NOT NULL
+			WHERE workspace_id = $1 AND status = 'lunas' AND uang_dinas IS NOT NULL
 				AND ($2 = 0 OR EXTRACT(YEAR FROM tanggal_mulai) = $2)
-		`, userID, year).Scan(&lunasUangDinas)
+		`, wsID, year).Scan(&lunasUangDinas)
 
 		_ = db.QueryRow(`
 			SELECT COALESCE(SUM(e.jumlah), 0)
 			FROM expenses e
 			JOIN trips t ON e.trip_id = t.id
-			WHERE t.user_id = $1 AND t.status = 'lunas'
+			WHERE t.workspace_id = $1 AND t.status = 'lunas'
 				AND ($2 = 0 OR EXTRACT(YEAR FROM t.tanggal_mulai) = $2)
-		`, userID, year).Scan(&lunasExpenses)
+		`, wsID, year).Scan(&lunasExpenses)
 
 		if lunasUangDinas > 0 {
 			data.BudgetRealizationPct = int((lunasExpenses * 100) / lunasUangDinas)
@@ -156,12 +160,11 @@ func GetAnalytics(db *sql.DB) http.HandlerFunc {
 			FROM categories c
 			JOIN expenses e ON e.category_id = c.id
 			JOIN trips t ON e.trip_id = t.id
-			WHERE (e.user_id = $1 OR (e.user_id IS NULL AND t.user_id = $1))
-				AND (t.user_id = $1 OR EXISTS (SELECT 1 FROM trip_members tm WHERE tm.trip_id = t.id AND tm.user_id = $1))
+			WHERE t.workspace_id = $1
 				AND ($2 = 0 OR EXTRACT(YEAR FROM t.tanggal_mulai) = $2)
 			GROUP BY c.id, c.nama
 			ORDER BY total DESC
-		`, userID, year)
+		`, wsID, year)
 		if err == nil {
 			defer catRows.Close()
 			for catRows.Next() {
@@ -181,12 +184,11 @@ func GetAnalytics(db *sql.DB) http.HandlerFunc {
 			FROM payment_methods p
 			JOIN expenses e ON e.payment_method_id = p.id
 			JOIN trips t ON e.trip_id = t.id
-			WHERE (e.user_id = $1 OR (e.user_id IS NULL AND t.user_id = $1))
-				AND (t.user_id = $1 OR EXISTS (SELECT 1 FROM trip_members tm WHERE tm.trip_id = t.id AND tm.user_id = $1))
+			WHERE t.workspace_id = $1
 				AND ($2 = 0 OR EXTRACT(YEAR FROM t.tanggal_mulai) = $2)
 			GROUP BY p.id, p.nama
 			ORDER BY total DESC
-		`, userID, year)
+		`, wsID, year)
 		if err == nil {
 			defer pmRows.Close()
 			for pmRows.Next() {
