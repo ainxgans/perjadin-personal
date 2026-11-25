@@ -1,4 +1,5 @@
 import { Component, createSignal, Show, For, onMount, onCleanup } from 'solid-js';
+import { Portal } from 'solid-js/web';
 import {
   workspaces,
   activeWorkspace,
@@ -220,244 +221,250 @@ const WorkspaceSwitcher: Component = () => {
 
       {/* Modal Buat Workspace */}
       <Show when={showCreateModal()}>
-        <div class="modal-overlay" onClick={() => setShowCreateModal(false)}>
-          <div class="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div class="modal-handle" />
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-              <h3 class="modal-title" style="margin: 0;">Buat Ruang Kerja Baru</h3>
-              <button
-                type="button"
-                class="btn-icon-subtle"
-                onClick={() => setShowCreateModal(false)}
-              >
-                <XIcon size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateSubmit}>
-              <div style="margin-bottom: 1rem;">
-                <label class="form-label" style="font-size: 0.75rem;">Nama Ruang Kerja</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  placeholder="Misal: Tim Pengawasan BBM 2026"
-                  value={newWsName()}
-                  onInput={(e) => setNewWsName(e.currentTarget.value)}
-                  autofocus
-                  required
-                />
-              </div>
-
-              <Show when={createError()}>
-                <p class="text-rose" style="font-size: 0.75rem; margin-bottom: 0.75rem;">
-                  {createError()}
-                </p>
-              </Show>
-
-              <div class="modal-form-actions">
+        <Portal>
+          <div class="modal-overlay" onClick={() => setShowCreateModal(false)}>
+            <div class="modal-content" onClick={(e) => e.stopPropagation()}>
+              <div class="modal-handle" />
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 class="modal-title" style="margin: 0;">Buat Ruang Kerja Baru</h3>
                 <button
                   type="button"
-                  class="btn btn-secondary"
+                  class="btn-icon-subtle"
                   onClick={() => setShowCreateModal(false)}
                 >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  class="btn btn-primary"
-                  disabled={isSubmitting() || !newWsName().trim()}
-                >
-                  {isSubmitting() ? 'Membuat...' : 'Buat Ruang Kerja'}
+                  <XIcon size={18} />
                 </button>
               </div>
-            </form>
+
+              <form onSubmit={handleCreateSubmit}>
+                <div style="margin-bottom: 1rem;">
+                  <label class="form-label" style="font-size: 0.75rem;">Nama Ruang Kerja</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    placeholder="Misal: Tim Pengawasan BBM 2026"
+                    value={newWsName()}
+                    onInput={(e) => setNewWsName(e.currentTarget.value)}
+                    autofocus
+                    required
+                  />
+                </div>
+
+                <Show when={createError()}>
+                  <p class="text-rose" style="font-size: 0.75rem; margin-bottom: 0.75rem;">
+                    {createError()}
+                  </p>
+                </Show>
+
+                <div class="modal-form-actions">
+                  <button
+                    type="button"
+                    class="btn btn-secondary"
+                    onClick={() => setShowCreateModal(false)}
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    class="btn btn-primary"
+                    disabled={isSubmitting() || !newWsName().trim()}
+                  >
+                    {isSubmitting() ? 'Membuat...' : 'Buat Ruang Kerja'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
+        </Portal>
       </Show>
 
       {/* Modal Gabung Workspace */}
       <Show when={showJoinModal()}>
-        <div class="modal-overlay" onClick={() => setShowJoinModal(false)}>
-          <div class="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div class="modal-handle" />
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-              <h3 class="modal-title" style="margin: 0;">Gabung Ruang Kerja</h3>
-              <button
-                type="button"
-                class="btn-icon-subtle"
-                onClick={() => setShowJoinModal(false)}
-              >
-                <XIcon size={18} />
-              </button>
-            </div>
-
-            <p style="font-size: 0.8125rem; color: var(--text-secondary); margin-bottom: 1rem;">
-              Masukkan 6 digit kode undangan yang diberikan oleh rekan Anda untuk mengakses perjalanan bersama.
-            </p>
-
-            <form onSubmit={handleJoinSubmit}>
-              <div style="margin-bottom: 1rem;">
-                <input
-                  type="text"
-                  class="form-control"
-                  style="text-align: center; font-size: 1.25rem; font-weight: 700; letter-spacing: 0.25em; text-transform: uppercase;"
-                  placeholder="ABC123"
-                  maxLength={12}
-                  value={joinCodeInput()}
-                  onInput={(e) => setJoinCodeInput(e.currentTarget.value.toUpperCase())}
-                  autofocus
-                  required
-                />
-              </div>
-
-              <Show when={joinError()}>
-                <p class="text-rose" style="font-size: 0.75rem; margin-bottom: 0.75rem; text-align: center;">
-                  {joinError()}
-                </p>
-              </Show>
-
-              <div class="modal-form-actions">
+        <Portal>
+          <div class="modal-overlay" onClick={() => setShowJoinModal(false)}>
+            <div class="modal-content" onClick={(e) => e.stopPropagation()}>
+              <div class="modal-handle" />
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 class="modal-title" style="margin: 0;">Gabung Ruang Kerja</h3>
                 <button
                   type="button"
-                  class="btn btn-secondary"
+                  class="btn-icon-subtle"
                   onClick={() => setShowJoinModal(false)}
                 >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  class="btn btn-primary"
-                  disabled={isSubmitting() || !joinCodeInput().trim()}
-                >
-                  {isSubmitting() ? 'Memeriksa...' : 'Gabung'}
+                  <XIcon size={18} />
                 </button>
               </div>
-            </form>
+
+              <p style="font-size: 0.8125rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                Masukkan 6 digit kode undangan yang diberikan oleh rekan Anda untuk mengakses perjalanan bersama.
+              </p>
+
+              <form onSubmit={handleJoinSubmit}>
+                <div style="margin-bottom: 1rem;">
+                  <input
+                    type="text"
+                    class="form-control"
+                    style="text-align: center; font-size: 1.25rem; font-weight: 700; letter-spacing: 0.25em; text-transform: uppercase;"
+                    placeholder="ABC123"
+                    maxLength={12}
+                    value={joinCodeInput()}
+                    onInput={(e) => setJoinCodeInput(e.currentTarget.value.toUpperCase())}
+                    autofocus
+                    required
+                  />
+                </div>
+
+                <Show when={joinError()}>
+                  <p class="text-rose" style="font-size: 0.75rem; margin-bottom: 0.75rem; text-align: center;">
+                    {joinError()}
+                  </p>
+                </Show>
+
+                <div class="modal-form-actions">
+                  <button
+                    type="button"
+                    class="btn btn-secondary"
+                    onClick={() => setShowJoinModal(false)}
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    class="btn btn-primary"
+                    disabled={isSubmitting() || !joinCodeInput().trim()}
+                  >
+                    {isSubmitting() ? 'Memeriksa...' : 'Gabung'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
+        </Portal>
       </Show>
 
       {/* Modal Kelola Anggota & Kode */}
       <Show when={showSettingsModal()}>
-        <div class="modal-overlay" onClick={() => setShowSettingsModal(false)}>
-          <div class="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div class="modal-handle" />
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-              <h3 class="modal-title" style="margin: 0;">Kelola Ruang Kerja</h3>
-              <button
-                type="button"
-                class="btn-icon-subtle"
-                onClick={() => setShowSettingsModal(false)}
-              >
-                <XIcon size={18} />
-              </button>
-            </div>
-
-            <div style="margin-bottom: 1.25rem;">
-              <div style="font-size: 0.875rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.25rem;">
-                {activeWorkspace()?.nama}
-              </div>
-              <div style="font-size: 0.75rem; color: var(--text-muted);">
-                {isWorkspaceOwner() ? 'Anda adalah pemilik ruang kerja ini' : 'Anda adalah anggota ruang kerja ini'}
-              </div>
-            </div>
-
-            {/* Kode Undangan Box */}
-            <div class="workspace-code-box">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">
-                  KODE UNDANGAN GABUNG
-                </span>
-                <Show when={isWorkspaceOwner()}>
-                  <button
-                    type="button"
-                    class="btn-icon-subtle"
-                    style="font-size: 0.6875rem; color: var(--text-muted);"
-                    onClick={handleRegenCode}
-                  >
-                    Reset Kode
-                  </button>
-                </Show>
-              </div>
-
-              <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; background: var(--bg-surface-elevated); padding: 0.625rem 0.875rem; border-radius: 8px; border: 1px dashed var(--border-subtle);">
-                <span style="font-family: monospace; font-size: 1.25rem; font-weight: 700; letter-spacing: 0.15em; color: var(--emerald);">
-                  {currentWorkspaceData()?.join_code || '---'}
-                </span>
+        <Portal>
+          <div class="modal-overlay" onClick={() => setShowSettingsModal(false)}>
+            <div class="modal-content" onClick={(e) => e.stopPropagation()}>
+              <div class="modal-handle" />
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 class="modal-title" style="margin: 0;">Kelola Ruang Kerja</h3>
                 <button
                   type="button"
-                  class="btn btn-sm btn-outline"
-                  onClick={handleCopyCode}
-                  style="font-size: 0.75rem; gap: 0.25rem; padding: 0.25rem 0.5rem;"
+                  class="btn-icon-subtle"
+                  onClick={() => setShowSettingsModal(false)}
                 >
-                  <Show when={copiedCode()} fallback={<><CopyIcon size={13} /> Salin</>}>
-                    <CheckIcon size={13} class="text-emerald" /> Tersalin!
+                  <XIcon size={18} />
+                </button>
+              </div>
+
+              <div style="margin-bottom: 1.25rem;">
+                <div style="font-size: 0.875rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.25rem;">
+                  {activeWorkspace()?.nama}
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">
+                  {isWorkspaceOwner() ? 'Anda adalah pemilik ruang kerja ini' : 'Anda adalah anggota ruang kerja ini'}
+                </div>
+              </div>
+
+              {/* Kode Undangan Box */}
+              <div class="workspace-code-box">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                  <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">
+                    KODE UNDANGAN GABUNG
+                  </span>
+                  <Show when={isWorkspaceOwner()}>
+                    <button
+                      type="button"
+                      class="btn-icon-subtle"
+                      style="font-size: 0.6875rem; color: var(--text-muted);"
+                      onClick={handleRegenCode}
+                    >
+                      Reset Kode
+                    </button>
                   </Show>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; background: var(--bg-surface-elevated); padding: 0.625rem 0.875rem; border-radius: 8px; border: 1px dashed var(--border-subtle);">
+                  <span style="font-family: monospace; font-size: 1.25rem; font-weight: 700; letter-spacing: 0.15em; color: var(--emerald);">
+                    {currentWorkspaceData()?.join_code || '---'}
+                  </span>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline"
+                    onClick={handleCopyCode}
+                    style="font-size: 0.75rem; gap: 0.25rem; padding: 0.25rem 0.5rem;"
+                  >
+                    <Show when={copiedCode()} fallback={<><CopyIcon size={13} /> Salin</>}>
+                      <CheckIcon size={13} class="text-emerald" /> Tersalin!
+                    </Show>
+                  </button>
+                </div>
+              </div>
+
+              {/* Daftar Anggota */}
+              <div style="margin-top: 1.25rem;">
+                <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 0.5rem; text-transform: uppercase;">
+                  Anggota ({currentWorkspaceData()?.members.length || 0})
+                </div>
+
+                <div style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.375rem;">
+                  <For each={currentWorkspaceData()?.members || []}>
+                    {(m) => (
+                      <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.625rem; background: var(--bg-surface-elevated); border-radius: 8px; border: 1px solid var(--border-subtle);">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; overflow: hidden;">
+                          <Show
+                            when={m.avatar_url}
+                            fallback={<span class="collaborator-avatar" style="width: 24px; height: 24px; font-size: 0.6875rem;">{m.name.charAt(0).toUpperCase()}</span>}
+                          >
+                            <img src={m.avatar_url} alt={m.name} class="collaborator-avatar" style="width: 24px; height: 24px;" />
+                          </Show>
+                          <div style="overflow: hidden;">
+                            <div style="font-size: 0.75rem; font-weight: 600; color: var(--text-primary); text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">
+                              {m.name}
+                            </div>
+                            <div style="font-size: 0.625rem; color: var(--text-muted); text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">
+                              {m.email}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style="display: flex; align-items: center; gap: 0.375rem;">
+                          <span class={`badge ${m.role === 'owner' ? 'badge-subtle' : 'badge-gray'}`} style="font-size: 0.625rem; padding: 0.125rem 0.375rem;">
+                            {m.role === 'owner' ? 'Pemilik' : 'Anggota'}
+                          </span>
+                          <Show when={isWorkspaceOwner() && m.role !== 'owner'}>
+                            <button
+                              type="button"
+                              class="btn-icon-subtle"
+                              style="color: var(--rose); padding: 0.25rem;"
+                              title="Keluarkan anggota"
+                              onClick={() => handleRemoveMember(m.user_id, m.name)}
+                            >
+                              <XIcon size={12} />
+                            </button>
+                          </Show>
+                        </div>
+                      </div>
+                    )}
+                  </For>
+                </div>
+              </div>
+
+              <div class="modal-form-actions" style="margin-top: 1.25rem;">
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  style="width: 100%;"
+                  onClick={() => setShowSettingsModal(false)}
+                >
+                  Tutup
                 </button>
               </div>
             </div>
-
-            {/* Daftar Anggota */}
-            <div style="margin-top: 1.25rem;">
-              <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 0.5rem; text-transform: uppercase;">
-                Anggota ({currentWorkspaceData()?.members.length || 0})
-              </div>
-
-              <div style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.375rem;">
-                <For each={currentWorkspaceData()?.members || []}>
-                  {(m) => (
-                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.625rem; background: var(--bg-surface-elevated); border-radius: 8px; border: 1px solid var(--border-subtle);">
-                      <div style="display: flex; align-items: center; gap: 0.5rem; overflow: hidden;">
-                        <Show
-                          when={m.avatar_url}
-                          fallback={<span class="collaborator-avatar" style="width: 24px; height: 24px; font-size: 0.6875rem;">{m.name.charAt(0).toUpperCase()}</span>}
-                        >
-                          <img src={m.avatar_url} alt={m.name} class="collaborator-avatar" style="width: 24px; height: 24px;" />
-                        </Show>
-                        <div style="overflow: hidden;">
-                          <div style="font-size: 0.75rem; font-weight: 600; color: var(--text-primary); text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">
-                            {m.name}
-                          </div>
-                          <div style="font-size: 0.625rem; color: var(--text-muted); text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">
-                            {m.email}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div style="display: flex; align-items: center; gap: 0.375rem;">
-                        <span class={`badge ${m.role === 'owner' ? 'badge-subtle' : 'badge-gray'}`} style="font-size: 0.625rem; padding: 0.125rem 0.375rem;">
-                          {m.role === 'owner' ? 'Pemilik' : 'Anggota'}
-                        </span>
-                        <Show when={isWorkspaceOwner() && m.role !== 'owner'}>
-                          <button
-                            type="button"
-                            class="btn-icon-subtle"
-                            style="color: var(--rose); padding: 0.25rem;"
-                            title="Keluarkan anggota"
-                            onClick={() => handleRemoveMember(m.user_id, m.name)}
-                          >
-                            <XIcon size={12} />
-                          </button>
-                        </Show>
-                      </div>
-                    </div>
-                  )}
-                </For>
-              </div>
-            </div>
-
-            <div class="modal-form-actions" style="margin-top: 1.25rem;">
-              <button
-                type="button"
-                class="btn btn-secondary"
-                style="width: 100%;"
-                onClick={() => setShowSettingsModal(false)}
-              >
-                Tutup
-              </button>
-            </div>
           </div>
-        </div>
+        </Portal>
       </Show>
     </div>
   );

@@ -906,8 +906,13 @@ h1, h2, h3, h4 {
   padding: 0;
 }
 
+body:has(.modal-overlay) {
+  overflow: hidden;
+}
+
 body:has(.modal-overlay) .bottom-dock-wrapper,
-body:has(.modal-overlay) .floating-action-dock {
+body:has(.modal-overlay) .floating-action-dock,
+body:has(.modal-overlay) .fab {
   display: none !important;
 }
 
