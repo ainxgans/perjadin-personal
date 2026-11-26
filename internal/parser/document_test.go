@@ -152,6 +152,39 @@ func TestParseDateFormats(t *testing.T) {
 	}
 }
 
+func TestLocationDisambiguation(t *testing.T) {
+	knownLocations := []string{
+		"Jawa Barat",
+		"Depok, Jawa Barat",
+		"Bandung, Jawa Barat",
+		"D.I. Yogyakarta",
+		"Yogyakarta, D.I. Yogyakarta",
+		"Sleman, D.I. Yogyakarta",
+	}
+
+	// Case 1: Depok as kecamatan in Sleman, Yogyakarta should NOT match Depok, Jawa Barat
+	txtYogya := `
+hari/tanggal : Selasa s.d. Jumat /17 s.d. 20 November 2026
+tempat       : Ruang Rapat GRAMM Hotel
+               Jl. Laksda Adisucipto No. 82, Caturtunggal, Depok, Kabupaten
+               Sleman, Yogyakarta 55281
+`
+	res1 := parser.ParseNaskahDinas(txtYogya, knownLocations)
+	if res1.Tujuan != "Sleman, D.I. Yogyakarta" {
+		t.Errorf("expected Sleman, D.I. Yogyakarta, got %q", res1.Tujuan)
+	}
+
+	// Case 2: Bandung, Jawa Barat should beat province-only Jawa Barat
+	txtBandung := `
+hari/tanggal : Kamis / 6 Agustus 2026
+tempat       : Hotel Hilton, Kota Bandung, Jawa Barat
+`
+	res2 := parser.ParseNaskahDinas(txtBandung, knownLocations)
+	if res2.Tujuan != "Bandung, Jawa Barat" {
+		t.Errorf("expected Bandung, Jawa Barat, got %q", res2.Tujuan)
+	}
+}
+
 func TestParseRealUndanganFolder(t *testing.T) {
 	files, err := filepath.Glob("../../undangan/*.pdf")
 	if err != nil || len(files) == 0 {

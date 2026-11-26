@@ -140,19 +140,50 @@ func ParseNaskahDinas(text string, knownLocations []string) ParseResult {
 		res.LokasiRaw = strings.Join(strings.Fields(m[1]), " ")
 	}
 
-	// Match lokasi to knownLocations
+	// Match lokasi to knownLocations using specificity scoring so city+province
+	// beats province-only, and matching province disambiguates same-named kecamatan/kota
+	// (e.g. "Depok, Kabupaten Sleman, Yogyakarta" vs "Depok, Jawa Barat").
 	if res.LokasiRaw != "" {
 		res.Tujuan = res.LokasiRaw
 		rawLower := strings.ToLower(res.LokasiRaw)
+		bestScore := 0
+		bestLoc := ""
+
 		for _, loc := range knownLocations {
 			locLower := strings.ToLower(loc)
-			// e.g. "Cimahi, Jawa Barat" matches if raw contains "cimahi"
 			parts := strings.Split(locLower, ",")
 			primaryCity := strings.TrimSpace(parts[0])
-			if strings.Contains(rawLower, primaryCity) || strings.Contains(locLower, rawLower) {
-				res.Tujuan = loc
-				break
+			if primaryCity == "" {
+				continue
 			}
+
+			score := 0
+			if strings.Contains(rawLower, primaryCity) {
+				score += 10
+				if len(parts) > 1 {
+					score += 5
+					provPart := strings.TrimSpace(parts[1])
+					provClean := strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(provPart, "d.i. "), "dki "))
+					if (provPart != "" && strings.Contains(rawLower, provPart)) ||
+						(provClean != "" && strings.Contains(rawLower, provClean)) {
+						score += 20
+					}
+				}
+				if strings.Contains(rawLower, "kota "+primaryCity) || strings.Contains(rawLower, "kabupaten "+primaryCity) || strings.Contains(rawLower, "kab. "+primaryCity) {
+					score += 10
+				}
+			} else if strings.Contains(locLower, rawLower) {
+				score += 8
+			}
+
+			if score > bestScore {
+				bestScore = score
+				bestLoc = loc
+			}
+		}
+
+		if bestLoc != "" {
+			res.Tujuan = bestLoc
 		}
 	}
 

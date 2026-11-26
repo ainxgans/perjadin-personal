@@ -17,29 +17,30 @@ import (
 )
 
 func getKnownLocations(db *sql.DB) []string {
-	rows, err := db.Query("SELECT provinsi, ibukota, kota FROM sbm_rates")
+	rows, err := db.Query("SELECT provinsi, ibukota, kota FROM sbm_rates ORDER BY provinsi ASC")
 	if err != nil {
 		return nil
 	}
 	defer rows.Close()
 
-	var locs []string
+	var cityLocs []string
+	var provLocs []string
 	for rows.Next() {
 		var prov, ibukota string
 		var kota pq.StringArray
 		if err := rows.Scan(&prov, &ibukota, &kota); err == nil {
-			locs = append(locs, prov)
+			provLocs = append(provLocs, prov)
 			if ibukota != "" && ibukota != prov {
-				locs = append(locs, fmt.Sprintf("%s, %s", ibukota, prov))
+				cityLocs = append(cityLocs, fmt.Sprintf("%s, %s", ibukota, prov))
 			}
 			for _, k := range kota {
 				if k != "" && k != ibukota && k != prov {
-					locs = append(locs, fmt.Sprintf("%s, %s", k, prov))
+					cityLocs = append(cityLocs, fmt.Sprintf("%s, %s", k, prov))
 				}
 			}
 		}
 	}
-	return locs
+	return append(cityLocs, provLocs...)
 }
 
 func ParseDocumentHandler(db *sql.DB, st storage.Storage) http.HandlerFunc {
