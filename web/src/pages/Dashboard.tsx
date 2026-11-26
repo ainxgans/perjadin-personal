@@ -1,8 +1,8 @@
-import { Component, createSignal, createResource, For, Show } from 'solid-js';
+import { Component, createSignal, createResource, createEffect, For, Show } from 'solid-js';
 import { A } from '@solidjs/router';
 import { getDashboard, getTrips, type Trip } from '../api';
 import StatusBadge from '../components/StatusBadge';
-import { SearchIcon, MapPinIcon, CalendarIcon, PlusIcon, PlaneIcon } from '../components/Icons';
+import { SearchIcon, MapPinIcon, CalendarIcon, PlusIcon, PlaneIcon, LayoutGridIcon, ListIcon, ChevronLeftIcon, ChevronRightIcon } from '../components/Icons';
 
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n);
@@ -23,8 +23,27 @@ const Dashboard: Component = () => {
   const [dashboard] = createResource(getDashboard);
   const [trips] = createResource(getTrips);
 
+  const PAGE_SIZE = 10;
+  const savedView = typeof window !== 'undefined' ? localStorage.getItem('perjadin_view_mode') : null;
   const [searchQuery, setSearchQuery] = createSignal('');
   const [statusFilter, setStatusFilter] = createSignal<string>('all');
+  const [viewMode, setViewMode] = createSignal<'grid' | 'list'>(savedView === 'list' ? 'list' : 'grid');
+  const [currentPage, setCurrentPage] = createSignal(1);
+
+  const changeViewMode = (mode: 'grid' | 'list') => {
+    setViewMode(mode);
+    try {
+      localStorage.setItem('perjadin_view_mode', mode);
+    } catch {
+      // ignore storage errors
+    }
+  };
+
+  createEffect(() => {
+    searchQuery();
+    statusFilter();
+    setCurrentPage(1);
+  });
 
   const filteredTrips = () => {
     const list = trips() || [];
@@ -46,6 +65,19 @@ const Dashboard: Component = () => {
 
       return matchSearch && matchStatus;
     });
+  };
+
+  const totalPages = () => Math.max(1, Math.ceil(filteredTrips().length / PAGE_SIZE));
+  const safePage = () => Math.min(currentPage(), totalPages());
+  const paginatedTrips = () => {
+    const start = (safePage() - 1) * PAGE_SIZE;
+    return filteredTrips().slice(start, start + PAGE_SIZE);
+  };
+
+  const goToPage = (page: number) => {
+    const next = Math.max(1, Math.min(totalPages(), page));
+    setCurrentPage(next);
+    document.getElementById('trip-list-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const getPersonalExpense = (trip: Trip) =>
@@ -163,10 +195,32 @@ const Dashboard: Component = () => {
             {filteredTrips().length} perjalanan ditemukan
           </span>
         </div>
-        <A href="/trips/new" class="btn btn-primary btn-sm">
-          <PlusIcon size={14} />
-          <span>Perjalanan</span>
-        </A>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <div class="view-toggle-group" role="group" aria-label="Mode tampilan daftar">
+            <button
+              type="button"
+              class={`view-toggle-btn ${viewMode() === 'grid' ? 'active' : ''}`}
+              onClick={() => changeViewMode('grid')}
+              aria-label="Tampilan Grid"
+              title="Tampilan Grid"
+            >
+              <LayoutGridIcon size={15} />
+            </button>
+            <button
+              type="button"
+              class={`view-toggle-btn ${viewMode() === 'list' ? 'active' : ''}`}
+              onClick={() => changeViewMode('list')}
+              aria-label="Tampilan List"
+              title="Tampilan List"
+            >
+              <ListIcon size={15} />
+            </button>
+          </div>
+          <A href="/trips/new" class="btn btn-primary btn-sm">
+            <PlusIcon size={14} />
+            <span>Perjalanan</span>
+          </A>
+        </div>
       </div>
 
       {/* Trip List & Empty State */}
@@ -194,8 +248,8 @@ const Dashboard: Component = () => {
             </div>
           }
         >
-          <div class="trips-grid">
-            <For each={filteredTrips()}>
+          <div class={viewMode() === 'list' ? 'trips-list' : 'trips-grid'}>
+            <For each={paginatedTrips()}>
               {(trip) => {
                 const burnPercent = () => getBurnDownPercent(trip);
                 const burnColor = () => getBurnDownColor(trip);
@@ -224,7 +278,7 @@ const Dashboard: Component = () => {
                       </div>
 
                       {/* Burn-down bar */}
-                      <Show when={burnPercent() !== null}>
+                      <Show when={viewMode() === 'grid' && burnPercent() !== null}>
                         <div style="margin: 0.25rem 0 0.75rem 0;">
                           <div style="display: flex; justify-content: space-between; font-size: 0.8125rem; color: var(--text-muted);">
                             <span>Pemakaian anggaran</span>
@@ -283,6 +337,32 @@ const Dashboard: Component = () => {
               }}
             </For>
           </div>
+
+          <Show when={totalPages() > 1}>
+            <div class="pagination-bar" aria-label="Navigasi halaman perjalanan">
+              <button
+                type="button"
+                class="btn btn-sm btn-secondary"
+                disabled={safePage() <= 1}
+                onClick={() => goToPage(safePage() - 1)}
+              >
+                <ChevronLeftIcon size={14} />
+                <span>Sebelumnya</span>
+              </button>
+              <span class="pagination-info num">
+                Hal {safePage()} / {totalPages()}
+              </span>
+              <button
+                type="button"
+                class="btn btn-sm btn-secondary"
+                disabled={safePage() >= totalPages()}
+                onClick={() => goToPage(safePage() + 1)}
+              >
+                <span>Berikutnya</span>
+                <ChevronRightIcon size={14} />
+              </button>
+            </div>
+          </Show>
         </Show>
       </Show>
 
