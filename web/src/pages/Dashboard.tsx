@@ -4,6 +4,7 @@ import { getDashboard, getTrips, type Trip } from '../api';
 import StatusBadge from '../components/StatusBadge';
 import { SearchIcon, MapPinIcon, CalendarIcon, PlusIcon, PlaneIcon, LayoutGridIcon, ListIcon, ChevronLeftIcon, ChevronRightIcon, EyeIcon, EyeOffIcon } from '../components/Icons';
 import { formatRp, hideAmounts, toggleHideAmounts } from '../store/privacy';
+import { getTripDays } from '../utils/date';
 
 const formatDate = (s: string) => {
   if (!s) return '';
@@ -13,8 +14,10 @@ const formatDate = (s: string) => {
 
 const formatDates = (start: string, end: string) => {
   if (!start) return '';
-  if (!end || start === end) return formatDate(start);
-  return `${formatDate(start)} - ${formatDate(end)}`;
+  const days = getTripDays(start, end);
+  const suffix = days > 0 ? ` (${days} hari)` : '';
+  if (!end || start === end) return `${formatDate(start)}${suffix}`;
+  return `${formatDate(start)} - ${formatDate(end)}${suffix}`;
 };
 
 const Dashboard: Component = () => {
