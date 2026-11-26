@@ -10,6 +10,7 @@ export interface Trip {
   id: string;
   nama: string;
   tujuan: string;
+  lokasi_acara?: string;
   tanggal_mulai: string;
   tanggal_selesai: string;
   status: string;
@@ -159,6 +160,40 @@ export interface AnalyticsData {
   available_years?: number[];
 }
 
+const inflightGets = new Map<string, Promise<any>>();
+const masterCache = new Map<string, { data: any; expiresAt: number }>();
+const MASTER_CACHE_TTL_MS = 5 * 60 * 1000;
+
+function cachedMasterFetch<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
+  const cached = masterCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) {
+    return Promise.resolve(cached.data as T);
+  }
+  const existing = inflightGets.get(key);
+  if (existing) return existing as Promise<T>;
+
+  const req = fetcher()
+    .then((data) => {
+      masterCache.set(key, { data, expiresAt: Date.now() + MASTER_CACHE_TTL_MS });
+      return data;
+    })
+    .finally(() => {
+      inflightGets.delete(key);
+    });
+  inflightGets.set(key, req);
+  return req;
+}
+
+export function invalidateMasterCache(prefix?: string) {
+  if (!prefix) {
+    masterCache.clear();
+    return;
+  }
+  for (const key of masterCache.keys()) {
+    if (key.startsWith(prefix)) masterCache.delete(key);
+  }
+}
+
 async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
   const activeWsId = typeof localStorage !== 'undefined' ? localStorage.getItem('active_workspace_id') : null;
   const headers: Record<string, string> = {
@@ -169,18 +204,33 @@ async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
     headers['X-Workspace-ID'] = activeWsId;
   }
 
-  const res = await fetch(path, {
-    ...opts,
-    credentials: 'same-origin',
-    headers,
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error || `HTTP ${res.status}`);
+  const method = (opts?.method || 'GET').toUpperCase();
+  const dedupKey = method === 'GET' ? `${activeWsId || ''}:${path}` : '';
+  if (dedupKey) {
+    const existing = inflightGets.get(dedupKey);
+    if (existing) return existing as Promise<T>;
   }
-  if (res.status === 204) return undefined as T;
-  const json = await res.json();
-  return json.data !== undefined ? json.data : json;
+
+  const run = async (): Promise<T> => {
+    const res = await fetch(path, {
+      ...opts,
+      credentials: 'same-origin',
+      headers,
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || `HTTP ${res.status}`);
+    }
+    if (res.status === 204) return undefined as T;
+    const json = await res.json();
+    return json.data !== undefined ? json.data : json;
+  };
+
+  if (!dedupKey) return run();
+
+  const p = run().finally(() => inflightGets.delete(dedupKey));
+  inflightGets.set(dedupKey, p);
+  return p;
 }
 
 export interface ParseDocumentResult {
@@ -236,15 +286,29 @@ export const updateExpense = (id: string, data: Partial<Expense>) => apiFetch<Ex
 export const deleteExpense = (id: string) => apiFetch<void>(`/api/expenses/${id}`, { method: 'DELETE' });
 
 // Master data
-export const getCategories = () => apiFetch<Category[]>('/api/categories');
-export const getPaymentMethods = () => apiFetch<PaymentMethod[]>('/api/payment-methods');
+export const getCategories = () => cachedMasterFetch('categories', () => apiFetch<Category[]>('/api/categories'));
+export const getPaymentMethods = () => cachedMasterFetch('payment_methods', () => apiFetch<PaymentMethod[]>('/api/payment-methods'));
 export const getSBMRates = (q?: string) => {
-  const query = typeof q === 'string' && q.trim() ? `?q=${encodeURIComponent(q.trim())}` : '';
-  return apiFetch<SBMRate[]>(`/api/sbm${query}`);
+  const trimmed = typeof q === 'string' ? q.trim() : '';
+  if (!trimmed) {
+    return cachedMasterFetch('sbm_rates', () => apiFetch<SBMRate[]>('/api/sbm'));
+  }
+  return apiFetch<SBMRate[]>(`/api/sbm?q=${encodeURIComponent(trimmed)}`);
 };
-export const createSBMRate = (data: Partial<SBMRate>) => apiFetch<SBMRate>('/api/admin/sbm', { method: 'POST', body: JSON.stringify(data) });
-export const updateSBMRate = (id: string, data: Partial<SBMRate>) => apiFetch<SBMRate>(`/api/admin/sbm/${id}`, { method: 'PUT', body: JSON.stringify(data) });
-export const deleteSBMRate = (id: string) => apiFetch<void>(`/api/admin/sbm/${id}`, { method: 'DELETE' });
+export const createSBMRate = async (data: Partial<SBMRate>) => {
+  const res = await apiFetch<SBMRate>('/api/admin/sbm', { method: 'POST', body: JSON.stringify(data) });
+  invalidateMasterCache('sbm_rates');
+  return res;
+};
+export const updateSBMRate = async (id: string, data: Partial<SBMRate>) => {
+  const res = await apiFetch<SBMRate>(`/api/admin/sbm/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+  invalidateMasterCache('sbm_rates');
+  return res;
+};
+export const deleteSBMRate = async (id: string) => {
+  await apiFetch<void>(`/api/admin/sbm/${id}`, { method: 'DELETE' });
+  invalidateMasterCache('sbm_rates');
+};
 
 // Users search
 export const searchUsers = (q?: string) => {
@@ -269,9 +333,31 @@ export const updateUserRole = (id: string, role: string) => apiFetch<{ id: strin
 export const getAdminStats = () => apiFetch<AdminStats>('/api/admin/stats');
 export const createAdminUser = (data: { email: string; name: string; role: 'admin' | 'user' }) =>
   apiFetch<AdminUser>('/api/admin/users', { method: 'POST', body: JSON.stringify(data) });
-export const createCategory = (nama: string) => apiFetch<Category>('/api/admin/categories', { method: 'POST', body: JSON.stringify({ nama }) });
-export const updateCategory = (id: string, nama: string) => apiFetch<Category>(`/api/admin/categories/${id}`, { method: 'PUT', body: JSON.stringify({ nama }) });
-export const deleteCategoryApi = (id: string) => apiFetch<void>(`/api/admin/categories/${id}`, { method: 'DELETE' });
-export const createPaymentMethod = (nama: string) => apiFetch<PaymentMethod>('/api/admin/payment-methods', { method: 'POST', body: JSON.stringify({ nama }) });
-export const updatePaymentMethod = (id: string, nama: string) => apiFetch<PaymentMethod>(`/api/admin/payment-methods/${id}`, { method: 'PUT', body: JSON.stringify({ nama }) });
-export const deletePaymentMethodApi = (id: string) => apiFetch<void>(`/api/admin/payment-methods/${id}`, { method: 'DELETE' });
+export const createCategory = async (nama: string) => {
+  const res = await apiFetch<Category>('/api/admin/categories', { method: 'POST', body: JSON.stringify({ nama }) });
+  invalidateMasterCache('categories');
+  return res;
+};
+export const updateCategory = async (id: string, nama: string) => {
+  const res = await apiFetch<Category>(`/api/admin/categories/${id}`, { method: 'PUT', body: JSON.stringify({ nama }) });
+  invalidateMasterCache('categories');
+  return res;
+};
+export const deleteCategoryApi = async (id: string) => {
+  await apiFetch<void>(`/api/admin/categories/${id}`, { method: 'DELETE' });
+  invalidateMasterCache('categories');
+};
+export const createPaymentMethod = async (nama: string) => {
+  const res = await apiFetch<PaymentMethod>('/api/admin/payment-methods', { method: 'POST', body: JSON.stringify({ nama }) });
+  invalidateMasterCache('payment_methods');
+  return res;
+};
+export const updatePaymentMethod = async (id: string, nama: string) => {
+  const res = await apiFetch<PaymentMethod>(`/api/admin/payment-methods/${id}`, { method: 'PUT', body: JSON.stringify({ nama }) });
+  invalidateMasterCache('payment_methods');
+  return res;
+};
+export const deletePaymentMethodApi = async (id: string) => {
+  await apiFetch<void>(`/api/admin/payment-methods/${id}`, { method: 'DELETE' });
+  invalidateMasterCache('payment_methods');
+};

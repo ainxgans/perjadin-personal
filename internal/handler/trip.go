@@ -15,6 +15,7 @@ type tripResponse struct {
 	WorkspaceID        string    `json:"workspace_id"`
 	Nama               string    `json:"nama"`
 	Tujuan             string    `json:"tujuan"`
+	LokasiAcara        string    `json:"lokasi_acara"`
 	TanggalMulai       string    `json:"tanggal_mulai"`
 	TanggalSelesai     string    `json:"tanggal_selesai"`
 	Status             string    `json:"status"`
@@ -62,6 +63,7 @@ func tripToResponse(t model.Trip, totalExpense, pengeluaranPribadi, talanganKope
 		WorkspaceID:        t.WorkspaceID,
 		Nama:               t.Nama,
 		Tujuan:             t.Tujuan,
+		LokasiAcara:        t.LokasiAcara,
 		TanggalMulai:       t.TanggalMulai.Format("2006-01-02"),
 		TanggalSelesai:     t.TanggalSelesai.Format("2006-01-02"),
 		Status:             effectiveStatus,
@@ -88,12 +90,12 @@ func tripToResponse(t model.Trip, totalExpense, pengeluaranPribadi, talanganKope
 	}
 }
 
-const tripSelectCols = `t.id, t.workspace_id, t.nama, t.tujuan, t.tanggal_mulai, t.tanggal_selesai,
+const tripSelectCols = `t.id, t.workspace_id, t.nama, t.tujuan, COALESCE(t.lokasi_acara, ''), t.tanggal_mulai, t.tanggal_selesai,
 	COALESCE(t.status, 'berlangsung'), t.uang_dinas, t.nominal_monita, t.tanggal_dibayar,
 	COALESCE(t.catatan, ''), COALESCE(t.link_monita, ''), COALESCE(t.settlement_note, ''),
 	t.estimasi_transport, t.dokumen_url, t.dokumen_nama, t.created_at, t.updated_at`
 
-const tripInsertCols = `id, workspace_id, nama, tujuan, tanggal_mulai, tanggal_selesai,
+const tripInsertCols = `id, workspace_id, nama, tujuan, COALESCE(lokasi_acara, ''), tanggal_mulai, tanggal_selesai,
 	COALESCE(status, 'berlangsung'), uang_dinas, nominal_monita, tanggal_dibayar,
 	COALESCE(catatan, ''), COALESCE(link_monita, ''), COALESCE(settlement_note, ''),
 	estimasi_transport, dokumen_url, dokumen_nama, created_at, updated_at`
@@ -102,8 +104,13 @@ func canAccessTrip(db *sql.DB, tripID, userID, role string) (canAccess bool, isO
 	if db == nil {
 		return false, false, sql.ErrConnDone
 	}
-	var tripOwnerID, wsID string
-	err = db.QueryRow("SELECT user_id, workspace_id FROM trips WHERE id = $1", tripID).Scan(&tripOwnerID, &wsID)
+	var tripOwnerID, wsRole string
+	err = db.QueryRow(`
+		SELECT t.user_id, COALESCE(wm.role, '')
+		FROM trips t
+		LEFT JOIN workspace_members wm ON wm.workspace_id = t.workspace_id AND wm.user_id = $2
+		WHERE t.id = $1
+	`, tripID, userID).Scan(&tripOwnerID, &wsRole)
 	if err == sql.ErrNoRows {
 		return false, false, nil
 	}
@@ -114,18 +121,10 @@ func canAccessTrip(db *sql.DB, tripID, userID, role string) (canAccess bool, isO
 	if role == "admin" || tripOwnerID == userID {
 		return true, true, nil
 	}
-
-	var isMember bool
-	err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM workspace_members WHERE workspace_id = $1 AND user_id = $2)", wsID, userID).Scan(&isMember)
-	if err != nil {
-		return false, false, err
+	if wsRole == "" {
+		return false, false, nil
 	}
-
-	var wsRole string
-	_ = db.QueryRow("SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2", wsID, userID).Scan(&wsRole)
-	isWsOwner := (wsRole == "owner")
-
-	return isMember, isWsOwner, nil
+	return true, wsRole == "owner", nil
 }
 
 func ListTrips(db *sql.DB) http.HandlerFunc {
@@ -171,7 +170,7 @@ func ListTrips(db *sql.DB) http.HandlerFunc {
 			var collabsCount int
 
 			if err := rows.Scan(
-				&t.ID, &t.WorkspaceID, &t.Nama, &t.Tujuan, &t.TanggalMulai, &t.TanggalSelesai,
+				&t.ID, &t.WorkspaceID, &t.Nama, &t.Tujuan, &t.LokasiAcara, &t.TanggalMulai, &t.TanggalSelesai,
 				&t.Status, &t.UangDinas, &t.NominalMonita, &t.TanggalDibayar,
 				&t.Catatan, &t.LinkMonita, &t.SettlementNote,
 				&t.EstimasiTransport, &t.DokumenURL, &t.DokumenNama, &t.CreatedAt, &t.UpdatedAt,
@@ -203,6 +202,7 @@ func CreateTrip(db *sql.DB) http.HandlerFunc {
 		var input struct {
 			Nama              string  `json:"nama"`
 			Tujuan            string  `json:"tujuan"`
+			LokasiAcara       string  `json:"lokasi_acara"`
 			TanggalMulai      string  `json:"tanggal_mulai"`
 			TanggalSelesai    string  `json:"tanggal_selesai"`
 			UangDinas         *int64  `json:"uang_dinas"`
@@ -252,12 +252,12 @@ func CreateTrip(db *sql.DB) http.HandlerFunc {
 
 		var trip model.Trip
 		err = db.QueryRow(`
-			INSERT INTO trips (workspace_id, user_id, nama, tujuan, tanggal_mulai, tanggal_selesai, status, uang_dinas, nominal_monita, tanggal_dibayar, catatan, link_monita, estimasi_transport, dokumen_url, dokumen_nama)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+			INSERT INTO trips (workspace_id, user_id, nama, tujuan, lokasi_acara, tanggal_mulai, tanggal_selesai, status, uang_dinas, nominal_monita, tanggal_dibayar, catatan, link_monita, estimasi_transport, dokumen_url, dokumen_nama)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
 			RETURNING `+tripInsertCols+`
-		`, wsID, userID, input.Nama, input.Tujuan, mulai, selesai, initialStatus,
+		`, wsID, userID, input.Nama, input.Tujuan, input.LokasiAcara, mulai, selesai, initialStatus,
 			input.UangDinas, input.NominalMonita, dibayar, input.Catatan, input.LinkMonita, input.EstimasiTransport, input.DokumenURL, input.DokumenNama).
-			Scan(&trip.ID, &trip.WorkspaceID, &trip.Nama, &trip.Tujuan, &trip.TanggalMulai, &trip.TanggalSelesai,
+			Scan(&trip.ID, &trip.WorkspaceID, &trip.Nama, &trip.Tujuan, &trip.LokasiAcara, &trip.TanggalMulai, &trip.TanggalSelesai,
 				&trip.Status, &trip.UangDinas, &trip.NominalMonita, &trip.TanggalDibayar,
 				&trip.Catatan, &trip.LinkMonita, &trip.SettlementNote,
 				&trip.EstimasiTransport, &trip.DokumenURL, &trip.DokumenNama, &trip.CreatedAt, &trip.UpdatedAt)
@@ -307,7 +307,7 @@ func GetTrip(db *sql.DB) http.HandlerFunc {
 			WHERE t.id = $1
 			GROUP BY t.id, u.name
 		`, id).Scan(
-			&trip.ID, &trip.WorkspaceID, &trip.Nama, &trip.Tujuan, &trip.TanggalMulai, &trip.TanggalSelesai,
+			&trip.ID, &trip.WorkspaceID, &trip.Nama, &trip.Tujuan, &trip.LokasiAcara, &trip.TanggalMulai, &trip.TanggalSelesai,
 			&trip.Status, &trip.UangDinas, &trip.NominalMonita, &trip.TanggalDibayar,
 			&trip.Catatan, &trip.LinkMonita, &trip.SettlementNote,
 			&trip.EstimasiTransport, &trip.DokumenURL, &trip.DokumenNama, &trip.CreatedAt, &trip.UpdatedAt,
@@ -342,6 +342,7 @@ func UpdateTrip(db *sql.DB) http.HandlerFunc {
 		var input struct {
 			Nama              *string `json:"nama"`
 			Tujuan            *string `json:"tujuan"`
+			LokasiAcara       *string `json:"lokasi_acara"`
 			TanggalMulai      *string `json:"tanggal_mulai"`
 			TanggalSelesai    *string `json:"tanggal_selesai"`
 			Status            *string `json:"status"`
@@ -364,7 +365,7 @@ func UpdateTrip(db *sql.DB) http.HandlerFunc {
 		var tripOwnerID string
 		err = db.QueryRow(`SELECT `+tripSelectCols+`, t.user_id
 			FROM trips t WHERE t.id = $1`, id).
-			Scan(&trip.ID, &trip.WorkspaceID, &trip.Nama, &trip.Tujuan, &trip.TanggalMulai, &trip.TanggalSelesai,
+			Scan(&trip.ID, &trip.WorkspaceID, &trip.Nama, &trip.Tujuan, &trip.LokasiAcara, &trip.TanggalMulai, &trip.TanggalSelesai,
 				&trip.Status, &trip.UangDinas, &trip.NominalMonita, &trip.TanggalDibayar,
 				&trip.Catatan, &trip.LinkMonita, &trip.SettlementNote,
 				&trip.EstimasiTransport, &trip.DokumenURL, &trip.DokumenNama, &trip.CreatedAt, &trip.UpdatedAt, &tripOwnerID)
@@ -378,6 +379,9 @@ func UpdateTrip(db *sql.DB) http.HandlerFunc {
 		}
 		if input.Tujuan != nil {
 			trip.Tujuan = *input.Tujuan
+		}
+		if input.LokasiAcara != nil {
+			trip.LokasiAcara = *input.LokasiAcara
 		}
 		if input.TanggalMulai != nil {
 			t, err := time.Parse("2006-01-02", *input.TanggalMulai)
@@ -440,12 +444,12 @@ func UpdateTrip(db *sql.DB) http.HandlerFunc {
 		}
 
 		_, err = db.Exec(`
-			UPDATE trips SET nama=$1, tujuan=$2, tanggal_mulai=$3, tanggal_selesai=$4,
-				status=$5, uang_dinas=$6, nominal_monita=$7, tanggal_dibayar=$8,
-				catatan=$9, link_monita=$10, settlement_note=$11, estimasi_transport=$12,
-				dokumen_url=$13, dokumen_nama=$14, updated_at=now()
-			WHERE id=$15
-		`, trip.Nama, trip.Tujuan, trip.TanggalMulai, trip.TanggalSelesai,
+			UPDATE trips SET nama=$1, tujuan=$2, lokasi_acara=$3, tanggal_mulai=$4, tanggal_selesai=$5,
+				status=$6, uang_dinas=$7, nominal_monita=$8, tanggal_dibayar=$9,
+				catatan=$10, link_monita=$11, settlement_note=$12, estimasi_transport=$13,
+				dokumen_url=$14, dokumen_nama=$15, updated_at=now()
+			WHERE id=$16
+		`, trip.Nama, trip.Tujuan, trip.LokasiAcara, trip.TanggalMulai, trip.TanggalSelesai,
 			trip.Status, trip.UangDinas, trip.NominalMonita, trip.TanggalDibayar,
 			trip.Catatan, trip.LinkMonita, trip.SettlementNote, trip.EstimasiTransport,
 			trip.DokumenURL, trip.DokumenNama, id)

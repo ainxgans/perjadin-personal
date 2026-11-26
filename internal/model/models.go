@@ -46,6 +46,7 @@ type Trip struct {
 	UserID          string     `json:"user_id"`
 	Nama            string     `json:"nama"`
 	Tujuan          string     `json:"tujuan"`
+	LokasiAcara     string     `json:"lokasi_acara"`
 	TanggalMulai    time.Time  `json:"tanggal_mulai"`
 	TanggalSelesai  time.Time  `json:"tanggal_selesai"`
 	Status          string     `json:"status"`

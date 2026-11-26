@@ -14,6 +14,7 @@ const TripForm: Component = () => {
 
   const [nama, setNama] = createSignal('');
   const [tujuan, setTujuan] = createSignal('');
+  const [lokasiAcara, setLokasiAcara] = createSignal('');
   const [selectedRate, setSelectedRate] = createSignal<SBMRate | undefined>();
   const [mulai, setMulai] = createSignal('');
   const [selesai, setSelesai] = createSignal('');
@@ -36,6 +37,7 @@ const TripForm: Component = () => {
     getTrip(params.id!).then((t) => {
       setNama(t.nama);
       setTujuan(t.tujuan);
+      if (t.lokasi_acara) setLokasiAcara(t.lokasi_acara);
       setMulai(t.tanggal_mulai);
       setSelesai(t.tanggal_selesai);
       if (t.uang_dinas != null) setUangDinas(String(t.uang_dinas));
@@ -101,6 +103,7 @@ const TripForm: Component = () => {
       const res = await parseDocument(file);
       if (res.nama) setNama(res.nama);
       if (res.tujuan) setTujuan(res.tujuan);
+      if (res.lokasi_raw) setLokasiAcara(res.lokasi_raw);
       if (res.tanggal_mulai) setMulai(res.tanggal_mulai);
       if (res.tanggal_selesai) setSelesai(res.tanggal_selesai);
       if (res.catatan) {
@@ -155,6 +158,7 @@ const TripForm: Component = () => {
       const data: any = {
         nama: nama(),
         tujuan: tujuan(),
+        lokasi_acara: lokasiAcara(),
         tanggal_mulai: mulai(),
         tanggal_selesai: selesai(),
       };
@@ -341,6 +345,17 @@ const TripForm: Component = () => {
                   }
                 }}
                 required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="lokasi-acara">Lokasi Acara / Alamat Spesifik (Opsional)</label>
+              <input
+                id="lokasi-acara"
+                class="form-control"
+                value={lokasiAcara()}
+                onInput={(e) => setLokasiAcara(e.currentTarget.value)}
+                placeholder="Contoh: GRAMM Hotel Jl. Laksda Adisucipto No. 82, Sleman"
               />
             </div>
 

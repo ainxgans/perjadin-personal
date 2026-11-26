@@ -254,44 +254,56 @@ const TripDetail: Component = () => {
                 </div>
               </Show>
 
-              <Show when={t().tujuan}>
-                <div style="margin-bottom: 0.75rem;">
-                  <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                    <a
-                      href="gojek://goride"
-                      onClick={() => handleCopyDestination(t().tujuan)}
-                      class="btn btn-sm btn-outline"
-                      style="flex: 1; min-width: 90px; font-size: 0.75rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem; border-color: rgba(0, 170, 19, 0.35); color: #00880f; background: rgba(0, 170, 19, 0.05);"
-                    >
-                      <ExternalLinkIcon size={13} />
-                      <span>Gojek</span>
-                    </a>
-                    <a
-                      href={`grab://open?screenType=BOOKING&dropOffAddress=${encodeURIComponent(t().tujuan)}`}
-                      onClick={() => handleCopyDestination(t().tujuan)}
-                      class="btn btn-sm btn-outline"
-                      style="flex: 1; min-width: 90px; font-size: 0.75rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem; border-color: rgba(0, 177, 79, 0.35); color: #009140; background: rgba(0, 177, 79, 0.05);"
-                    >
-                      <ExternalLinkIcon size={13} />
-                      <span>Grab</span>
-                    </a>
-                    <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(t().tujuan)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="btn btn-sm btn-outline"
-                      style="flex: 1; min-width: 90px; font-size: 0.75rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem;"
-                    >
-                      <MapPinIcon size={13} />
-                      <span>Maps</span>
-                    </a>
-                  </div>
-                  <Show when={copiedDest()}>
-                    <div style="font-size: 0.75rem; color: var(--emerald); margin-top: 0.375rem; font-weight: 600;">
-                      Alamat "{t().tujuan}" disalin — tinggal paste di tujuan Gojek/Grab
-                    </div>
-                  </Show>
+              <Show when={t().lokasi_acara}>
+                <div style="font-size: 0.8125rem; color: var(--text-secondary); margin-bottom: 0.75rem; display: flex; align-items: flex-start; gap: 0.375rem; background: var(--bg-canvas); padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid var(--border-subtle); line-height: 1.4;">
+                  <MapPinIcon size={14} style="color: var(--accent); flex-shrink: 0; margin-top: 2px;" />
+                  <span>{t().lokasi_acara}</span>
                 </div>
+              </Show>
+
+              <Show when={t().lokasi_acara || t().tujuan}>
+                {(() => {
+                  const addr = () => t().lokasi_acara?.trim() || t().tujuan;
+                  return (
+                    <div style="margin-bottom: 0.75rem;">
+                      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <a
+                          href="gojek://goride"
+                          onClick={() => handleCopyDestination(addr())}
+                          class="btn btn-sm btn-outline"
+                          style="flex: 1; min-width: 90px; font-size: 0.75rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem; border-color: rgba(0, 170, 19, 0.35); color: #00880f; background: rgba(0, 170, 19, 0.05);"
+                        >
+                          <ExternalLinkIcon size={13} />
+                          <span>Gojek</span>
+                        </a>
+                        <a
+                          href={`grab://open?screenType=BOOKING&dropOffAddress=${encodeURIComponent(addr())}`}
+                          onClick={() => handleCopyDestination(addr())}
+                          class="btn btn-sm btn-outline"
+                          style="flex: 1; min-width: 90px; font-size: 0.75rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem; border-color: rgba(0, 177, 79, 0.35); color: #009140; background: rgba(0, 177, 79, 0.05);"
+                        >
+                          <ExternalLinkIcon size={13} />
+                          <span>Grab</span>
+                        </a>
+                        <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr())}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="btn btn-sm btn-outline"
+                          style="flex: 1; min-width: 90px; font-size: 0.75rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem;"
+                        >
+                          <MapPinIcon size={13} />
+                          <span>Maps</span>
+                        </a>
+                      </div>
+                      <Show when={copiedDest()}>
+                        <div style="font-size: 0.75rem; color: var(--emerald); margin-top: 0.375rem; font-weight: 600;">
+                          Alamat "{addr()}" disalin — tinggal paste di tujuan Gojek/Grab
+                        </div>
+                      </Show>
+                    </div>
+                  );
+                })()}
               </Show>
 
               <Show when={t().dokumen_url}>
