@@ -69,6 +69,7 @@ const getPageTitle = (pathname: string): string => {
 
 const REACH_MAX_DROP = 180;
 const REACH_SNAP_THRESHOLD = 56;
+const REACH_REFRESH_THRESHOLD = REACH_MAX_DROP + 52;
 
 const Layout: Component<RouteSectionProps> = (props) => {
   const location = useLocation();
@@ -76,6 +77,8 @@ const Layout: Component<RouteSectionProps> = (props) => {
   const [reachOffset, setReachOffset] = createSignal(0);
   const [isDragging, setIsDragging] = createSignal(false);
   const [isExpanded, setIsExpanded] = createSignal(false);
+  const [willRefresh, setWillRefresh] = createSignal(false);
+  const [isRefreshing, setIsRefreshing] = createSignal(false);
 
   let mainRef: HTMLElement | undefined;
   let startY = 0;
@@ -151,8 +154,10 @@ const Layout: Component<RouteSectionProps> = (props) => {
       setIsDragging(true);
 
       const raw = baseOffset + dy * 0.72;
-      const clamped = Math.max(0, Math.min(REACH_MAX_DROP + 36, raw));
+      const maxPull = isExpanded() ? REACH_MAX_DROP + 84 : REACH_MAX_DROP + 36;
+      const clamped = Math.max(0, Math.min(maxPull, raw));
       setReachOffset(clamped);
+      setWillRefresh(isExpanded() && clamped >= REACH_REFRESH_THRESHOLD);
     };
 
     const onTouchEnd = () => {
@@ -161,6 +166,9 @@ const Layout: Component<RouteSectionProps> = (props) => {
       setIsDragging(false);
 
       const current = reachOffset();
+      const shouldRefresh = isExpanded() && willRefresh();
+      setWillRefresh(false);
+
       if (!isExpanded()) {
         if (current >= REACH_SNAP_THRESHOLD) {
           setIsExpanded(true);
@@ -169,6 +177,10 @@ const Layout: Component<RouteSectionProps> = (props) => {
           setIsExpanded(false);
           setReachOffset(0);
         }
+      } else if (shouldRefresh) {
+        setIsRefreshing(true);
+        setReachOffset(REACH_MAX_DROP);
+        window.location.reload();
       } else {
         if (current <= REACH_MAX_DROP - 44) {
           setIsExpanded(false);
@@ -209,7 +221,16 @@ const Layout: Component<RouteSectionProps> = (props) => {
       <Show when={isExpanded() && reachOffset() > 40}>
         <div class="oneui-reach-space" onClick={collapseReach} role="button" aria-label="Tutup mode satu tangan">
           <div class="oneui-reach-title">{getPageTitle(location.pathname)}</div>
-          <span class="oneui-reach-hint">Ketuk atau geser ke atas untuk merapatkan</span>
+          <span
+            class="oneui-reach-hint"
+            style={willRefresh() || isRefreshing() ? 'color: var(--accent); border-color: var(--accent-border); background: var(--accent-tint);' : undefined}
+          >
+            {isRefreshing()
+              ? 'Memuat ulang...'
+              : willRefresh()
+              ? 'Lepas untuk memuat ulang'
+              : 'Ketuk untuk merapatkan · Tarik lagi untuk refresh'}
+          </span>
         </div>
       </Show>
       <main
