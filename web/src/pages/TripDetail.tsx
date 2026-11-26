@@ -224,9 +224,11 @@ const TripDetail: Component = () => {
                   <div class="detail-hero-stat-val amount">{formatRp(t().pengeluaran_pribadi ?? t().total_pengeluaran)}</div>
                 </div>
                 <div>
-                  <div class="detail-hero-stat-label">Saldo</div>
-                  <div class={'detail-hero-stat-val amount ' + (t().saldo >= 0 ? 'text-emerald' : 'text-rose')}>
-                    {formatRp(t().saldo)}
+                  <div class="detail-hero-stat-label">Realisasi Dinas</div>
+                  <div class="detail-hero-stat-val amount text-sky">
+                    {t().uang_dinas && t().uang_dinas! > 0
+                      ? `${Math.round(((t().pengeluaran_pribadi ?? t().total_pengeluaran) * 100) / t().uang_dinas!)}%`
+                      : '-'}
                   </div>
                 </div>
               </div>

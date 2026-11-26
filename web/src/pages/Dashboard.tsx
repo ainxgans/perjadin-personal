@@ -344,9 +344,9 @@ const Dashboard: Component = () => {
                               </Show>
                             }
                           >
-                            <span class="ticket-metric-label">Saldo</span>
-                            <span class={'ticket-metric-val amount ' + (trip.saldo >= 0 ? 'text-emerald' : 'text-rose')}>
-                              {formatRp(trip.saldo)}
+                            <span class="ticket-metric-label">Uang Dinas</span>
+                            <span class="ticket-metric-val amount text-emerald">
+                              {formatRp(trip.uang_dinas!)}
                             </span>
                           </Show>
                         </div>

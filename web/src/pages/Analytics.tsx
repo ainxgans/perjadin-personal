@@ -70,12 +70,12 @@ const Analytics: Component = () => {
         <div class="doppel-card" style="margin-bottom: 1rem;">
           <div class="doppel-inner">
             <h2 style="font-size: 0.9375rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.875rem;">
-              Arus kas dinas
+              Ringkasan uang dinas &amp; belanja
             </h2>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 0.875rem;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
               <div>
                 <span style="font-size: 0.8125rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">
-                  Total uang dinas
+                  Total uang dinas diterima
                 </span>
                 <span class="amount text-emerald" style="font-size: 1.125rem; font-weight: 800; display: block;">
                   {formatRp(data()!.total_uang_dinas_rp)}
@@ -83,24 +83,12 @@ const Analytics: Component = () => {
               </div>
               <div>
                 <span style="font-size: 0.8125rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">
-                  Total belanja
+                  Total pengeluaran dinas
                 </span>
                 <span class="amount text-rose" style="font-size: 1.125rem; font-weight: 800; display: block;">
                   {formatRp(data()!.total_expenses_rp)}
                 </span>
               </div>
-            </div>
-
-            <div style="border-top: 1px solid var(--border-subtle); padding-top: 0.75rem; display: flex; justify-content: space-between; align-items: baseline;">
-              <span style="font-size: 0.8125rem; color: var(--text-secondary); font-weight: 600;">
-                {data()!.total_uang_dinas_rp >= data()!.total_expenses_rp ? 'Sisa uang dinas (surplus)' : 'Defisit (lebih belanja)'}
-              </span>
-              <span
-                class={'amount ' + (data()!.total_uang_dinas_rp >= data()!.total_expenses_rp ? 'text-sky' : 'text-rose')}
-                style="font-size: 1.125rem; font-weight: 800;"
-              >
-                {formatRp(data()!.total_uang_dinas_rp - data()!.total_expenses_rp)}
-              </span>
             </div>
           </div>
         </div>
