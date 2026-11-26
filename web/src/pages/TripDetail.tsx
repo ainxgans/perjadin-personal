@@ -3,6 +3,7 @@ import { useParams, useNavigate, A } from '@solidjs/router';
 import {
   getTrip,
   getExpenses,
+  updateTrip,
   deleteTrip,
   deleteExpense,
   type Expense,
@@ -46,6 +47,23 @@ const TripDetail: Component = () => {
   const [editingExpense, setEditingExpense] = createSignal<Expense | null>(null);
   const [copiedLink, setCopiedLink] = createSignal(false);
   const [copiedDest, setCopiedDest] = createSignal(false);
+  const [updatingStatus, setUpdatingStatus] = createSignal(false);
+
+  const handleStatusChange = async (newStatus: string) => {
+    const t = trip();
+    if (!t || updatingStatus() || newStatus === t.status) return;
+    setUpdatingStatus(true);
+    try {
+      const payload: any = { status: newStatus };
+      if (newStatus === 'lunas' && !t.tanggal_dibayar) {
+        payload.tanggal_dibayar = new Date().toISOString().slice(0, 10);
+      }
+      await updateTrip(t.id, payload);
+      refetchTrip();
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
 
   const handleCopyDestination = async (dest: string) => {
     try {
@@ -341,7 +359,20 @@ const TripDetail: Component = () => {
               </Show>
 
               <Show when={t().is_owner}>
-                <div class="detail-hero-actions" style="display: flex; gap: 0.5rem; align-items: center;">
+                <div class="detail-hero-actions" style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                  <select
+                    class="form-control"
+                    aria-label="Ubah status perjalanan"
+                    value={t().status}
+                    disabled={updatingStatus()}
+                    onChange={(e) => handleStatusChange(e.currentTarget.value)}
+                    style="width: auto; min-width: 130px; height: 32px; padding: 0 0.625rem; font-size: 0.75rem; font-weight: 600;"
+                  >
+                    <option value="berlangsung">Berlangsung</option>
+                    <option value="selesai">Selesai</option>
+                    <option value="diajukan">Diajukan</option>
+                    <option value="lunas">Lunas</option>
+                  </select>
                   <A href={'/trips/' + params.id + '/edit'} class="btn btn-sm btn-secondary">
                     <EditIcon size={14} /> Edit
                   </A>

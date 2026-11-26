@@ -87,26 +87,38 @@ const ExpenseForm: Component<{
         <form onSubmit={handleSubmit} class="modal-form-body">
           <div class="form-group">
             <label>Kategori</label>
-            <Show when={categories()}>
-              <select class="form-control" value={categoryId()} onInput={(e) => setCategoryId(e.currentTarget.value)} required>
-                <option value="">Pilih kategori...</option>
-                <For each={categories()}>
-                  {(cat) => <option value={cat.id}>{cat.nama}</option>}
-                </For>
-              </select>
-            </Show>
+            <select
+              class="form-control"
+              value={categoryId()}
+              onInput={(e) => setCategoryId(e.currentTarget.value)}
+              disabled={categories.loading}
+              required
+            >
+              <option value="">
+                {categories.loading ? 'Memuat kategori...' : categories.error ? 'Gagal memuat kategori' : 'Pilih kategori...'}
+              </option>
+              <For each={categories() || []}>
+                {(cat) => <option value={cat.id}>{cat.nama}</option>}
+              </For>
+            </select>
           </div>
 
           <div class="form-group">
             <label>Metode Pembayaran</label>
-            <Show when={paymentMethods()}>
-              <select class="form-control" value={pmId()} onInput={(e) => setPmId(e.currentTarget.value)} required>
-                <option value="">Pilih metode...</option>
-                <For each={paymentMethods()}>
-                  {(pm) => <option value={pm.id}>{pm.nama}</option>}
-                </For>
-              </select>
-            </Show>
+            <select
+              class="form-control"
+              value={pmId()}
+              onInput={(e) => setPmId(e.currentTarget.value)}
+              disabled={paymentMethods.loading}
+              required
+            >
+              <option value="">
+                {paymentMethods.loading ? 'Memuat metode...' : paymentMethods.error ? 'Gagal memuat metode' : 'Pilih metode...'}
+              </option>
+              <For each={paymentMethods() || []}>
+                {(pm) => <option value={pm.id}>{pm.nama}</option>}
+              </For>
+            </select>
           </div>
 
           <div class="form-group">
