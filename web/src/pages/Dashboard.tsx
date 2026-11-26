@@ -279,77 +279,98 @@ const Dashboard: Component = () => {
 
                 return (
                   <A href={statusFilter() === 'talangan' ? `/trips/${trip.id}?filter=talangan` : `/trips/${trip.id}`} class="ticket-card">
-                    <div class="ticket-inner">
-                      <div class="ticket-header">
-                        <div>
+                    <Show
+                      when={viewMode() === 'grid'}
+                      fallback={
+                        <div class="ticket-list-row">
+                          <div class="ticket-list-top">
+                            <span class="ticket-list-title">{trip.nama}</span>
+                            <StatusBadge status={trip.status} />
+                          </div>
+                          <div class="ticket-list-bottom">
+                            <span class="ticket-list-meta">
+                              {trip.tujuan} · {formatDates(trip.tanggal_mulai, trip.tanggal_selesai)}
+                            </span>
+                            <span class="ticket-list-amount amount">
+                              {formatRp(getPersonalExpense(trip))}
+                            </span>
+                          </div>
+                        </div>
+                      }
+                    >
+                      <div class="ticket-inner">
+                        <div class="ticket-header">
                           <span class="ticket-title">{trip.nama}</span>
+                          <StatusBadge status={trip.status} />
                         </div>
-                        <StatusBadge status={trip.status} />
-                      </div>
 
-                      <div class="ticket-route">
-                        <MapPinIcon size={14} style="color: var(--text-muted); flex-shrink: 0;" />
-                        <span>{trip.tujuan}</span>
-                        <span style="color: var(--border-hover);">·</span>
-                        <CalendarIcon size={14} style="color: var(--text-muted); flex-shrink: 0;" />
-                        <span>{formatDates(trip.tanggal_mulai, trip.tanggal_selesai)}</span>
-                      </div>
+                        <div class="ticket-route">
+                          <span style="display: inline-flex; align-items: center; gap: 0.25rem;">
+                            <MapPinIcon size={14} style="color: var(--text-muted); flex-shrink: 0;" />
+                            <span>{trip.tujuan}</span>
+                          </span>
+                          <span style="display: inline-flex; align-items: center; gap: 0.25rem; white-space: nowrap;">
+                            <CalendarIcon size={14} style="color: var(--text-muted); flex-shrink: 0;" />
+                            <span>{formatDates(trip.tanggal_mulai, trip.tanggal_selesai)}</span>
+                          </span>
+                        </div>
 
-                      {/* Burn-down bar */}
-                      <Show when={viewMode() === 'grid' && burnPercent() !== null}>
-                        <div style="margin: 0.25rem 0 0.75rem 0;">
-                          <div style="display: flex; justify-content: space-between; font-size: 0.8125rem; color: var(--text-muted);">
-                            <span>Pemakaian anggaran</span>
-                            <span class="amount">{burnPercent()}%</span>
+                        {/* Burn-down bar */}
+                        <Show when={burnPercent() !== null}>
+                          <div style="margin: 0.25rem 0 0.75rem 0;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.8125rem; color: var(--text-muted);">
+                              <span>Pemakaian anggaran</span>
+                              <span class="amount">{burnPercent()}%</span>
+                            </div>
+                            <div class="burn-down-track">
+                              <div
+                                class="burn-down-fill"
+                                style={{
+                                  width: `${burnPercent()}%`,
+                                  background: burnColor(),
+                                }}
+                              />
+                            </div>
                           </div>
-                          <div class="burn-down-track">
-                            <div
-                              class="burn-down-fill"
-                              style={{
-                                width: `${burnPercent()}%`,
-                                background: burnColor(),
-                              }}
-                            />
+                        </Show>
+
+                        <div class="ticket-footer" style="margin-top: auto;">
+                          <div class="ticket-metric">
+                            <span class="ticket-metric-label">Pengeluaran sendiri</span>
+                            <span class="ticket-metric-val amount">{formatRp(getPersonalExpense(trip))}</span>
+                            <Show when={(trip.talangan_koperasi ?? 0) > 0}>
+                              <span style="font-size: 0.8125rem; color: var(--text-muted);">
+                                + {formatRp(trip.talangan_koperasi!)} Koperasi
+                              </span>
+                            </Show>
+                          </div>
+                          <div class="ticket-metric" style="text-align: right;">
+                            <Show
+                              when={trip.uang_dinas != null}
+                              fallback={
+                                <Show
+                                  when={trip.nominal_monita}
+                                  fallback={
+                                    <div>
+                                      <span class="ticket-metric-label">Status kas</span>
+                                      <span class="ticket-metric-val" style="color: var(--text-muted);">Menunggu SP2D</span>
+                                    </div>
+                                  }
+                                >
+                                  <span class="ticket-metric-label">Estimasi Monita</span>
+                                  <span class="ticket-metric-val amount text-sky">{formatRp(trip.nominal_monita!)}</span>
+                                </Show>
+                              }
+                            >
+                              <span class="ticket-metric-label">Uang Dinas</span>
+                              <span class="ticket-metric-val amount text-emerald">
+                                {formatRp(trip.uang_dinas!)}
+                              </span>
+                            </Show>
                           </div>
                         </div>
-                      </Show>
-
-                      <div class="ticket-footer">
-                        <div class="ticket-metric">
-                          <span class="ticket-metric-label">Pengeluaran sendiri</span>
-                          <span class="ticket-metric-val amount">{formatRp(getPersonalExpense(trip))}</span>
-                          <Show when={(trip.talangan_koperasi ?? 0) > 0}>
-                            <span style="font-size: 0.8125rem; color: var(--text-muted);">
-                              + {formatRp(trip.talangan_koperasi!)} Koperasi
-                            </span>
-                          </Show>
-                        </div>
-                        <div class="ticket-metric" style="text-align: right;">
-                          <Show
-                            when={trip.uang_dinas != null}
-                            fallback={
-                              <Show
-                                when={trip.nominal_monita}
-                                fallback={
-                                  <div>
-                                    <span class="ticket-metric-label">Status kas</span>
-                                    <span class="ticket-metric-val" style="color: var(--text-muted);">Menunggu SP2D</span>
-                                  </div>
-                                }
-                              >
-                                <span class="ticket-metric-label">Estimasi Monita</span>
-                                <span class="ticket-metric-val amount text-sky">{formatRp(trip.nominal_monita!)}</span>
-                              </Show>
-                            }
-                          >
-                            <span class="ticket-metric-label">Uang Dinas</span>
-                            <span class="ticket-metric-val amount text-emerald">
-                              {formatRp(trip.uang_dinas!)}
-                            </span>
-                          </Show>
-                        </div>
                       </div>
-                    </div>
+                    </Show>
                   </A>
                 );
               }}
