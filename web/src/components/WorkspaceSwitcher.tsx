@@ -371,14 +371,14 @@ const WorkspaceSwitcher: Component = () => {
               {/* Kode Undangan Box */}
               <div class="workspace-code-box">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                  <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">
-                    KODE UNDANGAN GABUNG
+                  <span style="font-size: 0.8125rem; font-weight: 600; color: var(--text-secondary);">
+                    Kode undangan gabung
                   </span>
                   <Show when={isWorkspaceOwner()}>
                     <button
                       type="button"
                       class="btn-icon-subtle"
-                      style="font-size: 0.6875rem; color: var(--text-muted);"
+                      style="font-size: 0.8125rem; width: auto; padding: 0 0.5rem; color: var(--text-muted);"
                       onClick={handleRegenCode}
                     >
                       Reset Kode
@@ -386,7 +386,7 @@ const WorkspaceSwitcher: Component = () => {
                   </Show>
                 </div>
 
-                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; background: var(--bg-surface-elevated); padding: 0.625rem 0.875rem; border-radius: 8px; border: 1px dashed var(--border-subtle);">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; background: var(--bg-surface); padding: 0.625rem 0.875rem; border-radius: 8px; border: 1px dashed var(--border-subtle);">
                   <span style="font-family: monospace; font-size: 1.25rem; font-weight: 700; letter-spacing: 0.15em; color: var(--emerald);">
                     {currentWorkspaceData()?.join_code || '---'}
                   </span>
@@ -394,10 +394,10 @@ const WorkspaceSwitcher: Component = () => {
                     type="button"
                     class="btn btn-sm btn-outline"
                     onClick={handleCopyCode}
-                    style="font-size: 0.75rem; gap: 0.25rem; padding: 0.25rem 0.5rem;"
+                    style="gap: 0.25rem;"
                   >
                     <Show when={copiedCode()} fallback={<><CopyIcon size={13} /> Salin</>}>
-                      <CheckIcon size={13} class="text-emerald" /> Tersalin!
+                      <CheckIcon size={13} class="text-emerald" /> Tersalin
                     </Show>
                   </button>
                 </div>
@@ -405,7 +405,7 @@ const WorkspaceSwitcher: Component = () => {
 
               {/* Daftar Anggota */}
               <div style="margin-top: 1.25rem;">
-                <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 0.5rem; text-transform: uppercase;">
+                <div style="font-size: 0.8125rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 0.5rem;">
                   Anggota ({currentWorkspaceData()?.members.length || 0})
                 </div>
 

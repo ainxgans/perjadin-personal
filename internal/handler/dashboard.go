@@ -25,7 +25,7 @@ func GetDashboard(db *sql.DB) http.HandlerFunc {
 			JOIN trips t ON e.trip_id = t.id
 			JOIN payment_methods pm ON e.payment_method_id = pm.id
 			WHERE t.workspace_id = $1
-				AND pm.nama = 'Pribadi'
+				AND LOWER(pm.nama) NOT LIKE '%koperasi%'
 				AND t.status != 'lunas'
 		`, wsID).Scan(&belumLunas)
 

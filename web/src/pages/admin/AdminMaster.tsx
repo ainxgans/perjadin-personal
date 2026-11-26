@@ -83,7 +83,7 @@ const MasterListManager: Component<{
   return (
     <div class="doppel-card">
       <div class="doppel-inner">
-        <h3 style="font-size: 0.8125rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 0.875rem;">
+        <h3 style="font-size: 0.9375rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.875rem;">
           {props.title}
         </h3>
         {error() && <p class="text-rose" style="margin-bottom: 0.75rem; font-size: 0.8125rem;">{error()}</p>}
@@ -170,6 +170,7 @@ const SBMRateManager: Component<{
   const [formProvinsi, setFormProvinsi] = createSignal('');
   const [formKota, setFormKota] = createSignal<string[]>([]);
   const [formUangHarian, setFormUangHarian] = createSignal('');
+  const [formUangTransport, setFormUangTransport] = createSignal('');
   const [error, setError] = createSignal('');
   const [submitting, setSubmitting] = createSignal(false);
   const [isProvOpen, setIsProvOpen] = createSignal(false);
@@ -219,6 +220,7 @@ const SBMRateManager: Component<{
     setFormProvinsi('');
     setFormKota([]);
     setFormUangHarian('');
+    setFormUangTransport('');
     setError('');
     setIsAdding(true);
     setIsProvOpen(false);
@@ -230,6 +232,7 @@ const SBMRateManager: Component<{
     setFormProvinsi(rate.provinsi);
     setFormKota(rate.kota && rate.kota.length > 0 ? [...rate.kota] : (rate.ibukota ? [rate.ibukota] : []));
     setFormUangHarian(String(rate.uang_harian));
+    setFormUangTransport(rate.uang_transport ? String(rate.uang_transport) : '');
     setError('');
     setIsProvOpen(false);
   };
@@ -238,6 +241,7 @@ const SBMRateManager: Component<{
     setFormProvinsi(rate.provinsi);
     setFormKota(rate.kota && rate.kota.length > 0 ? [...rate.kota] : (rate.ibukota ? [rate.ibukota] : []));
     setFormUangHarian(String(rate.uang_harian));
+    setFormUangTransport(rate.uang_transport ? String(rate.uang_transport) : '');
     setIsProvOpen(false);
   };
 
@@ -246,6 +250,7 @@ const SBMRateManager: Component<{
     setError('');
     const prov = formProvinsi().trim();
     const uang = parseInt(formUangHarian());
+    const uangTransport = parseInt(formUangTransport()) || 0;
     if (!prov || isNaN(uang) || uang <= 0) {
       setError('Provinsi dan uang harian (> 0) wajib diisi');
       return;
@@ -261,6 +266,7 @@ const SBMRateManager: Component<{
           ibukota: parsedKota[0] || '',
           kota: parsedKota,
           uang_harian: uang,
+          uang_transport: uangTransport,
         });
         setEditingItem(null);
       } else {
@@ -273,6 +279,7 @@ const SBMRateManager: Component<{
             ibukota: parsedKota[0] || '',
             kota: parsedKota,
             uang_harian: uang,
+            uang_transport: uangTransport,
           });
         } else {
           await createSBMRate({
@@ -280,6 +287,7 @@ const SBMRateManager: Component<{
             ibukota: parsedKota[0] || '',
             kota: parsedKota,
             uang_harian: uang,
+            uang_transport: uangTransport,
           });
         }
         setIsAdding(false);
@@ -351,11 +359,16 @@ const SBMRateManager: Component<{
                           </>;
                         })()}
                       </div>
-                      <div class="amount text-emerald" style="font-size: 0.8125rem; font-weight: 700; margin-top: 0.125rem;">
-                        {formatRp(rate.uang_harian)}{' '}
-                        <span style="font-size: 0.6875rem; color: var(--text-muted); font-weight: 500;">
-                          / hari
-                        </span>
+                      <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: baseline; margin-top: 0.25rem;">
+                        <div class="amount text-emerald" style="font-size: 0.8125rem; font-weight: 700;">
+                          {formatRp(rate.uang_harian)}{' '}
+                          <span style="font-size: 0.8125rem; color: var(--text-muted); font-weight: 500;">
+                            / hari
+                          </span>
+                        </div>
+                        <div class="amount" style="font-size: 0.8125rem; font-weight: 600; color: var(--sky);">
+                          {rate.uang_transport > 0 ? `${formatRp(rate.uang_transport)} PP / trip` : 'Transport PP belum diatur'}
+                        </div>
                       </div>
                     </div>
 
@@ -435,8 +448,9 @@ const SBMRateManager: Component<{
                         style="position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); padding: 0.25rem;"
                         onClick={() => {
                           setFormProvinsi('');
-                          setFormIbukota('');
+                          setFormKota([]);
                           setFormUangHarian('');
+                          setFormUangTransport('');
                           setIsProvOpen(true);
                         }}
                         title="Hapus"
@@ -524,7 +538,7 @@ const SBMRateManager: Component<{
                 </div>
 
                 <div class="form-group">
-                  <label for="uangHarian">Tarif Uang Harian (Rp)</label>
+                  <label for="uangHarian">Tarif Uang Harian per Hari (Rp)</label>
                   <input
                     id="uangHarian"
                     type="number"
@@ -535,6 +549,22 @@ const SBMRateManager: Component<{
                     min="1"
                     required
                   />
+                </div>
+
+                <div class="form-group">
+                  <label for="uangTransport">Tarif Uang Transport PP per Perjalanan (Rp, Opsional)</label>
+                  <input
+                    id="uangTransport"
+                    type="number"
+                    class="form-control amount"
+                    value={formUangTransport()}
+                    onInput={(e) => setFormUangTransport(e.currentTarget.value)}
+                    placeholder="0 (kosongkan jika belum diketahui)"
+                    min="0"
+                  />
+                  <span style="font-size: 0.8125rem; color: var(--text-muted); display: block; margin-top: 0.25rem;">
+                    Lump sum pergi-pulang per perjalanan dinas (tidak dikalikan jumlah hari)
+                  </span>
                 </div>
 
                 <div class="form-actions">

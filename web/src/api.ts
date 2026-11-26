@@ -23,6 +23,8 @@ export interface Trip {
   link_monita: string;
   settlement_note: string;
   total_pengeluaran: number;
+  pengeluaran_pribadi?: number;
+  talangan_koperasi?: number;
   saldo: number;
   is_owner?: boolean;
   owner_name?: string;
@@ -54,6 +56,7 @@ export interface SBMRate {
   ibukota: string;
   kota?: string[];
   uang_harian: number;
+  uang_transport: number;
   created_at: string;
   updated_at: string;
 }

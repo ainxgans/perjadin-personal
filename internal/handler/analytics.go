@@ -109,14 +109,14 @@ func GetAnalytics(db *sql.DB) http.HandlerFunc {
 			data.DailyBurnRate = data.TotalExpensesRp / int64(data.TotalDays)
 		}
 
-		// 4. Personal share percentage
+		// 4. Personal share percentage (all non-Koperasi expenses)
 		var personalExpense int64
 		_ = db.QueryRow(`
 			SELECT COALESCE(SUM(e.jumlah), 0)
 			FROM expenses e
 			JOIN trips t ON e.trip_id = t.id
 			JOIN payment_methods pm ON e.payment_method_id = pm.id
-			WHERE pm.nama ILIKE '%Pribadi%'
+			WHERE LOWER(pm.nama) NOT LIKE '%koperasi%'
 				AND t.workspace_id = $1
 				AND ($2 = 0 OR EXTRACT(YEAR FROM t.tanggal_mulai) = $2)
 		`, wsID, year).Scan(&personalExpense)
@@ -133,7 +133,7 @@ func GetAnalytics(db *sql.DB) http.HandlerFunc {
 				AND ($2 = 0 OR EXTRACT(YEAR FROM tanggal_mulai) = $2)
 		`, wsID, year).Scan(&data.TotalUangDinasRp)
 
-		// 6. Budget realization on lunas cohort
+		// 6. Budget realization on lunas cohort (compare net uang_dinas vs non-Koperasi expenses)
 		var lunasUangDinas, lunasExpenses int64
 		_ = db.QueryRow(`
 			SELECT COALESCE(SUM(uang_dinas), 0)
@@ -146,7 +146,9 @@ func GetAnalytics(db *sql.DB) http.HandlerFunc {
 			SELECT COALESCE(SUM(e.jumlah), 0)
 			FROM expenses e
 			JOIN trips t ON e.trip_id = t.id
+			LEFT JOIN payment_methods pm ON e.payment_method_id = pm.id
 			WHERE t.workspace_id = $1 AND t.status = 'lunas'
+				AND LOWER(COALESCE(pm.nama, '')) NOT LIKE '%koperasi%'
 				AND ($2 = 0 OR EXTRACT(YEAR FROM t.tanggal_mulai) = $2)
 		`, wsID, year).Scan(&lunasExpenses)
 

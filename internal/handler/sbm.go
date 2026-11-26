@@ -18,7 +18,7 @@ func ListSBM(db *sql.DB) http.HandlerFunc {
 
 		if q != "" {
 			rows, err = db.Query(`
-				SELECT id, provinsi, ibukota, kota, uang_harian, created_at, updated_at
+				SELECT id, provinsi, ibukota, kota, uang_harian, COALESCE(uang_transport, 0), created_at, updated_at
 				FROM sbm_rates
 				WHERE provinsi ILIKE '%' || $1 || '%' 
 				   OR ibukota ILIKE '%' || $1 || '%'
@@ -27,7 +27,7 @@ func ListSBM(db *sql.DB) http.HandlerFunc {
 			`, q)
 		} else {
 			rows, err = db.Query(`
-				SELECT id, provinsi, ibukota, kota, uang_harian, created_at, updated_at
+				SELECT id, provinsi, ibukota, kota, uang_harian, COALESCE(uang_transport, 0), created_at, updated_at
 				FROM sbm_rates
 				ORDER BY provinsi ASC
 			`)
@@ -42,7 +42,7 @@ func ListSBM(db *sql.DB) http.HandlerFunc {
 		var list []model.SBMRate
 		for rows.Next() {
 			var item model.SBMRate
-			if err := rows.Scan(&item.ID, &item.Provinsi, &item.Ibukota, pq.Array(&item.Kota), &item.UangHarian, &item.CreatedAt, &item.UpdatedAt); err != nil {
+			if err := rows.Scan(&item.ID, &item.Provinsi, &item.Ibukota, pq.Array(&item.Kota), &item.UangHarian, &item.UangTransport, &item.CreatedAt, &item.UpdatedAt); err != nil {
 				continue
 			}
 			if item.Kota == nil {
@@ -60,10 +60,11 @@ func ListSBM(db *sql.DB) http.HandlerFunc {
 func CreateSBM(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var input struct {
-			Provinsi   string   `json:"provinsi"`
-			Ibukota    string   `json:"ibukota"`
-			Kota       []string `json:"kota"`
-			UangHarian int64    `json:"uang_harian"`
+			Provinsi      string   `json:"provinsi"`
+			Ibukota       string   `json:"ibukota"`
+			Kota          []string `json:"kota"`
+			UangHarian    int64    `json:"uang_harian"`
+			UangTransport int64    `json:"uang_transport"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid json"})
@@ -73,6 +74,9 @@ func CreateSBM(db *sql.DB) http.HandlerFunc {
 		if input.Provinsi == "" || input.UangHarian <= 0 {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "provinsi dan uang_harian > 0 required"})
 			return
+		}
+		if input.UangTransport < 0 {
+			input.UangTransport = 0
 		}
 
 		cleanKota := []string{}
@@ -92,16 +96,17 @@ func CreateSBM(db *sql.DB) http.HandlerFunc {
 
 		var item model.SBMRate
 		err := db.QueryRow(`
-			INSERT INTO sbm_rates (provinsi, ibukota, kota, uang_harian)
-			VALUES ($1, $2, $3, $4)
+			INSERT INTO sbm_rates (provinsi, ibukota, kota, uang_harian, uang_transport)
+			VALUES ($1, $2, $3, $4, $5)
 			ON CONFLICT (LOWER(provinsi)) DO UPDATE
 			SET ibukota = CASE WHEN EXCLUDED.ibukota <> '' THEN EXCLUDED.ibukota ELSE sbm_rates.ibukota END,
 			    kota = CASE WHEN cardinality(EXCLUDED.kota) > 0 THEN EXCLUDED.kota ELSE sbm_rates.kota END,
 			    uang_harian = EXCLUDED.uang_harian,
+			    uang_transport = EXCLUDED.uang_transport,
 			    updated_at = now()
-			RETURNING id, provinsi, ibukota, kota, uang_harian, created_at, updated_at
-		`, input.Provinsi, strings.TrimSpace(input.Ibukota), pq.Array(input.Kota), input.UangHarian).
-			Scan(&item.ID, &item.Provinsi, &item.Ibukota, pq.Array(&item.Kota), &item.UangHarian, &item.CreatedAt, &item.UpdatedAt)
+			RETURNING id, provinsi, ibukota, kota, uang_harian, COALESCE(uang_transport, 0), created_at, updated_at
+		`, input.Provinsi, strings.TrimSpace(input.Ibukota), pq.Array(input.Kota), input.UangHarian, input.UangTransport).
+			Scan(&item.ID, &item.Provinsi, &item.Ibukota, pq.Array(&item.Kota), &item.UangHarian, &item.UangTransport, &item.CreatedAt, &item.UpdatedAt)
 
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
@@ -118,10 +123,11 @@ func UpdateSBM(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 		var input struct {
-			Provinsi   *string   `json:"provinsi"`
-			Ibukota    *string   `json:"ibukota"`
-			Kota       *[]string `json:"kota"`
-			UangHarian *int64    `json:"uang_harian"`
+			Provinsi      *string   `json:"provinsi"`
+			Ibukota       *string   `json:"ibukota"`
+			Kota          *[]string `json:"kota"`
+			UangHarian    *int64    `json:"uang_harian"`
+			UangTransport *int64    `json:"uang_transport"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid json"})
@@ -129,8 +135,8 @@ func UpdateSBM(db *sql.DB) http.HandlerFunc {
 		}
 
 		var item model.SBMRate
-		err := db.QueryRow(`SELECT id, provinsi, ibukota, kota, uang_harian, created_at, updated_at FROM sbm_rates WHERE id = $1`, id).
-			Scan(&item.ID, &item.Provinsi, &item.Ibukota, pq.Array(&item.Kota), &item.UangHarian, &item.CreatedAt, &item.UpdatedAt)
+		err := db.QueryRow(`SELECT id, provinsi, ibukota, kota, uang_harian, COALESCE(uang_transport, 0), created_at, updated_at FROM sbm_rates WHERE id = $1`, id).
+			Scan(&item.ID, &item.Provinsi, &item.Ibukota, pq.Array(&item.Kota), &item.UangHarian, &item.UangTransport, &item.CreatedAt, &item.UpdatedAt)
 		if err == sql.ErrNoRows {
 			writeJSON(w, http.StatusNotFound, map[string]string{"error": "not found"})
 			return
@@ -158,11 +164,14 @@ func UpdateSBM(db *sql.DB) http.HandlerFunc {
 		if input.UangHarian != nil && *input.UangHarian > 0 {
 			item.UangHarian = *input.UangHarian
 		}
+		if input.UangTransport != nil && *input.UangTransport >= 0 {
+			item.UangTransport = *input.UangTransport
+		}
 
 		_, err = db.Exec(`
-			UPDATE sbm_rates SET provinsi = $1, ibukota = $2, kota = $3, uang_harian = $4, updated_at = now()
-			WHERE id = $5
-		`, item.Provinsi, item.Ibukota, pq.Array(item.Kota), item.UangHarian, id)
+			UPDATE sbm_rates SET provinsi = $1, ibukota = $2, kota = $3, uang_harian = $4, uang_transport = $5, updated_at = now()
+			WHERE id = $6
+		`, item.Provinsi, item.Ibukota, pq.Array(item.Kota), item.UangHarian, item.UangTransport, id)
 		if err != nil {
 			writeJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
 			return

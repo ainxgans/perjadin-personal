@@ -157,7 +157,7 @@ const TripDetail: Component = () => {
               <div class="detail-hero-stats">
                 <div>
                   <div class="detail-hero-stat-label">
-                    {t().uang_dinas != null ? 'Uang Dinas' : 'Estimasi Monita'}
+                    {t().uang_dinas != null ? 'Uang Dinas (Bersih)' : 'Estimasi Monita'}
                   </div>
                   <div class="detail-hero-stat-val amount">
                     {t().uang_dinas != null
@@ -168,8 +168,8 @@ const TripDetail: Component = () => {
                   </div>
                 </div>
                 <div>
-                  <div class="detail-hero-stat-label">Pengeluaran</div>
-                  <div class="detail-hero-stat-val amount">{formatRp(t().total_pengeluaran)}</div>
+                  <div class="detail-hero-stat-label">Pengeluaran Sendiri</div>
+                  <div class="detail-hero-stat-val amount">{formatRp(t().pengeluaran_pribadi ?? t().total_pengeluaran)}</div>
                 </div>
                 <div>
                   <div class="detail-hero-stat-label">Saldo</div>
@@ -178,6 +178,13 @@ const TripDetail: Component = () => {
                   </div>
                 </div>
               </div>
+
+              <Show when={(t().talangan_koperasi ?? 0) > 0}>
+                <div style="font-size: 0.8125rem; color: var(--text-secondary); margin-bottom: 0.75rem; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.25rem; background: var(--bg-canvas); padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid var(--border-subtle);">
+                  <span>Ditalangi Koperasi (sudah dipotong dari uang masuk)</span>
+                  <strong class="amount">{formatRp(t().talangan_koperasi!)}</strong>
+                </div>
+              </Show>
 
               <Show when={t().nominal_monita && t().uang_dinas != null && t().nominal_monita !== t().uang_dinas}>
                 <div style="font-size: 0.6875rem; color: var(--text-muted); margin-bottom: 0.75rem; display: flex; justify-content: space-between;">
@@ -242,24 +249,24 @@ const TripDetail: Component = () => {
               </Show>
 
               <Show when={t().catatan}>
-                <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 0.75rem; margin-bottom: 0.75rem; font-size: 0.8125rem; white-space: pre-wrap; color: var(--text-secondary); line-height: 1.4;">
-                  <div style="font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.25rem;">
-                    Catatan Perjalanan
+                <div style="background: var(--bg-canvas); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 0.75rem; margin-bottom: 0.75rem; font-size: 0.8125rem; white-space: pre-wrap; color: var(--text-secondary); line-height: 1.45;">
+                  <div style="font-size: 0.8125rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.25rem;">
+                    Catatan perjalanan
                   </div>
                   {t().catatan}
                 </div>
               </Show>
 
               <Show when={t().settlement_note}>
-                <div style="background: var(--bg-surface-elevated); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 0.75rem; margin-bottom: 0.75rem; font-size: 0.8125rem; white-space: pre-wrap; color: var(--text-secondary); line-height: 1.4;">
-                  <div style="font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.25rem;">
-                    Catatan Pencairan / Klaim
+                <div style="background: var(--bg-canvas); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 0.75rem; margin-bottom: 0.75rem; font-size: 0.8125rem; white-space: pre-wrap; color: var(--text-secondary); line-height: 1.45;">
+                  <div style="font-size: 0.8125rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.25rem;">
+                    Catatan pencairan / klaim
                   </div>
                   {t().settlement_note}
                 </div>
               </Show>
 
-              <div class="detail-hero-actions">
+              <div class="detail-hero-actions" style="display: flex; gap: 0.5rem; align-items: center;">
                 <Show
                   when={t().is_owner}
                   fallback={

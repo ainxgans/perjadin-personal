@@ -30,74 +30,74 @@ const Analytics: Component = () => {
           <ArrowLeftIcon size={16} />
         </A>
         <div>
-          <h2 style="font-size: 1.125rem; font-weight: 800; color: var(--text-primary); margin: 0;">
+          <h1 style="font-size: 1.125rem; font-weight: 800; color: var(--text-primary); margin: 0;">
             Analitik Keuangan
-          </h2>
-          <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0;">
-            Distribusi Pengeluaran & Arus Kas Dinas Pribadi
+          </h1>
+          <p style="font-size: 0.8125rem; color: var(--text-muted); margin: 0;">
+            Distribusi pengeluaran &amp; arus kas dinas
           </p>
         </div>
       </div>
 
-      {/* Year Filter Chips */}
+      {/* Year Filter */}
       <Show when={data()?.available_years && data()!.available_years!.length > 0}>
-        <div class="filter-chips" style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem; overflow-x: auto; padding-bottom: 0.25rem;">
-          <button
-            type="button"
-            class={`filter-chip ${selectedYear() === null ? 'active' : ''}`}
-            onClick={() => setSelectedYear(null)}
-          >
-            Semua Tahun
-          </button>
-          <For each={data()!.available_years}>
-            {(yr) => (
-              <button
-                type="button"
-                class={`filter-chip ${selectedYear() === yr ? 'active' : ''}`}
-                onClick={() => setSelectedYear(yr)}
-              >
-                {yr}
-              </button>
-            )}
-          </For>
+        <div style="margin-bottom: 1.25rem;">
+          <div class="segmented-filter" role="tablist" aria-label="Filter tahun">
+            <button
+              type="button"
+              class={`segmented-filter-btn ${selectedYear() === null ? 'active' : ''}`}
+              onClick={() => setSelectedYear(null)}
+            >
+              Semua Tahun
+            </button>
+            <For each={data()!.available_years}>
+              {(yr) => (
+                <button
+                  type="button"
+                  class={`segmented-filter-btn ${selectedYear() === yr ? 'active' : ''}`}
+                  onClick={() => setSelectedYear(yr)}
+                >
+                  {yr}
+                </button>
+              )}
+            </For>
+          </div>
         </div>
       </Show>
 
       <Show when={data()} fallback={<p style="text-align: center; color: var(--text-muted); padding: 2rem 0;">Memuat analitik...</p>}>
         {/* Cashflow Summary Card */}
-        <div class="doppel-card" style="margin-bottom: 0.875rem;">
-          <div class="doppel-inner" style="padding: 1.125rem;">
-            <span style="font-size: 0.6875rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.05em; display: block; margin-bottom: 0.75rem;">
-              Ringkasan Arus Kas Dinas
-            </span>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.875rem; margin-bottom: 0.875rem;">
+        <div class="doppel-card" style="margin-bottom: 1rem;">
+          <div class="doppel-inner">
+            <h2 style="font-size: 0.9375rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.875rem;">
+              Arus kas dinas
+            </h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 0.875rem;">
               <div>
-                <span style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">
-                  Total Uang Dinas
+                <span style="font-size: 0.8125rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">
+                  Total uang dinas
                 </span>
-                <span class="amount text-emerald" style="font-size: 1.1875rem; font-weight: 800; display: block;">
+                <span class="amount text-emerald" style="font-size: 1.125rem; font-weight: 800; display: block;">
                   {formatRp(data()!.total_uang_dinas_rp)}
                 </span>
               </div>
               <div>
-                <span style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">
-                  Total Belanja
+                <span style="font-size: 0.8125rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">
+                  Total belanja
                 </span>
-                <span class="amount text-rose" style="font-size: 1.1875rem; font-weight: 800; display: block;">
+                <span class="amount text-rose" style="font-size: 1.125rem; font-weight: 800; display: block;">
                   {formatRp(data()!.total_expenses_rp)}
                 </span>
               </div>
             </div>
 
             <div style="border-top: 1px solid var(--border-subtle); padding-top: 0.75rem; display: flex; justify-content: space-between; align-items: baseline;">
-              <div>
-                <span style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 600;">
-                  {data()!.total_uang_dinas_rp >= data()!.total_expenses_rp ? 'Sisa Uang Dinas (Surplus)' : 'Defisit (Lebih Belanja)'}
-                </span>
-              </div>
+              <span style="font-size: 0.8125rem; color: var(--text-secondary); font-weight: 600;">
+                {data()!.total_uang_dinas_rp >= data()!.total_expenses_rp ? 'Sisa uang dinas (surplus)' : 'Defisit (lebih belanja)'}
+              </span>
               <span
                 class={'amount ' + (data()!.total_uang_dinas_rp >= data()!.total_expenses_rp ? 'text-sky' : 'text-rose')}
-                style="font-size: 1.0625rem; font-weight: 800;"
+                style="font-size: 1.125rem; font-weight: 800;"
               >
                 {formatRp(data()!.total_uang_dinas_rp - data()!.total_expenses_rp)}
               </span>
@@ -105,78 +105,78 @@ const Analytics: Component = () => {
           </div>
         </div>
 
-        {/* Metric Cards: 2x3 Bento Grid */}
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.25rem;">
-          <div class="doppel-card">
+        {/* Metric Cards */}
+        <div class="analytics-bento">
+          <div class="doppel-card" style="margin-bottom: 0;">
             <div class="doppel-inner">
-              <span style="font-size: 0.6875rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.05em;">
-                Total Perjalanan
+              <span style="font-size: 0.8125rem; color: var(--text-muted); font-weight: 600;">
+                Total perjalanan
               </span>
-              <div class="amount text-sky" style="font-size: 1.0625rem; font-weight: 700; margin-top: 0.25rem;">
+              <div class="amount text-sky" style="font-size: 1.125rem; font-weight: 700; margin-top: 0.25rem;">
                 {data()!.total_trips ?? '-'} <span style="font-size: 0.8125rem; font-weight: 500; color: var(--text-muted);">trip</span>
               </div>
             </div>
           </div>
 
-          <div class="doppel-card">
+          <div class="doppel-card" style="margin-bottom: 0;">
             <div class="doppel-inner">
-              <span style="font-size: 0.6875rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.05em;">
-                Rata-Rata / Trip
+              <span style="font-size: 0.8125rem; color: var(--text-muted); font-weight: 600;">
+                Rata-rata per trip
               </span>
-              <div class="amount" style="font-size: 1.0625rem; font-weight: 700; margin-top: 0.25rem; color: var(--text-primary);">
+              <div class="amount" style="font-size: 1.125rem; font-weight: 700; margin-top: 0.25rem; color: var(--text-primary);">
                 {formatRp(data()!.average_expense_trip)}
               </div>
             </div>
           </div>
 
-          <div class="doppel-card">
+          <div class="doppel-card" style="margin-bottom: 0;">
             <div class="doppel-inner">
-              <span style="font-size: 0.6875rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.05em;">
-                Total Hari Dinas
+              <span style="font-size: 0.8125rem; color: var(--text-muted); font-weight: 600;">
+                Total hari dinas
               </span>
-              <div class="amount text-emerald" style="font-size: 1.0625rem; font-weight: 700; margin-top: 0.25rem;">
+              <div class="amount text-emerald" style="font-size: 1.125rem; font-weight: 700; margin-top: 0.25rem;">
                 {data()!.total_days} <span style="font-size: 0.8125rem; font-weight: 500; color: var(--text-muted);">hari</span>
               </div>
             </div>
           </div>
 
-          <div class="doppel-card">
+          <div class="doppel-card" style="margin-bottom: 0;">
             <div class="doppel-inner">
-              <span style="font-size: 0.6875rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.05em;">
-                Daily Burn Rate
+              <span style="font-size: 0.8125rem; color: var(--text-muted); font-weight: 600;">
+                Belanja harian
               </span>
-              <div class="amount text-amber" style="font-size: 1.0625rem; font-weight: 700; margin-top: 0.25rem;">
-                {formatRp(data()!.daily_burn_rate)} <span style="font-size: 0.6875rem; font-weight: 500; color: var(--text-muted);">/hari</span>
+              <div class="amount text-amber" style="font-size: 1.125rem; font-weight: 700; margin-top: 0.25rem;">
+                {formatRp(data()!.daily_burn_rate)} <span style="font-size: 0.8125rem; font-weight: 500; color: var(--text-muted);">/hari</span>
               </div>
             </div>
           </div>
 
-          <div class="doppel-card">
+          <div class="doppel-card" style="margin-bottom: 0;">
             <div class="doppel-inner">
-              <span style="font-size: 0.6875rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.05em;">
-                Porsi Talangan Pribadi
+              <span style="font-size: 0.8125rem; color: var(--text-muted); font-weight: 600;">
+                Porsi talangan pribadi
               </span>
-              <div class="amount" style="font-size: 1.0625rem; font-weight: 700; margin-top: 0.25rem; color: var(--text-primary);">
+              <div class="amount" style="font-size: 1.125rem; font-weight: 700; margin-top: 0.25rem; color: var(--text-primary);">
                 {data()!.personal_share_pct}%
               </div>
-              <div style="font-size: 0.6875rem; color: var(--text-muted); margin-top: 0.125rem;">
+              <div style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 0.125rem;">
                 dari total belanja
               </div>
             </div>
           </div>
 
-          <div class="doppel-card">
+          <div class="doppel-card" style="margin-bottom: 0;">
             <div class="doppel-inner">
-              <span style="font-size: 0.6875rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; letter-spacing: 0.05em;">
-                Realisasi Pagu Lunas
+              <span style="font-size: 0.8125rem; color: var(--text-muted); font-weight: 600;">
+                Realisasi pagu lunas
               </span>
               <div
                 class={'amount ' + (data()!.budget_realization_pct <= 100 ? 'text-emerald' : 'text-rose')}
-                style="font-size: 1.0625rem; font-weight: 700; margin-top: 0.25rem;"
+                style="font-size: 1.125rem; font-weight: 700; margin-top: 0.25rem;"
               >
                 {data()!.budget_realization_pct}%
               </div>
-              <div style="font-size: 0.6875rem; color: var(--text-muted); margin-top: 0.125rem;">
+              <div style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 0.125rem;">
                 {data()!.budget_realization_pct <= 100 ? 'di bawah pagu' : 'melebihi pagu'}
               </div>
             </div>
@@ -184,13 +184,13 @@ const Analytics: Component = () => {
         </div>
 
         {/* Category Breakdown */}
-        <div class="doppel-card" style="margin-bottom: 1.25rem;">
+        <div class="doppel-card" style="margin-bottom: 1rem;">
           <div class="doppel-inner">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-              <h3 style="font-size: 0.8125rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0;">
-                Pengeluaran per Kategori
-              </h3>
-              <span style="font-size: 0.75rem; color: var(--text-muted);">
+              <h2 style="font-size: 0.9375rem; font-weight: 700; color: var(--text-primary); margin: 0;">
+                Pengeluaran per kategori
+              </h2>
+              <span style="font-size: 0.8125rem; color: var(--text-muted);">
                 {data()!.categories.length} kategori
               </span>
             </div>
@@ -246,10 +246,10 @@ const Analytics: Component = () => {
         <div class="doppel-card">
           <div class="doppel-inner">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-              <h3 style="font-size: 0.8125rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0;">
-                Metode Pembayaran
-              </h3>
-              <span style="font-size: 0.75rem; color: var(--text-muted);">
+              <h2 style="font-size: 0.9375rem; font-weight: 700; color: var(--text-primary); margin: 0;">
+                Metode pembayaran
+              </h2>
+              <span style="font-size: 0.8125rem; color: var(--text-muted);">
                 {data()!.payment_methods.length} metode
               </span>
             </div>

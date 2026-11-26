@@ -28,6 +28,8 @@ type tripResponse struct {
 	LinkMonita         string    `json:"link_monita"`
 	SettlementNote     string    `json:"settlement_note"`
 	TotalPengeluaran   int64     `json:"total_pengeluaran"`
+	PengeluaranPribadi int64     `json:"pengeluaran_pribadi"`
+	TalanganKoperasi   int64     `json:"talangan_koperasi"`
 	Saldo              int64     `json:"saldo"`
 	IsOwner            bool      `json:"is_owner"`
 	OwnerName          string    `json:"owner_name"`
@@ -36,7 +38,7 @@ type tripResponse struct {
 	UpdatedAt          time.Time `json:"updated_at"`
 }
 
-func tripToResponse(t model.Trip, totalExpense int64, isOwner bool, ownerName string, collabsCount int) tripResponse {
+func tripToResponse(t model.Trip, totalExpense, pengeluaranPribadi, talanganKoperasi int64, isOwner bool, ownerName string, collabsCount int) tripResponse {
 	var dibayarStr *string
 	if t.TanggalDibayar != nil {
 		s := t.TanggalDibayar.Format("2006-01-02")
@@ -64,7 +66,11 @@ func tripToResponse(t model.Trip, totalExpense int64, isOwner bool, ownerName st
 		LinkMonita:         t.LinkMonita,
 		SettlementNote:     t.SettlementNote,
 		TotalPengeluaran:   totalExpense,
-		Saldo:              uangDinas - totalExpense,
+		PengeluaranPribadi: pengeluaranPribadi,
+		TalanganKoperasi:   talanganKoperasi,
+		// Uang dinas yang masuk rekening sudah bersih (sudah dipotong biaya koperasi),
+		// sehingga saldo sisa hanya dikurangi pengeluaran pribadi/non-koperasi.
+		Saldo:              uangDinas - pengeluaranPribadi,
 		IsOwner:            isOwner,
 		OwnerName:          ownerName,
 		CollaboratorsCount: collabsCount,
@@ -126,12 +132,15 @@ func ListTrips(db *sql.DB) http.HandlerFunc {
 		rows, err := db.Query(`
 			SELECT `+tripSelectCols+`,
 				COALESCE(SUM(e.jumlah), 0) as total_expense,
+				COALESCE(SUM(CASE WHEN LOWER(COALESCE(pm.nama, '')) NOT LIKE '%koperasi%' THEN e.jumlah ELSE 0 END), 0) as pengeluaran_pribadi,
+				COALESCE(SUM(CASE WHEN LOWER(COALESCE(pm.nama, '')) LIKE '%koperasi%' THEN e.jumlah ELSE 0 END), 0) as talangan_koperasi,
 				(t.user_id = $2) as is_owner,
 				u.name as owner_name,
 				0 as collabs_count
 			FROM trips t
 			JOIN users u ON t.user_id = u.id
 			LEFT JOIN expenses e ON e.trip_id = t.id
+			LEFT JOIN payment_methods pm ON e.payment_method_id = pm.id
 			WHERE t.workspace_id = $1
 			GROUP BY t.id, u.name
 			ORDER BY t.tanggal_mulai DESC
@@ -145,7 +154,7 @@ func ListTrips(db *sql.DB) http.HandlerFunc {
 		var trips []tripResponse
 		for rows.Next() {
 			var t model.Trip
-			var totalExpense int64
+			var totalExpense, pengeluaranPribadi, talanganKoperasi int64
 			var isOwner bool
 			var ownerName string
 			var collabsCount int
@@ -155,11 +164,11 @@ func ListTrips(db *sql.DB) http.HandlerFunc {
 				&t.Status, &t.UangDinas, &t.NominalMonita, &t.TanggalDibayar,
 				&t.Catatan, &t.LinkMonita, &t.SettlementNote,
 				&t.EstimasiTransport, &t.DokumenURL, &t.DokumenNama, &t.CreatedAt, &t.UpdatedAt,
-				&totalExpense, &isOwner, &ownerName, &collabsCount,
+				&totalExpense, &pengeluaranPribadi, &talanganKoperasi, &isOwner, &ownerName, &collabsCount,
 			); err != nil {
 				continue
 			}
-			trips = append(trips, tripToResponse(t, totalExpense, isOwner, ownerName, collabsCount))
+			trips = append(trips, tripToResponse(t, totalExpense, pengeluaranPribadi, talanganKoperasi, isOwner, ownerName, collabsCount))
 		}
 		if trips == nil {
 			trips = []tripResponse{}
@@ -240,7 +249,7 @@ func CreateTrip(db *sql.DB) http.HandlerFunc {
 
 		var ownerName string
 		db.QueryRow("SELECT name FROM users WHERE id = $1", userID).Scan(&ownerName)
-		writeJSON(w, http.StatusCreated, map[string]interface{}{"data": tripToResponse(trip, 0, true, ownerName, 0)})
+		writeJSON(w, http.StatusCreated, map[string]interface{}{"data": tripToResponse(trip, 0, 0, 0, true, ownerName, 0)})
 	}
 }
 
@@ -261,25 +270,29 @@ func GetTrip(db *sql.DB) http.HandlerFunc {
 		}
 
 		var trip model.Trip
-		var totalExpense int64
+		var totalExpense, pengeluaranPribadi, talanganKoperasi int64
 		var tripOwnerID string
 		var ownerName string
 
 		err = db.QueryRow(`
 			SELECT `+tripSelectCols+`,
 				COALESCE(SUM(e.jumlah), 0),
+				COALESCE(SUM(CASE WHEN LOWER(COALESCE(pm.nama, '')) NOT LIKE '%koperasi%' THEN e.jumlah ELSE 0 END), 0),
+				COALESCE(SUM(CASE WHEN LOWER(COALESCE(pm.nama, '')) LIKE '%koperasi%' THEN e.jumlah ELSE 0 END), 0),
 				t.user_id,
 				u.name as owner_name
 			FROM trips t
 			JOIN users u ON t.user_id = u.id
 			LEFT JOIN expenses e ON e.trip_id = t.id
+			LEFT JOIN payment_methods pm ON e.payment_method_id = pm.id
 			WHERE t.id = $1
 			GROUP BY t.id, u.name
 		`, id).Scan(
 			&trip.ID, &trip.WorkspaceID, &trip.Nama, &trip.Tujuan, &trip.TanggalMulai, &trip.TanggalSelesai,
 			&trip.Status, &trip.UangDinas, &trip.NominalMonita, &trip.TanggalDibayar,
 			&trip.Catatan, &trip.LinkMonita, &trip.SettlementNote,
-			&trip.EstimasiTransport, &trip.DokumenURL, &trip.DokumenNama, &trip.CreatedAt, &trip.UpdatedAt, &totalExpense,
+			&trip.EstimasiTransport, &trip.DokumenURL, &trip.DokumenNama, &trip.CreatedAt, &trip.UpdatedAt,
+			&totalExpense, &pengeluaranPribadi, &talanganKoperasi,
 			&tripOwnerID, &ownerName)
 
 		if err != nil {
@@ -287,7 +300,7 @@ func GetTrip(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		writeJSON(w, http.StatusOK, map[string]interface{}{"data": tripToResponse(trip, totalExpense, isOwner, ownerName, 0)})
+		writeJSON(w, http.StatusOK, map[string]interface{}{"data": tripToResponse(trip, totalExpense, pengeluaranPribadi, talanganKoperasi, isOwner, ownerName, 0)})
 	}
 }
 
@@ -423,13 +436,20 @@ func UpdateTrip(db *sql.DB) http.HandlerFunc {
 		}
 
 		// Re-fetch with totals
-		var totalExpense int64
+		var totalExpense, pengeluaranPribadi, talanganKoperasi int64
 		var ownerName string
-		db.QueryRow("SELECT COALESCE(SUM(jumlah), 0) FROM expenses WHERE trip_id = $1", id).Scan(&totalExpense)
+		db.QueryRow(`
+			SELECT COALESCE(SUM(e.jumlah), 0),
+				COALESCE(SUM(CASE WHEN LOWER(COALESCE(pm.nama, '')) NOT LIKE '%koperasi%' THEN e.jumlah ELSE 0 END), 0),
+				COALESCE(SUM(CASE WHEN LOWER(COALESCE(pm.nama, '')) LIKE '%koperasi%' THEN e.jumlah ELSE 0 END), 0)
+			FROM expenses e
+			LEFT JOIN payment_methods pm ON e.payment_method_id = pm.id
+			WHERE e.trip_id = $1
+		`, id).Scan(&totalExpense, &pengeluaranPribadi, &talanganKoperasi)
 		db.QueryRow("SELECT updated_at FROM trips WHERE id = $1", id).Scan(&trip.UpdatedAt)
 		db.QueryRow("SELECT name FROM users WHERE id = $1", tripOwnerID).Scan(&ownerName)
 
-		writeJSON(w, http.StatusOK, map[string]interface{}{"data": tripToResponse(trip, totalExpense, isOwner, ownerName, 0)})
+		writeJSON(w, http.StatusOK, map[string]interface{}{"data": tripToResponse(trip, totalExpense, pengeluaranPribadi, talanganKoperasi, isOwner, ownerName, 0)})
 	}
 }
 

@@ -88,11 +88,11 @@ const AdminUsers: Component = () => {
           <ArrowLeftIcon size={16} />
         </A>
         <div style="flex: 1;">
-          <h2 style="font-size: 1.125rem; font-weight: 800; color: var(--text-primary); margin: 0;">
+          <h1 style="font-size: 1.125rem; font-weight: 800; color: var(--text-primary); margin: 0;">
             Kelola Pengguna
-          </h2>
-          <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0;">
-            Direktori Akun & Penugasan Role
+          </h1>
+          <p style="font-size: 0.8125rem; color: var(--text-muted); margin: 0;">
+            Direktori akun &amp; penugasan role
           </p>
         </div>
         <button

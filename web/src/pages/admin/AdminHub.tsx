@@ -16,11 +16,11 @@ const AdminHub: Component = () => {
           <ArrowLeftIcon size={16} />
         </A>
         <div>
-          <h2 style="font-size: 1.125rem; font-weight: 800; color: var(--text-primary); margin: 0;">
+          <h1 style="font-size: 1.125rem; font-weight: 800; color: var(--text-primary); margin: 0;">
             Admin Terminal
-          </h2>
-          <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0;">
-            Pusat Kendali Sistem & Konfigurasi
+          </h1>
+          <p style="font-size: 0.8125rem; color: var(--text-muted); margin: 0;">
+            Pusat kendali sistem &amp; konfigurasi
           </p>
         </div>
       </div>
@@ -29,21 +29,19 @@ const AdminHub: Component = () => {
       <Show when={stats()} fallback={<p style="text-align: center; color: var(--text-muted); padding: 2rem 0;">Memuat metrik sistem...</p>}>
         <div class="doppel-card" style="margin-bottom: 1.5rem;">
           <div class="doppel-inner">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
-              <span style="font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted);">
-                RINGKASAN SISTEM
-              </span>
-            </div>
+            <h2 style="font-size: 0.9375rem; font-weight: 700; color: var(--text-primary); margin-bottom: 1rem;">
+              Ringkasan sistem
+            </h2>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
-              <div style="background: var(--bg-surface-elevated); padding: 0.75rem; border-radius: 12px; border: 1px solid var(--border-subtle);">
-                <div style="font-size: 0.6875rem; color: var(--text-muted);">Total Pengguna</div>
+              <div style="background: var(--bg-canvas); padding: 0.875rem; border-radius: 10px; border: 1px solid var(--border-subtle);">
+                <div style="font-size: 0.8125rem; color: var(--text-muted);">Total pengguna</div>
                 <div style="font-size: 1.25rem; font-weight: 800; color: var(--text-primary); margin-top: 0.25rem;" class="num">
                   {stats()!.total_users}
                 </div>
               </div>
-              <div style="background: var(--bg-surface-elevated); padding: 0.75rem; border-radius: 12px; border: 1px solid var(--border-subtle);">
-                <div style="font-size: 0.6875rem; color: var(--text-muted);">Total Perjalanan</div>
+              <div style="background: var(--bg-canvas); padding: 0.875rem; border-radius: 10px; border: 1px solid var(--border-subtle);">
+                <div style="font-size: 0.8125rem; color: var(--text-muted);">Total perjalanan</div>
                 <div style="font-size: 1.25rem; font-weight: 800; color: var(--text-primary); margin-top: 0.25rem;" class="num">
                   {stats()!.total_trips}
                 </div>

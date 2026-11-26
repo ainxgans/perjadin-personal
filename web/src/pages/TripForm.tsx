@@ -185,9 +185,9 @@ const TripForm: Component = () => {
         >
           <ArrowLeftIcon size={16} />
         </button>
-        <h2 style="font-size: 1.125rem; font-weight: 800; color: #fff; margin: 0;">
+        <h1 style="font-size: 1.125rem; font-weight: 800; color: var(--text-primary); margin: 0;">
           {isEdit ? 'Edit Perjalanan' : 'Buat Perjalanan Baru'}
-        </h2>
+        </h1>
       </div>
 
       <div class="doppel-card">
@@ -314,6 +314,9 @@ const TripForm: Component = () => {
                 onChange={(val, rate) => {
                   setTujuan(val);
                   setSelectedRate(rate);
+                  if (rate?.uang_transport && rate.uang_transport > 0 && (!isEdit || !estimasiTransport())) {
+                    setEstimasiTransport(String(rate.uang_transport));
+                  }
                 }}
                 required
               />
@@ -390,20 +393,44 @@ const TripForm: Component = () => {
                     <strong class="amount text-emerald">{formatRp(est().total)}</strong>
                   </div>
 
-                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;">
-                    <label for="calc-transport" style="font-size: 0.8125rem; color: var(--text-secondary); margin: 0; flex: 1;">
-                      Estimasi Transport (Taksi/Tiket)
-                    </label>
-                    <input
-                      id="calc-transport"
-                      type="number"
-                      class="form-control amount"
-                      style="width: 140px; padding: 0.25rem 0.5rem; font-size: 0.8125rem; height: 32px; text-align: right;"
-                      placeholder="0"
-                      min="0"
-                      value={estimasiTransport()}
-                      onInput={(e) => setEstimasiTransport(e.currentTarget.value)}
-                    />
+                  <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;">
+                      <label for="calc-transport" style="font-size: 0.8125rem; color: var(--text-secondary); margin: 0; flex: 1;">
+                        Uang Transport PP (per perjalanan)
+                      </label>
+                      <input
+                        id="calc-transport"
+                        type="number"
+                        class="form-control amount"
+                        style="width: 150px; padding: 0.25rem 0.5rem; font-size: 0.8125rem; height: 34px; text-align: right;"
+                        placeholder="0"
+                        min="0"
+                        value={estimasiTransport()}
+                        onInput={(e) => setEstimasiTransport(e.currentTarget.value)}
+                      />
+                    </div>
+                    <Show
+                      when={est().rate.uang_transport > 0}
+                      fallback={
+                        <span style="font-size: 0.8125rem; color: var(--text-muted);">
+                          Tarif master transport belum diatur (bisa diisi manual).
+                        </span>
+                      }
+                    >
+                      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8125rem; color: var(--text-muted);">
+                        <span>Master PP: {formatRp(est().rate.uang_transport)}</span>
+                        <Show when={Number(estimasiTransport() || 0) !== est().rate.uang_transport}>
+                          <button
+                            type="button"
+                            class="btn btn-sm btn-outline"
+                            style="min-height: 26px; padding: 0.125rem 0.5rem;"
+                            onClick={() => setEstimasiTransport(String(est().rate.uang_transport))}
+                          >
+                            Pakai tarif master
+                          </button>
+                        </Show>
+                      </div>
+                    </Show>
                   </div>
 
                   <div style="border-top: 1px dashed var(--border-subtle); padding-top: 0.5rem; display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
