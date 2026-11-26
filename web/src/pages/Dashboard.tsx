@@ -2,8 +2,8 @@ import { Component, createSignal, createResource, createEffect, For, Show } from
 import { A } from '@solidjs/router';
 import { getDashboard, getTrips, type Trip } from '../api';
 import StatusBadge from '../components/StatusBadge';
-import { SearchIcon, MapPinIcon, CalendarIcon, PlusIcon, PlaneIcon, LayoutGridIcon, ListIcon, ChevronLeftIcon, ChevronRightIcon } from '../components/Icons';
-import { formatRp } from '../store/privacy';
+import { SearchIcon, MapPinIcon, CalendarIcon, PlusIcon, PlaneIcon, LayoutGridIcon, ListIcon, ChevronLeftIcon, ChevronRightIcon, EyeIcon, EyeOffIcon } from '../components/Icons';
+import { formatRp, hideAmounts, toggleHideAmounts } from '../store/privacy';
 
 const formatDate = (s: string) => {
   if (!s) return '';
@@ -106,6 +106,18 @@ const Dashboard: Component = () => {
       {/* Top Financial Overview */}
       <Show when={dashboard()}>
         <div class="ledger-summary-band">
+          <button
+            type="button"
+            class="btn-icon-subtle ledger-privacy-btn"
+            onClick={toggleHideAmounts}
+            title={hideAmounts() ? 'Tampilkan nominal' : 'Sembunyikan nominal'}
+            aria-label={hideAmounts() ? 'Tampilkan nominal' : 'Sembunyikan nominal'}
+            style={hideAmounts() ? 'color: var(--accent); background: var(--accent-tint);' : undefined}
+          >
+            <Show when={hideAmounts()} fallback={<EyeIcon size={16} />}>
+              <EyeOffIcon size={16} />
+            </Show>
+          </button>
           <div class="ledger-metric-cell">
             <span class="ledger-metric-label">Estimasi belum cair</span>
             <span class="ledger-metric-val text-sky amount">{formatRp(dashboard()!.estimasi_belum_cair)}</span>
@@ -404,11 +416,6 @@ const Dashboard: Component = () => {
           </Show>
         </Show>
       </Show>
-
-      {/* FAB */}
-      <A href="/trips/new" class="fab" aria-label="Tambah Perjalanan">
-        <PlusIcon size={20} strokeWidth={2.25} />
-      </A>
     </div>
   );
 };

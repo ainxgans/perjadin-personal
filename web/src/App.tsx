@@ -1,8 +1,9 @@
 import { Component, createSignal, onMount, onCleanup, createEffect, Show } from 'solid-js';
-import { Router, Route, useNavigate, useLocation, type RouteSectionProps } from '@solidjs/router';
+import { Router, Route, A, useNavigate, useLocation, type RouteSectionProps } from '@solidjs/router';
 import { getMe, type User } from './api';
 import Navbar from './components/Navbar';
 import BottomNav from './components/BottomNav';
+import { PlusIcon } from './components/Icons';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import TripDetail from './pages/TripDetail';
@@ -240,6 +241,11 @@ const Layout: Component<RouteSectionProps> = (props) => {
       >
         {props.children}
       </main>
+      <Show when={user() && location.pathname === '/'}>
+        <A href="/trips/new" class="fab" aria-label="Tambah Perjalanan">
+          <PlusIcon size={20} strokeWidth={2.25} />
+        </A>
+      </Show>
       <BottomNav user={user()} />
     </>
   );
