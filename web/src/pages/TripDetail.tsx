@@ -363,15 +363,14 @@ const TripDetail: Component = () => {
                   <select
                     class="form-control"
                     aria-label="Ubah status perjalanan"
-                    value={t().status}
+                    value={t().status === 'diajukan' ? 'selesai' : t().status}
                     disabled={updatingStatus()}
                     onChange={(e) => handleStatusChange(e.currentTarget.value)}
                     style="width: auto; min-width: 130px; height: 32px; padding: 0 0.625rem; font-size: 0.75rem; font-weight: 600;"
                   >
                     <option value="berlangsung">Berlangsung</option>
-                    <option value="selesai">Selesai</option>
-                    <option value="diajukan">Diajukan</option>
-                    <option value="lunas">Lunas</option>
+                    <option value="selesai">Proses</option>
+                    <option value="lunas">Selesai</option>
                   </select>
                   <A href={'/trips/' + params.id + '/edit'} class="btn btn-sm btn-secondary">
                     <EditIcon size={14} /> Edit

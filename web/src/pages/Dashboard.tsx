@@ -61,6 +61,8 @@ const Dashboard: Component = () => {
           ? true
           : status === 'talangan'
           ? t.status !== 'lunas' && (t.talangan_count ?? 0) > 0
+          : status === 'selesai'
+          ? t.status === 'selesai' || t.status === 'diajukan'
           : t.status === status;
 
       return matchSearch && matchStatus;
@@ -161,14 +163,7 @@ const Dashboard: Component = () => {
             class={`segmented-filter-btn ${statusFilter() === 'selesai' ? 'active' : ''}`}
             onClick={() => setStatusFilter('selesai')}
           >
-            Selesai
-          </button>
-          <button
-            type="button"
-            class={`segmented-filter-btn ${statusFilter() === 'diajukan' ? 'active' : ''}`}
-            onClick={() => setStatusFilter('diajukan')}
-          >
-            Diajukan
+            Proses
           </button>
           <button
             type="button"
@@ -182,7 +177,7 @@ const Dashboard: Component = () => {
             class={`segmented-filter-btn ${statusFilter() === 'lunas' ? 'active' : ''}`}
             onClick={() => setStatusFilter('lunas')}
           >
-            Lunas
+            Selesai
           </button>
         </div>
       </div>

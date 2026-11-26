@@ -48,7 +48,7 @@ const TripForm: Component = () => {
       if (t.link_monita) setLinkMonita(t.link_monita);
       if (t.catatan) setCatatan(t.catatan);
       if (t.tanggal_dibayar) setDibayar(t.tanggal_dibayar);
-      if (t.status) setStatus(t.status);
+      if (t.status) setStatus(t.status === 'diajukan' ? 'selesai' : t.status);
       if (t.settlement_note) setSettlementNote(t.settlement_note);
     });
   }
@@ -487,9 +487,8 @@ const TripForm: Component = () => {
                   onChange={(e) => setStatus(e.currentTarget.value)}
                 >
                   <option value="berlangsung">Berlangsung</option>
-                  <option value="selesai">Selesai</option>
-                  <option value="diajukan">Diajukan Klaim</option>
-                  <option value="lunas">Lunas</option>
+                  <option value="selesai">Proses</option>
+                  <option value="lunas">Selesai</option>
                 </select>
               </div>
             )}
