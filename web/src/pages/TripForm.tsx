@@ -3,9 +3,7 @@ import { useNavigate, useParams } from '@solidjs/router';
 import { createTrip, updateTrip, getTrip, getSBMRates, parseDocument, type SBMRate } from '../api';
 import { ArrowLeftIcon, UploadIcon, FileTextIcon, TrashIcon, CheckIcon } from '../components/Icons';
 import CreatableSelect from '../components/CreatableSelect';
-
-const formatRp = (n: number) =>
-  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n);
+import { formatRp } from '../store/privacy';
 
 const TripForm: Component = () => {
   const params = useParams();

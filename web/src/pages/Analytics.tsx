@@ -2,9 +2,7 @@ import { Component, createResource, createSignal, For, Show } from 'solid-js';
 import { A } from '@solidjs/router';
 import { getAnalytics } from '../api';
 import { ArrowLeftIcon, CalendarIcon, WalletIcon, ReceiptIcon, CreditCardIcon } from '../components/Icons';
-
-const formatRp = (n: number) =>
-  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n);
+import { formatRp } from '../store/privacy';
 
 const COLORS = [
   '#38bdf8', // Sky

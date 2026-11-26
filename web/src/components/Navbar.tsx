@@ -1,8 +1,9 @@
 import { Component, Show } from 'solid-js';
 import { A, useLocation } from '@solidjs/router';
 import { logout, type User } from '../api';
-import { PlaneIcon, LogoutIcon } from './Icons';
+import { PlaneIcon, LogoutIcon, EyeIcon, EyeOffIcon } from './Icons';
 import WorkspaceSwitcher from './WorkspaceSwitcher';
+import { hideAmounts, toggleHideAmounts } from '../store/privacy';
 
 const Navbar: Component<{ user: User | null; onLogout: () => void }> = (props) => {
   const location = useLocation();
@@ -46,6 +47,18 @@ const Navbar: Component<{ user: User | null; onLogout: () => void }> = (props) =
 
           <div class="nav-right">
             <WorkspaceSwitcher />
+            <button
+              type="button"
+              onClick={toggleHideAmounts}
+              class="btn-icon-subtle"
+              title={hideAmounts() ? 'Tampilkan nominal' : 'Sembunyikan nominal'}
+              aria-label={hideAmounts() ? 'Tampilkan nominal' : 'Sembunyikan nominal'}
+              style={hideAmounts() ? 'color: var(--accent); background: var(--accent-tint);' : undefined}
+            >
+              <Show when={hideAmounts()} fallback={<EyeIcon size={16} />}>
+                <EyeOffIcon size={16} />
+              </Show>
+            </button>
             <span class="nav-user-pill">{props.user!.name}</span>
             <button
               type="button"

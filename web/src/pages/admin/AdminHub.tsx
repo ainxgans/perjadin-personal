@@ -2,9 +2,7 @@ import { Component, createResource, Show } from 'solid-js';
 import { A } from '@solidjs/router';
 import { getAdminStats } from '../../api';
 import { ArrowLeftIcon, UsersIcon, TagIcon, ChevronRightIcon } from '../../components/Icons';
-
-const formatRp = (n: number) =>
-  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n);
+import { formatRp } from '../../store/privacy';
 
 const AdminHub: Component = () => {
   const [stats] = createResource(getAdminStats);

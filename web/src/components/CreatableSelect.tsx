@@ -1,6 +1,7 @@
 import { Component, createSignal, createEffect, onCleanup, For, Show } from 'solid-js';
 import type { SBMRate } from '../api';
 import { SearchIcon, CheckIcon, MapPinIcon } from './Icons';
+import { formatRp } from '../store/privacy';
 
 interface CreatableSelectProps {
   value: string;
@@ -9,9 +10,6 @@ interface CreatableSelectProps {
   placeholder?: string;
   required?: boolean;
 }
-
-const formatRp = (n: number) =>
-  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n);
 
 const CreatableSelect: Component<CreatableSelectProps> = (props) => {
   const [isOpen, setIsOpen] = createSignal(false);

@@ -3,9 +3,7 @@ import { A } from '@solidjs/router';
 import { getDashboard, getTrips, type Trip } from '../api';
 import StatusBadge from '../components/StatusBadge';
 import { SearchIcon, MapPinIcon, CalendarIcon, PlusIcon, PlaneIcon, LayoutGridIcon, ListIcon, ChevronLeftIcon, ChevronRightIcon } from '../components/Icons';
-
-const formatRp = (n: number) =>
-  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n);
+import { formatRp } from '../store/privacy';
 
 const formatDate = (s: string) => {
   if (!s) return '';

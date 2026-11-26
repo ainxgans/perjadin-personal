@@ -28,9 +28,7 @@ import {
   CheckIcon,
 } from '../../components/Icons';
 import ChipsInput from '../../components/ChipsInput';
-
-const formatRp = (n: number) =>
-  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n);
+import { formatRp } from '../../store/privacy';
 
 const MasterListManager: Component<{
   title: string;

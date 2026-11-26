@@ -25,9 +25,7 @@ import {
   FileTextIcon,
 } from '../components/Icons';
 import { formatDateIndo, formatTripDateIndo } from '../utils/date';
-
-const formatRp = (n: number) =>
-  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n);
+import { formatRp } from '../store/privacy';
 
 const getPaymentBadgeClass = (method: string) => {
   const m = (method || '').toLowerCase();
