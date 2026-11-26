@@ -675,6 +675,7 @@ p {
 }
 
 .ledger-summary-band {
+  position: relative;
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: 16px;
@@ -683,6 +684,13 @@ p {
   display: grid;
   grid-template-columns: 1fr;
   gap: 1rem;
+}
+
+.ledger-privacy-btn {
+  position: absolute;
+  top: 0.875rem;
+  right: 0.875rem;
+  z-index: 2;
 }
 
 @media (min-width: 768px) {
