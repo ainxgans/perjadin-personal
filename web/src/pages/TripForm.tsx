@@ -1,4 +1,4 @@
-import { Component, createSignal, createResource, Show } from 'solid-js';
+import { Component, createSignal, createResource, onMount, Show } from 'solid-js';
 import { useNavigate, useParams } from '@solidjs/router';
 import { createTrip, updateTrip, getTrip, getSBMRates, parseDocument, type SBMRate } from '../api';
 import { ArrowLeftIcon, UploadIcon, FileTextIcon, TrashIcon, CheckIcon } from '../components/Icons';
@@ -120,6 +120,30 @@ const TripForm: Component = () => {
       setParseLoading(false);
     }
   };
+
+  onMount(async () => {
+    if (isEdit || !('caches' in window)) return;
+    try {
+      const cache = await caches.open('perjadin-share-target');
+      const res = await cache.match('/_shared_pdf');
+      if (!res) return;
+
+      const blob = await res.blob();
+      const rawName = res.headers.get('X-Shared-Filename');
+      const decodedName = rawName ? decodeURIComponent(rawName) : 'dokumen.pdf';
+      const filename = decodedName.toLowerCase().endsWith('.pdf') ? decodedName : `${decodedName}.pdf`;
+
+      await cache.delete('/_shared_pdf');
+      if (window.location.search.includes('shared=1')) {
+        navigate('/trips/new', { replace: true });
+      }
+
+      const sharedFile = new File([blob], filename, { type: 'application/pdf' });
+      await handleFileUpload(sharedFile);
+    } catch {
+      // Ignore cache access errors
+    }
+  });
 
   const handleSubmit = async (e: Event) => {
     e.preventDefault();
