@@ -1,7 +1,8 @@
 import { Component, Show } from 'solid-js';
 import { A, useLocation } from '@solidjs/router';
 import type { User } from '../api';
-import { PlaneIcon, BarChartIcon, SettingsIcon } from './Icons';
+import { PlaneIcon, BarChartIcon, SettingsIcon, EyeIcon, EyeOffIcon } from './Icons';
+import { hideAmounts, toggleHideAmounts } from '../store/privacy';
 
 const BottomNav: Component<{ user: User | null }> = (props) => {
   const location = useLocation();
@@ -37,6 +38,21 @@ const BottomNav: Component<{ user: User | null }> = (props) => {
               <span>Admin</span>
             </A>
           </Show>
+
+          <button
+            type="button"
+            onClick={toggleHideAmounts}
+            class={`dock-item ${hideAmounts() ? 'active' : ''}`}
+            style="border: none; background: transparent; cursor: pointer; font-family: inherit;"
+            aria-label={hideAmounts() ? 'Tampilkan nominal' : 'Sembunyikan nominal'}
+          >
+            <span class="dock-icon">
+              <Show when={hideAmounts()} fallback={<EyeIcon size={18} strokeWidth={1.75} />}>
+                <EyeOffIcon size={18} strokeWidth={2} />
+              </Show>
+            </span>
+            <span>{hideAmounts() ? 'Tampil' : 'Nominal'}</span>
+          </button>
         </nav>
       </div>
     </Show>
