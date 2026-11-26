@@ -892,9 +892,9 @@ p {
 
 .ticket-route {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.25rem 0.75rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
   font-size: var(--text-sm);
   color: var(--text-secondary);
   margin-bottom: 0.875rem;
