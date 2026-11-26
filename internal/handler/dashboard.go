@@ -18,34 +18,38 @@ func GetDashboard(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		var belumLunas int64
-		db.QueryRow(`
-			SELECT COALESCE(SUM(e.jumlah), 0)
-			FROM expenses e
-			JOIN trips t ON e.trip_id = t.id
-			JOIN payment_methods pm ON e.payment_method_id = pm.id
-			WHERE t.workspace_id = $1
-				AND LOWER(pm.nama) LIKE '%talangan%'
-				AND t.status != 'lunas'
-		`, wsID).Scan(&belumLunas)
-
-		var pemasukanBulanLalu int64
-		db.QueryRow(`
-			SELECT COALESCE(SUM(t.uang_dinas), 0)
-			FROM trips t
-			WHERE t.workspace_id = $1
-				AND t.status = 'lunas'
-				AND t.tanggal_dibayar IS NOT NULL
-				AND date_trunc('month', t.tanggal_dibayar) = date_trunc('month', now() - interval '1 month')
-		`, wsID).Scan(&pemasukanBulanLalu)
-
-		var estimasiBelumCair int64
-		db.QueryRow(`
-			SELECT COALESCE(SUM(COALESCE(t.nominal_monita, t.uang_dinas, 0)), 0)
-			FROM trips t
-			WHERE t.workspace_id = $1
-				AND t.status != 'lunas'
-		`, wsID).Scan(&estimasiBelumCair)
+		var belumLunas, pemasukanBulanLalu, estimasiBelumCair int64
+		err = db.QueryRow(`
+			WITH ws_trips AS (
+				SELECT id, status, uang_dinas, nominal_monita, tanggal_dibayar
+				FROM trips
+				WHERE workspace_id = $1
+			)
+			SELECT
+				COALESCE((
+					SELECT SUM(e.jumlah)
+					FROM expenses e
+					JOIN ws_trips t ON e.trip_id = t.id
+					JOIN payment_methods pm ON e.payment_method_id = pm.id
+					WHERE LOWER(pm.nama) LIKE '%talangan%' AND t.status != 'lunas'
+				), 0),
+				COALESCE((
+					SELECT SUM(uang_dinas)
+					FROM ws_trips
+					WHERE status = 'lunas'
+						AND tanggal_dibayar IS NOT NULL
+						AND date_trunc('month', tanggal_dibayar) = date_trunc('month', now() - interval '1 month')
+				), 0),
+				COALESCE((
+					SELECT SUM(COALESCE(nominal_monita, uang_dinas, 0))
+					FROM ws_trips
+					WHERE status != 'lunas'
+				), 0)
+		`, wsID).Scan(&belumLunas, &pemasukanBulanLalu, &estimasiBelumCair)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{

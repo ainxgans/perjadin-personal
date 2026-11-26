@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"time"
 
 	_ "github.com/lib/pq"
 )
@@ -15,6 +16,10 @@ func Connect(databaseURL string) (*sql.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("db open: %w", err)
 	}
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(10)
+	db.SetConnMaxLifetime(5 * time.Minute)
+	db.SetConnMaxIdleTime(2 * time.Minute)
 	if err := db.Ping(); err != nil {
 		return nil, fmt.Errorf("db ping: %w", err)
 	}

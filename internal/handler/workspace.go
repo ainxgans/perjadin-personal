@@ -14,31 +14,43 @@ func ListWorkspaces(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID := auth.UserIDFromContext(r.Context())
 
-		// Ensure user has at least personal workspace
-		_, _ = EnsurePersonalWorkspace(db, userID, "")
+		queryWorkspaces := func() ([]model.Workspace, error) {
+			rows, err := db.Query(`
+				SELECT w.id, w.nama, w.owner_id, wm.role,
+					(SELECT COUNT(1) FROM workspace_members WHERE workspace_id = w.id) as member_count,
+					w.created_at, w.updated_at
+				FROM workspaces w
+				JOIN workspace_members wm ON wm.workspace_id = w.id
+				WHERE wm.user_id = $1
+				ORDER BY wm.created_at ASC
+			`, userID)
+			if err != nil {
+				return nil, err
+			}
+			defer rows.Close()
 
-		rows, err := db.Query(`
-			SELECT w.id, w.nama, w.owner_id, wm.role,
-				(SELECT COUNT(1) FROM workspace_members WHERE workspace_id = w.id) as member_count,
-				w.created_at, w.updated_at
-			FROM workspaces w
-			JOIN workspace_members wm ON wm.workspace_id = w.id
-			WHERE wm.user_id = $1
-			ORDER BY wm.created_at ASC
-		`, userID)
+			list := []model.Workspace{}
+			for rows.Next() {
+				var ws model.Workspace
+				if err := rows.Scan(&ws.ID, &ws.Nama, &ws.OwnerID, &ws.Role, &ws.MemberCount, &ws.CreatedAt, &ws.UpdatedAt); err != nil {
+					continue
+				}
+				list = append(list, ws)
+			}
+			return list, nil
+		}
+
+		workspaces, err := queryWorkspaces()
 		if err != nil {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
 		}
-		defer rows.Close()
-
-		workspaces := []model.Workspace{}
-		for rows.Next() {
-			var ws model.Workspace
-			if err := rows.Scan(&ws.ID, &ws.Nama, &ws.OwnerID, &ws.Role, &ws.MemberCount, &ws.CreatedAt, &ws.UpdatedAt); err != nil {
-				continue
+		if len(workspaces) == 0 {
+			if _, wsErr := EnsurePersonalWorkspace(db, userID, ""); wsErr == nil {
+				if retry, retryErr := queryWorkspaces(); retryErr == nil {
+					workspaces = retry
+				}
 			}
-			workspaces = append(workspaces, ws)
 		}
 
 		writeJSON(w, http.StatusOK, map[string]interface{}{"data": workspaces})

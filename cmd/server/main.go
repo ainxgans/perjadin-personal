@@ -1,7 +1,9 @@
 package main
 
 import (
+	"compress/gzip"
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -118,16 +120,56 @@ func main() {
 			}
 			path := filepath.Join(distDir, r.URL.Path)
 			if fi, err := os.Stat(path); err == nil && !fi.IsDir() {
+				if strings.HasPrefix(r.URL.Path, "/assets/") {
+					w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+				} else if r.URL.Path == "/sw.js" || r.URL.Path == "/index.html" {
+					w.Header().Set("Cache-Control", "no-cache")
+				}
 				http.ServeFile(w, r, path)
 				return
 			}
 			// SPA fallback
+			w.Header().Set("Cache-Control", "no-cache")
 			http.ServeFile(w, r, filepath.Join(distDir, "index.html"))
 		})
 	}
 
 	log.Printf("server starting on :%s", cfg.Port)
-	if err := http.ListenAndServe(":"+cfg.Port, mux); err != nil {
+	if err := http.ListenAndServe(":"+cfg.Port, gzipMiddleware(mux)); err != nil {
 		log.Fatalf("server: %v", err)
 	}
+}
+
+type gzipResponseWriter struct {
+	io.Writer
+	http.ResponseWriter
+}
+
+func (g *gzipResponseWriter) WriteHeader(statusCode int) {
+	g.Header().Del("Content-Length")
+	g.ResponseWriter.WriteHeader(statusCode)
+}
+
+func (g *gzipResponseWriter) Write(b []byte) (int, error) {
+	g.Header().Del("Content-Length")
+	return g.Writer.Write(b)
+}
+
+func gzipMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") ||
+			strings.HasSuffix(r.URL.Path, "/dokumen") {
+			next.ServeHTTP(w, r)
+			return
+		}
+		w.Header().Set("Content-Encoding", "gzip")
+		w.Header().Add("Vary", "Accept-Encoding")
+		gz, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
+		if err != nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+		defer gz.Close()
+		next.ServeHTTP(&gzipResponseWriter{Writer: gz, ResponseWriter: w}, r)
+	})
 }

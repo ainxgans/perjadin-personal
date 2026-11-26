@@ -74,132 +74,101 @@ func GetAnalytics(db *sql.DB) http.HandlerFunc {
 			}
 		}
 
-		// 1. Total expenses in this workspace
-		_ = db.QueryRow(`
-			SELECT COALESCE(SUM(e.jumlah), 0)
-			FROM expenses e
-			JOIN trips t ON e.trip_id = t.id
-			WHERE t.workspace_id = $1
-				AND ($2 = 0 OR EXTRACT(YEAR FROM t.tanggal_mulai) = $2)
-		`, wsID, year).Scan(&data.TotalExpensesRp)
-
-		// 2. Count of distinct trips in this workspace
+		// 1. Consolidated scalar metrics in a single query
 		var tripCount int
+		var personalExpense, lunasUangDinas, lunasExpenses int64
 		_ = db.QueryRow(`
-			SELECT COUNT(DISTINCT t.id)
-			FROM trips t
-			WHERE t.workspace_id = $1
-				AND ($2 = 0 OR EXTRACT(YEAR FROM t.tanggal_mulai) = $2)
-		`, wsID, year).Scan(&tripCount)
+			WITH filtered_trips AS (
+				SELECT id, status, uang_dinas, tanggal_mulai, tanggal_selesai
+				FROM trips
+				WHERE workspace_id = $1
+					AND ($2 = 0 OR EXTRACT(YEAR FROM tanggal_mulai) = $2)
+			),
+			trip_stats AS (
+				SELECT
+					COUNT(*)::int AS total_trips,
+					COALESCE(SUM(GREATEST(1, (tanggal_selesai - tanggal_mulai) + 1)), 0)::int AS total_days,
+					COALESCE(SUM(uang_dinas) FILTER (WHERE uang_dinas IS NOT NULL), 0) AS total_uang_dinas,
+					COALESCE(SUM(uang_dinas) FILTER (WHERE status = 'lunas' AND uang_dinas IS NOT NULL), 0) AS lunas_uang_dinas
+				FROM filtered_trips
+			),
+			exp_stats AS (
+				SELECT
+					COALESCE(SUM(e.jumlah), 0) AS total_expenses,
+					COALESCE(SUM(e.jumlah) FILTER (WHERE LOWER(COALESCE(pm.nama, '')) NOT LIKE '%koperasi%'), 0) AS personal_expenses,
+					COALESCE(SUM(e.jumlah) FILTER (WHERE t.status = 'lunas' AND LOWER(COALESCE(pm.nama, '')) NOT LIKE '%koperasi%'), 0) AS lunas_expenses
+				FROM expenses e
+				JOIN filtered_trips t ON e.trip_id = t.id
+				LEFT JOIN payment_methods pm ON e.payment_method_id = pm.id
+			)
+			SELECT
+				ts.total_trips, ts.total_days, ts.total_uang_dinas, ts.lunas_uang_dinas,
+				es.total_expenses, es.personal_expenses, es.lunas_expenses
+			FROM trip_stats ts, exp_stats es
+		`, wsID, year).Scan(
+			&tripCount, &data.TotalDays, &data.TotalUangDinasRp, &lunasUangDinas,
+			&data.TotalExpensesRp, &personalExpense, &lunasExpenses,
+		)
 
 		data.TotalTrips = tripCount
 		if tripCount > 0 {
 			data.AverageExpenseTrip = data.TotalExpensesRp / int64(tripCount)
 		}
-
-		// 3. Total travel days in this workspace
-		_ = db.QueryRow(`
-			SELECT COALESCE(SUM(GREATEST(1, (t.tanggal_selesai - t.tanggal_mulai) + 1)), 0)
-			FROM trips t
-			WHERE t.workspace_id = $1
-				AND ($2 = 0 OR EXTRACT(YEAR FROM t.tanggal_mulai) = $2)
-		`, wsID, year).Scan(&data.TotalDays)
-
 		if data.TotalDays > 0 {
 			data.DailyBurnRate = data.TotalExpensesRp / int64(data.TotalDays)
 		}
-
-		// 4. Personal share percentage (all non-Koperasi expenses)
-		var personalExpense int64
-		_ = db.QueryRow(`
-			SELECT COALESCE(SUM(e.jumlah), 0)
-			FROM expenses e
-			JOIN trips t ON e.trip_id = t.id
-			JOIN payment_methods pm ON e.payment_method_id = pm.id
-			WHERE LOWER(pm.nama) NOT LIKE '%koperasi%'
-				AND t.workspace_id = $1
-				AND ($2 = 0 OR EXTRACT(YEAR FROM t.tanggal_mulai) = $2)
-		`, wsID, year).Scan(&personalExpense)
-
 		if data.TotalExpensesRp > 0 {
 			data.PersonalSharePct = int((personalExpense * 100) / data.TotalExpensesRp)
 		}
-
-		// 5. Total uang dinas of trips in this workspace
-		_ = db.QueryRow(`
-			SELECT COALESCE(SUM(uang_dinas), 0)
-			FROM trips
-			WHERE workspace_id = $1 AND uang_dinas IS NOT NULL
-				AND ($2 = 0 OR EXTRACT(YEAR FROM tanggal_mulai) = $2)
-		`, wsID, year).Scan(&data.TotalUangDinasRp)
-
-		// 6. Budget realization on lunas cohort (compare net uang_dinas vs non-Koperasi expenses)
-		var lunasUangDinas, lunasExpenses int64
-		_ = db.QueryRow(`
-			SELECT COALESCE(SUM(uang_dinas), 0)
-			FROM trips
-			WHERE workspace_id = $1 AND status = 'lunas' AND uang_dinas IS NOT NULL
-				AND ($2 = 0 OR EXTRACT(YEAR FROM tanggal_mulai) = $2)
-		`, wsID, year).Scan(&lunasUangDinas)
-
-		_ = db.QueryRow(`
-			SELECT COALESCE(SUM(e.jumlah), 0)
-			FROM expenses e
-			JOIN trips t ON e.trip_id = t.id
-			LEFT JOIN payment_methods pm ON e.payment_method_id = pm.id
-			WHERE t.workspace_id = $1 AND t.status = 'lunas'
-				AND LOWER(COALESCE(pm.nama, '')) NOT LIKE '%koperasi%'
-				AND ($2 = 0 OR EXTRACT(YEAR FROM t.tanggal_mulai) = $2)
-		`, wsID, year).Scan(&lunasExpenses)
-
 		if lunasUangDinas > 0 {
 			data.BudgetRealizationPct = int((lunasExpenses * 100) / lunasUangDinas)
 		}
 
-		// 7. Category breakdown
-		catRows, err := db.Query(`
-			SELECT c.id, c.nama, COALESCE(SUM(e.jumlah), 0) as total
-			FROM categories c
-			JOIN expenses e ON e.category_id = c.id
-			JOIN trips t ON e.trip_id = t.id
-			WHERE t.workspace_id = $1
-				AND ($2 = 0 OR EXTRACT(YEAR FROM t.tanggal_mulai) = $2)
+		// 2. Category & payment method breakdowns in a single query
+		bdRows, err := db.Query(`
+			WITH filtered_expenses AS (
+				SELECT e.category_id, e.payment_method_id, e.jumlah
+				FROM expenses e
+				JOIN trips t ON e.trip_id = t.id
+				WHERE t.workspace_id = $1
+					AND ($2 = 0 OR EXTRACT(YEAR FROM t.tanggal_mulai) = $2)
+			)
+			SELECT 'cat' AS kind, c.id, c.nama, COALESCE(SUM(fe.jumlah), 0) AS total
+			FROM filtered_expenses fe
+			JOIN categories c ON fe.category_id = c.id
 			GROUP BY c.id, c.nama
-			ORDER BY total DESC
-		`, wsID, year)
-		if err == nil {
-			defer catRows.Close()
-			for catRows.Next() {
-				var cs CategorySpending
-				if err := catRows.Scan(&cs.CategoryID, &cs.CategoryNama, &cs.Total); err == nil {
-					if data.TotalExpensesRp > 0 {
-						cs.Percentage = int((cs.Total * 100) / data.TotalExpensesRp)
-					}
-					data.Categories = append(data.Categories, cs)
-				}
-			}
-		}
-
-		// 8. Payment method breakdown
-		pmRows, err := db.Query(`
-			SELECT p.id, p.nama, COALESCE(SUM(e.jumlah), 0) as total
-			FROM payment_methods p
-			JOIN expenses e ON e.payment_method_id = p.id
-			JOIN trips t ON e.trip_id = t.id
-			WHERE t.workspace_id = $1
-				AND ($2 = 0 OR EXTRACT(YEAR FROM t.tanggal_mulai) = $2)
+			UNION ALL
+			SELECT 'pm' AS kind, p.id, p.nama, COALESCE(SUM(fe.jumlah), 0) AS total
+			FROM filtered_expenses fe
+			JOIN payment_methods p ON fe.payment_method_id = p.id
 			GROUP BY p.id, p.nama
-			ORDER BY total DESC
+			ORDER BY kind ASC, total DESC
 		`, wsID, year)
 		if err == nil {
-			defer pmRows.Close()
-			for pmRows.Next() {
-				var pms PaymentMethodSpending
-				if err := pmRows.Scan(&pms.PaymentMethodID, &pms.PaymentMethodNama, &pms.Total); err == nil {
+			defer bdRows.Close()
+			for bdRows.Next() {
+				var kind, id, nama string
+				var total int64
+				if err := bdRows.Scan(&kind, &id, &nama, &total); err == nil {
+					pct := 0
 					if data.TotalExpensesRp > 0 {
-						pms.Percentage = int((pms.Total * 100) / data.TotalExpensesRp)
+						pct = int((total * 100) / data.TotalExpensesRp)
 					}
-					data.PaymentMethods = append(data.PaymentMethods, pms)
+					if kind == "cat" {
+						data.Categories = append(data.Categories, CategorySpending{
+							CategoryID:   id,
+							CategoryNama: nama,
+							Total:        total,
+							Percentage:   pct,
+						})
+					} else {
+						data.PaymentMethods = append(data.PaymentMethods, PaymentMethodSpending{
+							PaymentMethodID:   id,
+							PaymentMethodNama: nama,
+							Total:             total,
+							Percentage:        pct,
+						})
+					}
 				}
 			}
 		}

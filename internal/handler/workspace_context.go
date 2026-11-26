@@ -86,23 +86,21 @@ func ResolveWorkspaceID(r *http.Request, db *sql.DB, userID string) (string, err
 	headerWS := strings.TrimSpace(r.Header.Get("X-Workspace-ID"))
 
 	if headerWS != "" {
-		var memberCount int
+		var isMember bool
 		err := db.QueryRow(`
-			SELECT COUNT(1)
-			FROM workspace_members
-			WHERE workspace_id = $1 AND user_id = $2
-		`, headerWS, userID).Scan(&memberCount)
+			SELECT EXISTS(
+				SELECT 1 FROM workspace_members
+				WHERE workspace_id = $1 AND user_id = $2
+			)
+		`, headerWS, userID).Scan(&isMember)
 		if err != nil {
 			return "", err
 		}
-		if memberCount == 0 {
+		if !isMember {
 			return "", ErrWorkspaceUnauthorized
 		}
 		return headerWS, nil
 	}
-
-	// Ensure user always has a personal workspace
-	personalWS, _ := EnsurePersonalWorkspace(db, userID, "")
 
 	// Fallback: prioritize user's owned workspace, then first joined workspace
 	var defaultWS string
@@ -116,9 +114,6 @@ func ResolveWorkspaceID(r *http.Request, db *sql.DB, userID string) (string, err
 	`, userID).Scan(&defaultWS)
 	if err == nil && defaultWS != "" {
 		return defaultWS, nil
-	}
-	if personalWS != "" {
-		return personalWS, nil
 	}
 	return EnsurePersonalWorkspace(db, userID, "")
 }

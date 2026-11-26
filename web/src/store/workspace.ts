@@ -43,20 +43,31 @@ export const isWorkspaceOwner = createMemo(() => {
 export async function refreshWorkspaces() {
   setIsLoading(true);
   try {
-    const list = await getWorkspaces();
+    const initialActiveId = activeWorkspaceId();
+    const [list, prefetchedCurrent] = await Promise.all([
+      getWorkspaces(),
+      initialActiveId ? getCurrentWorkspace().catch(() => null) : Promise.resolve(null),
+    ]);
     setWorkspaces(list);
 
-    let activeId = activeWorkspaceId();
-    if (!activeId || !list.some((w) => w.id === activeId)) {
+    let activeId = initialActiveId;
+    const isValid = activeId && list.some((w) => w.id === activeId);
+    if (!isValid) {
       if (list.length > 0) {
         activeId = list[0].id;
         setActiveWorkspaceId(activeId);
+      } else {
+        activeId = '';
       }
     }
 
     if (activeId) {
-      const current = await getCurrentWorkspace();
-      setCurrentWorkspaceData(current);
+      if (isValid && prefetchedCurrent) {
+        setCurrentWorkspaceData(prefetchedCurrent);
+      } else {
+        const current = await getCurrentWorkspace();
+        setCurrentWorkspaceData(current);
+      }
     }
   } catch (err) {
     console.error('Failed to load workspaces:', err);
