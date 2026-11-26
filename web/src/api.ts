@@ -25,6 +25,7 @@ export interface Trip {
   total_pengeluaran: number;
   pengeluaran_pribadi?: number;
   talangan_koperasi?: number;
+  talangan_count?: number;
   saldo: number;
   is_owner?: boolean;
   owner_name?: string;

@@ -59,8 +59,8 @@ const Dashboard: Component = () => {
       const matchStatus =
         status === 'all'
           ? true
-          : status === 'belum_lunas'
-          ? t.status !== 'lunas'
+          : status === 'talangan'
+          ? t.status !== 'lunas' && (t.talangan_count ?? 0) > 0
           : t.status === status;
 
       return matchSearch && matchStatus;
@@ -111,9 +111,9 @@ const Dashboard: Component = () => {
             role="button"
             tabIndex={0}
             style="cursor: pointer;"
-            title="Ketuk untuk lihat perjalanan yang belum lunas"
+            title="Ketuk untuk melihat perjalanan dengan pengeluaran talangan"
             onClick={() => {
-              setStatusFilter('belum_lunas');
+              setStatusFilter('talangan');
               document.getElementById('trip-list-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }}
           >
@@ -172,10 +172,10 @@ const Dashboard: Component = () => {
           </button>
           <button
             type="button"
-            class={`segmented-filter-btn ${statusFilter() === 'belum_lunas' ? 'active' : ''}`}
-            onClick={() => setStatusFilter('belum_lunas')}
+            class={`segmented-filter-btn ${statusFilter() === 'talangan' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('talangan')}
           >
-            Belum Lunas
+            Ada Talangan
           </button>
           <button
             type="button"
@@ -255,16 +255,11 @@ const Dashboard: Component = () => {
                 const burnColor = () => getBurnDownColor(trip);
 
                 return (
-                  <A href={'/trips/' + trip.id} class="ticket-card">
+                  <A href={statusFilter() === 'talangan' ? `/trips/${trip.id}?filter=talangan` : `/trips/${trip.id}`} class="ticket-card">
                     <div class="ticket-inner">
                       <div class="ticket-header">
                         <div>
                           <span class="ticket-title">{trip.nama}</span>
-                          <Show when={trip.is_owner === false}>
-                            <span style="display: block; font-size: 0.8125rem; color: var(--text-muted); margin-top: 0.125rem;">
-                              Kolaborator · {trip.owner_name}
-                            </span>
-                          </Show>
                         </div>
                         <StatusBadge status={trip.status} />
                       </div>

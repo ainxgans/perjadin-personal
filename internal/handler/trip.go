@@ -30,6 +30,7 @@ type tripResponse struct {
 	TotalPengeluaran   int64     `json:"total_pengeluaran"`
 	PengeluaranPribadi int64     `json:"pengeluaran_pribadi"`
 	TalanganKoperasi   int64     `json:"talangan_koperasi"`
+	TalanganCount      int       `json:"talangan_count"`
 	Saldo              int64     `json:"saldo"`
 	IsOwner            bool      `json:"is_owner"`
 	OwnerName          string    `json:"owner_name"`
@@ -134,6 +135,7 @@ func ListTrips(db *sql.DB) http.HandlerFunc {
 				COALESCE(SUM(e.jumlah), 0) as total_expense,
 				COALESCE(SUM(CASE WHEN LOWER(COALESCE(pm.nama, '')) NOT LIKE '%koperasi%' THEN e.jumlah ELSE 0 END), 0) as pengeluaran_pribadi,
 				COALESCE(SUM(CASE WHEN LOWER(COALESCE(pm.nama, '')) LIKE '%koperasi%' THEN e.jumlah ELSE 0 END), 0) as talangan_koperasi,
+				COALESCE(SUM(CASE WHEN LOWER(COALESCE(pm.nama, '')) LIKE '%talangan%' THEN 1 ELSE 0 END), 0) as talangan_count,
 				(t.user_id = $2) as is_owner,
 				u.name as owner_name,
 				0 as collabs_count
@@ -155,6 +157,7 @@ func ListTrips(db *sql.DB) http.HandlerFunc {
 		for rows.Next() {
 			var t model.Trip
 			var totalExpense, pengeluaranPribadi, talanganKoperasi int64
+			var talanganCount int
 			var isOwner bool
 			var ownerName string
 			var collabsCount int
@@ -164,11 +167,13 @@ func ListTrips(db *sql.DB) http.HandlerFunc {
 				&t.Status, &t.UangDinas, &t.NominalMonita, &t.TanggalDibayar,
 				&t.Catatan, &t.LinkMonita, &t.SettlementNote,
 				&t.EstimasiTransport, &t.DokumenURL, &t.DokumenNama, &t.CreatedAt, &t.UpdatedAt,
-				&totalExpense, &pengeluaranPribadi, &talanganKoperasi, &isOwner, &ownerName, &collabsCount,
+				&totalExpense, &pengeluaranPribadi, &talanganKoperasi, &talanganCount, &isOwner, &ownerName, &collabsCount,
 			); err != nil {
 				continue
 			}
-			trips = append(trips, tripToResponse(t, totalExpense, pengeluaranPribadi, talanganKoperasi, isOwner, ownerName, collabsCount))
+			resp := tripToResponse(t, totalExpense, pengeluaranPribadi, talanganKoperasi, isOwner, ownerName, collabsCount)
+			resp.TalanganCount = talanganCount
+			trips = append(trips, resp)
 		}
 		if trips == nil {
 			trips = []tripResponse{}

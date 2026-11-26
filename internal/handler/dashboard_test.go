@@ -25,13 +25,19 @@ func TestDashboard_BelumLunas(t *testing.T) {
 	testDB.QueryRow(`INSERT INTO trips (user_id, nama, tujuan, tanggal_mulai, tanggal_selesai)
 		VALUES ($1, 'Trip', 'A', '2026-01-01', '2026-01-05') RETURNING id`, userID).Scan(&tripID)
 
-	// Add expense with Pribadi
-	var pmID string
-	testDB.QueryRow("SELECT id FROM payment_methods WHERE nama = 'Pribadi'").Scan(&pmID)
+	// Add expense with Pribadi (should NOT count as talangan)
+	var pmPribadiID string
+	testDB.QueryRow("SELECT id FROM payment_methods WHERE nama = 'Pribadi'").Scan(&pmPribadiID)
 	var catID string
 	testDB.QueryRow("SELECT id FROM categories WHERE nama = 'Makan'").Scan(&catID)
 	testDB.Exec(`INSERT INTO expenses (trip_id, category_id, payment_method_id, deskripsi, jumlah, tanggal)
-		VALUES ($1, $2, $3, 'makan', 50000, '2026-01-02')`, tripID, catID, pmID)
+		VALUES ($1, $2, $3, 'makan', 50000, '2026-01-02')`, tripID, catID, pmPribadiID)
+
+	// Add expense with Talangan (SHOULD count as talangan belum lunas)
+	var pmTalanganID string
+	testDB.QueryRow("SELECT id FROM payment_methods WHERE nama = 'Talangan'").Scan(&pmTalanganID)
+	testDB.Exec(`INSERT INTO expenses (trip_id, category_id, payment_method_id, deskripsi, jumlah, tanggal)
+		VALUES ($1, $2, $3, 'hotel talangan', 75000, '2026-01-02')`, tripID, catID, pmTalanganID)
 
 	rec := doRequest(t, handler, "GET", "/api/dashboard", "", cookie)
 	if rec.Code != http.StatusOK {
@@ -40,8 +46,8 @@ func TestDashboard_BelumLunas(t *testing.T) {
 	body := parseJSON(t, rec)
 	data := body["data"].(map[string]interface{})
 	belumLunas := int64(data["belum_lunas"].(float64))
-	if belumLunas != 50000 {
-		t.Errorf("expected belum_lunas=50000, got %d", belumLunas)
+	if belumLunas != 75000 {
+		t.Errorf("expected belum_lunas=75000, got %d", belumLunas)
 	}
 }
 

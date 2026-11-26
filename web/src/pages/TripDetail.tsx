@@ -3,7 +3,6 @@ import { useParams, useNavigate, A } from '@solidjs/router';
 import {
   getTrip,
   getExpenses,
-  updateTrip,
   deleteTrip,
   deleteExpense,
   type Expense,
@@ -46,23 +45,29 @@ const TripDetail: Component = () => {
   const [showForm, setShowForm] = createSignal(false);
   const [editingExpense, setEditingExpense] = createSignal<Expense | null>(null);
   const [copiedLink, setCopiedLink] = createSignal(false);
-  const [markingLunas, setMarkingLunas] = createSignal(false);
+  const [copiedDest, setCopiedDest] = createSignal(false);
 
-  const handleMarkLunas = async () => {
-    const t = trip();
-    if (!t || markingLunas()) return;
-    setMarkingLunas(true);
+  const handleCopyDestination = async (dest: string) => {
     try {
-      const today = new Date().toISOString().slice(0, 10);
-      await updateTrip(t.id, {
-        status: 'lunas',
-        tanggal_dibayar: t.tanggal_dibayar || today,
-      });
-      refetchTrip();
-    } finally {
-      setMarkingLunas(false);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(dest);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = dest;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      setCopiedDest(true);
+      setTimeout(() => setCopiedDest(false), 3000);
+    } catch {
+      // ignore clipboard errors
     }
   };
+  const [expenseFilter, setExpenseFilter] = createSignal<'all' | 'talangan'>(
+    typeof window !== 'undefined' && window.location.search.includes('filter=talangan') ? 'talangan' : 'all'
+  );
 
   const handleCopyLink = async (rawUrl: string) => {
     try {
@@ -126,8 +131,19 @@ const TripDetail: Component = () => {
     setShowForm(true);
   };
 
-  const groupedExpenses = () => {
+  const filteredExpenses = () => {
     const exps = expenses() || [];
+    if (expenseFilter() === 'talangan') {
+      return exps.filter((e) => (e.payment_method_nama || '').toLowerCase().includes('talangan'));
+    }
+    return exps;
+  };
+
+  const talanganCount = () =>
+    (expenses() || []).filter((e) => (e.payment_method_nama || '').toLowerCase().includes('talangan')).length;
+
+  const groupedExpenses = () => {
+    const exps = filteredExpenses();
     const groups: Record<string, Expense[]> = {};
     for (const e of exps) {
       (groups[e.category_nama] ??= []).push(e);
@@ -221,33 +237,42 @@ const TripDetail: Component = () => {
               </Show>
 
               <Show when={t().tujuan}>
-                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
-                  <a
-                    href="gojek://goride"
-                    class="btn btn-sm btn-outline"
-                    style="flex: 1; min-width: 90px; font-size: 0.75rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem; border-color: rgba(0, 170, 19, 0.35); color: #00880f; background: rgba(0, 170, 19, 0.05);"
-                  >
-                    <ExternalLinkIcon size={13} />
-                    <span>Gojek</span>
-                  </a>
-                  <a
-                    href={`grab://open?screenType=BOOKING&dropOffAddress=${encodeURIComponent(t().tujuan)}`}
-                    class="btn btn-sm btn-outline"
-                    style="flex: 1; min-width: 90px; font-size: 0.75rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem; border-color: rgba(0, 177, 79, 0.35); color: #009140; background: rgba(0, 177, 79, 0.05);"
-                  >
-                    <ExternalLinkIcon size={13} />
-                    <span>Grab</span>
-                  </a>
-                  <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(t().tujuan)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="btn btn-sm btn-outline"
-                    style="flex: 1; min-width: 90px; font-size: 0.75rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem;"
-                  >
-                    <MapPinIcon size={13} />
-                    <span>Maps</span>
-                  </a>
+                <div style="margin-bottom: 0.75rem;">
+                  <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <a
+                      href="gojek://goride"
+                      onClick={() => handleCopyDestination(t().tujuan)}
+                      class="btn btn-sm btn-outline"
+                      style="flex: 1; min-width: 90px; font-size: 0.75rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem; border-color: rgba(0, 170, 19, 0.35); color: #00880f; background: rgba(0, 170, 19, 0.05);"
+                    >
+                      <ExternalLinkIcon size={13} />
+                      <span>Gojek</span>
+                    </a>
+                    <a
+                      href={`grab://open?screenType=BOOKING&dropOffAddress=${encodeURIComponent(t().tujuan)}`}
+                      onClick={() => handleCopyDestination(t().tujuan)}
+                      class="btn btn-sm btn-outline"
+                      style="flex: 1; min-width: 90px; font-size: 0.75rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem; border-color: rgba(0, 177, 79, 0.35); color: #009140; background: rgba(0, 177, 79, 0.05);"
+                    >
+                      <ExternalLinkIcon size={13} />
+                      <span>Grab</span>
+                    </a>
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(t().tujuan)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="btn btn-sm btn-outline"
+                      style="flex: 1; min-width: 90px; font-size: 0.75rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem;"
+                    >
+                      <MapPinIcon size={13} />
+                      <span>Maps</span>
+                    </a>
+                  </div>
+                  <Show when={copiedDest()}>
+                    <div style="font-size: 0.75rem; color: var(--emerald); margin-top: 0.375rem; font-weight: 600;">
+                      Alamat "{t().tujuan}" disalin — tinggal paste di tujuan Gojek/Grab
+                    </div>
+                  </Show>
                 </div>
               </Show>
 
@@ -315,30 +340,11 @@ const TripDetail: Component = () => {
                 </div>
               </Show>
 
-              <div class="detail-hero-actions" style="display: flex; gap: 0.5rem; align-items: center;">
-                <Show
-                  when={t().is_owner}
-                  fallback={
-                    <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.375rem;">
-                      <span>Dibuat oleh <strong>{t().owner_name || 'Rekan'}</strong></span>
-                      <span>· Mode Kolaborator</span>
-                    </div>
-                  }
-                >
+              <Show when={t().is_owner}>
+                <div class="detail-hero-actions" style="display: flex; gap: 0.5rem; align-items: center;">
                   <A href={'/trips/' + params.id + '/edit'} class="btn btn-sm btn-secondary">
                     <EditIcon size={14} /> Edit
                   </A>
-                  <Show when={t().status !== 'lunas'}>
-                    <button
-                      type="button"
-                      class="btn btn-sm btn-outline"
-                      style="color: var(--emerald); border-color: var(--emerald-border); background: var(--emerald-bg);"
-                      disabled={markingLunas()}
-                      onClick={handleMarkLunas}
-                    >
-                      <CheckIcon size={14} /> {markingLunas() ? 'Menyimpan...' : 'Tandai Lunas'}
-                    </button>
-                  </Show>
                   <button
                     type="button"
                     class="btn btn-sm btn-outline"
@@ -347,13 +353,35 @@ const TripDetail: Component = () => {
                   >
                     <TrashIcon size={14} /> Hapus
                   </button>
-                </Show>
-              </div>
+                </div>
+              </Show>
             </div>
 
             {/* Expenses Header */}
             <div class="section-heading">
-              <h2>Rincian Pengeluaran</h2>
+              <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <h2 style="margin: 0;">Rincian Pengeluaran</h2>
+                <Show when={talanganCount() > 0 || expenseFilter() === 'talangan'}>
+                  <div class="view-toggle-group" role="group" aria-label="Filter pengeluaran">
+                    <button
+                      type="button"
+                      class={`view-toggle-btn ${expenseFilter() === 'all' ? 'active' : ''}`}
+                      style="width: auto; padding: 0 0.625rem; font-size: 0.75rem; font-weight: 600;"
+                      onClick={() => setExpenseFilter('all')}
+                    >
+                      Semua
+                    </button>
+                    <button
+                      type="button"
+                      class={`view-toggle-btn ${expenseFilter() === 'talangan' ? 'active' : ''}`}
+                      style="width: auto; padding: 0 0.625rem; font-size: 0.75rem; font-weight: 600;"
+                      onClick={() => setExpenseFilter('talangan')}
+                    >
+                      Talangan ({talanganCount()})
+                    </button>
+                  </div>
+                </Show>
+              </div>
               <button
                 type="button"
                 class="btn btn-sm btn-primary"
@@ -366,7 +394,7 @@ const TripDetail: Component = () => {
             {/* Grouped Expenses List */}
             <Show when={expenses()} fallback={<p style="text-align: center; padding: 1.5rem 0; color: var(--text-muted);">Memuat...</p>}>
               <Show
-                when={expenses()!.length > 0}
+                when={filteredExpenses().length > 0}
                 fallback={
                   <div class="empty-state">
                     <div class="empty-state-icon">
@@ -403,9 +431,6 @@ const TripDetail: Component = () => {
                                   <span class={getPaymentBadgeClass(exp.payment_method_nama)}>
                                     {exp.payment_method_nama}
                                   </span>
-                                  <Show when={exp.user_name}>
-                                    <span class="expense-author-tag">oleh {exp.user_name}</span>
-                                  </Show>
                                 </div>
                               </div>
                               <div style="display: flex; align-items: center; gap: 0.5rem;">
