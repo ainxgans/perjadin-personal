@@ -363,15 +363,27 @@ const TripDetail: Component = () => {
                   <select
                     class="form-control"
                     aria-label="Ubah status perjalanan"
-                    value={t().status === 'diajukan' ? 'selesai' : t().status}
+                    value={t().status}
                     disabled={updatingStatus()}
                     onChange={(e) => handleStatusChange(e.currentTarget.value)}
-                    style="width: auto; min-width: 130px; height: 32px; padding: 0 0.625rem; font-size: 0.75rem; font-weight: 600;"
+                    style="width: auto; min-width: 150px; height: 32px; padding: 0 0.625rem; font-size: 0.75rem; font-weight: 600;"
                   >
                     <option value="berlangsung">Berlangsung</option>
-                    <option value="selesai">Proses</option>
+                    <option value="selesai">Proses · Urus Berkas</option>
+                    <option value="diajukan">Proses · Pembayaran</option>
                     <option value="lunas">Selesai</option>
                   </select>
+                  <Show when={t().status === 'selesai'}>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline"
+                      style="color: var(--amber); border-color: var(--amber-border); background: var(--amber-bg);"
+                      disabled={updatingStatus()}
+                      onClick={() => handleStatusChange('diajukan')}
+                    >
+                      <CheckIcon size={13} /> Sudah TTD
+                    </button>
+                  </Show>
                   <A href={'/trips/' + params.id + '/edit'} class="btn btn-sm btn-secondary">
                     <EditIcon size={14} /> Edit
                   </A>

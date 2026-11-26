@@ -3,11 +3,11 @@ import { PlaneIcon, CheckIcon, ClockIcon, WalletIcon } from './Icons';
 
 const statusConfig: Record<string, { label: string; class: string; icon: Component<any> }> = {
   berlangsung: { label: 'Berlangsung', class: 'badge badge-blue', icon: PlaneIcon },
-  selesai: { label: 'Proses', class: 'badge badge-orange', icon: ClockIcon },
-  diajukan: { label: 'Proses', class: 'badge badge-orange', icon: ClockIcon },
+  selesai: { label: 'Proses · Urus Berkas', class: 'badge badge-orange', icon: ClockIcon },
+  diajukan: { label: 'Proses · Pembayaran', class: 'badge badge-amber', icon: ClockIcon },
   lunas: { label: 'Selesai', class: 'badge badge-green', icon: CheckIcon },
   // ponytail: legacy fallback for urus_berkas
-  urus_berkas: { label: 'Urus Berkas', class: 'badge badge-orange', icon: ClockIcon },
+  urus_berkas: { label: 'Proses · Urus Berkas', class: 'badge badge-orange', icon: ClockIcon },
 };
 
 const StatusBadge: Component<{ status: string }> = (props) => {

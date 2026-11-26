@@ -49,6 +49,14 @@ func tripToResponse(t model.Trip, totalExpense, pengeluaranPribadi, talanganKope
 	if t.UangDinas != nil {
 		uangDinas = *t.UangDinas
 	}
+	effectiveStatus := t.Status
+	if effectiveStatus == "" {
+		effectiveStatus = model.StatusBerlangsung
+	}
+	today := time.Now().In(time.FixedZone("WIB", 7*3600)).Format("2006-01-02")
+	if effectiveStatus == model.StatusBerlangsung && t.TanggalSelesai.Format("2006-01-02") < today {
+		effectiveStatus = model.StatusSelesai
+	}
 	return tripResponse{
 		ID:                 t.ID,
 		WorkspaceID:        t.WorkspaceID,
@@ -56,7 +64,7 @@ func tripToResponse(t model.Trip, totalExpense, pengeluaranPribadi, talanganKope
 		Tujuan:             t.Tujuan,
 		TanggalMulai:       t.TanggalMulai.Format("2006-01-02"),
 		TanggalSelesai:     t.TanggalSelesai.Format("2006-01-02"),
-		Status:             t.Status,
+		Status:             effectiveStatus,
 		UangDinas:          t.UangDinas,
 		NominalMonita:      t.NominalMonita,
 		EstimasiTransport:  t.EstimasiTransport,
@@ -236,12 +244,18 @@ func CreateTrip(db *sql.DB) http.HandlerFunc {
 			dibayar = &t
 		}
 
+		initialStatus := model.StatusBerlangsung
+		today := time.Now().In(time.FixedZone("WIB", 7*3600)).Format("2006-01-02")
+		if selesai.Format("2006-01-02") < today {
+			initialStatus = model.StatusSelesai
+		}
+
 		var trip model.Trip
 		err = db.QueryRow(`
 			INSERT INTO trips (workspace_id, user_id, nama, tujuan, tanggal_mulai, tanggal_selesai, status, uang_dinas, nominal_monita, tanggal_dibayar, catatan, link_monita, estimasi_transport, dokumen_url, dokumen_nama)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 			RETURNING `+tripInsertCols+`
-		`, wsID, userID, input.Nama, input.Tujuan, mulai, selesai, model.StatusBerlangsung,
+		`, wsID, userID, input.Nama, input.Tujuan, mulai, selesai, initialStatus,
 			input.UangDinas, input.NominalMonita, dibayar, input.Catatan, input.LinkMonita, input.EstimasiTransport, input.DokumenURL, input.DokumenNama).
 			Scan(&trip.ID, &trip.WorkspaceID, &trip.Nama, &trip.Tujuan, &trip.TanggalMulai, &trip.TanggalSelesai,
 				&trip.Status, &trip.UangDinas, &trip.NominalMonita, &trip.TanggalDibayar,

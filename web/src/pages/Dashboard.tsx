@@ -27,6 +27,7 @@ const Dashboard: Component = () => {
   const savedView = typeof window !== 'undefined' ? localStorage.getItem('perjadin_view_mode') : null;
   const [searchQuery, setSearchQuery] = createSignal('');
   const [statusFilter, setStatusFilter] = createSignal<string>('all');
+  const [prosesSubFilter, setProsesSubFilter] = createSignal<'all' | 'selesai' | 'diajukan'>('all');
   const [viewMode, setViewMode] = createSignal<'grid' | 'list'>(savedView === 'list' ? 'list' : 'grid');
   const [currentPage, setCurrentPage] = createSignal(1);
 
@@ -42,6 +43,7 @@ const Dashboard: Component = () => {
   createEffect(() => {
     searchQuery();
     statusFilter();
+    prosesSubFilter();
     setCurrentPage(1);
   });
 
@@ -62,7 +64,9 @@ const Dashboard: Component = () => {
           : status === 'talangan'
           ? t.status !== 'lunas' && (t.talangan_count ?? 0) > 0
           : status === 'selesai'
-          ? t.status === 'selesai' || t.status === 'diajukan'
+          ? prosesSubFilter() === 'all'
+            ? t.status === 'selesai' || t.status === 'diajukan'
+            : t.status === prosesSubFilter()
           : t.status === status;
 
       return matchSearch && matchStatus;
@@ -180,6 +184,32 @@ const Dashboard: Component = () => {
             Selesai
           </button>
         </div>
+
+        <Show when={statusFilter() === 'selesai'}>
+          <div style="display: flex; gap: 0.375rem; flex-wrap: wrap; margin-top: 0.5rem;">
+            <button
+              type="button"
+              class={`quick-chip ${prosesSubFilter() === 'all' ? 'active' : ''}`}
+              onClick={() => setProsesSubFilter('all')}
+            >
+              Semua Proses
+            </button>
+            <button
+              type="button"
+              class={`quick-chip ${prosesSubFilter() === 'selesai' ? 'active' : ''}`}
+              onClick={() => setProsesSubFilter('selesai')}
+            >
+              Urus Berkas (Belum TTD)
+            </button>
+            <button
+              type="button"
+              class={`quick-chip ${prosesSubFilter() === 'diajukan' ? 'active' : ''}`}
+              onClick={() => setProsesSubFilter('diajukan')}
+            >
+              Proses Pembayaran (Sudah TTD)
+            </button>
+          </div>
+        </Show>
       </div>
 
       {/* Heading */}
