@@ -617,7 +617,7 @@ const AdminMaster: Component = () => {
           class={`segment-tab ${tab() === 'categories' ? 'active' : ''}`}
           onClick={() => setTab('categories')}
         >
-          <TagIcon size={14} />
+          <TagIcon size={16} />
           <span>Kategori ({categories()?.length || 0})</span>
         </button>
         <button
@@ -625,7 +625,7 @@ const AdminMaster: Component = () => {
           class={`segment-tab ${tab() === 'payment_methods' ? 'active' : ''}`}
           onClick={() => setTab('payment_methods')}
         >
-          <CreditCardIcon size={14} />
+          <CreditCardIcon size={16} />
           <span>Pembayaran ({paymentMethods()?.length || 0})</span>
         </button>
         <button
@@ -633,8 +633,8 @@ const AdminMaster: Component = () => {
           class={`segment-tab ${tab() === 'sbm' ? 'active' : ''}`}
           onClick={() => setTab('sbm')}
         >
-          <MapPinIcon size={14} />
-          <span>Uang Harian ({sbmRates()?.length || 0})</span>
+          <MapPinIcon size={16} />
+          <span>Tarif SBM ({sbmRates()?.length || 0})</span>
         </button>
       </div>
 

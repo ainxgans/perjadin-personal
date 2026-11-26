@@ -1,5 +1,5 @@
-import { Component, createSignal, onMount, createEffect, Show } from 'solid-js';
-import { Router, Route, useNavigate, type RouteSectionProps } from '@solidjs/router';
+import { Component, createSignal, onMount, onCleanup, createEffect, Show } from 'solid-js';
+import { Router, Route, useNavigate, useLocation, type RouteSectionProps } from '@solidjs/router';
 import { getMe, type User } from './api';
 import Navbar from './components/Navbar';
 import BottomNav from './components/BottomNav';
@@ -55,7 +55,121 @@ const AdminProtected: Component<{ children: any }> = (props) => {
   );
 };
 
+const REACH_MAX_DROP = 180;
+const REACH_SNAP_THRESHOLD = 56;
+
 const Layout: Component<RouteSectionProps> = (props) => {
+  const location = useLocation();
+  const [reachOffset, setReachOffset] = createSignal(0);
+  const [isDragging, setIsDragging] = createSignal(false);
+  const [isExpanded, setIsExpanded] = createSignal(false);
+
+  let mainRef: HTMLElement | undefined;
+  let startY = 0;
+  let startX = 0;
+  let baseOffset = 0;
+  let tracking = false;
+  let gestureLocked: 'vertical' | 'horizontal' | null = null;
+
+  // Reset reachability when navigating between pages
+  createEffect(() => {
+    location.pathname;
+    setIsExpanded(false);
+    setReachOffset(0);
+  });
+
+  onMount(() => {
+    const el = mainRef;
+    if (!el) return;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (!user() || e.touches.length !== 1) return;
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('.modal-overlay, input, textarea, select')) return;
+
+      if (window.scrollY <= 2 || isExpanded()) {
+        startY = e.touches[0].clientY;
+        startX = e.touches[0].clientX;
+        baseOffset = isExpanded() ? REACH_MAX_DROP : 0;
+        tracking = true;
+        gestureLocked = null;
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!tracking || e.touches.length !== 1) return;
+      const dy = e.touches[0].clientY - startY;
+      const dx = e.touches[0].clientX - startX;
+
+      if (!gestureLocked) {
+        if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) {
+          gestureLocked = 'horizontal';
+          tracking = false;
+          return;
+        }
+        if (Math.abs(dy) > 8) {
+          gestureLocked = 'vertical';
+        } else {
+          return;
+        }
+      }
+
+      if (!isExpanded() && (dy <= 0 || window.scrollY > 2)) {
+        tracking = false;
+        return;
+      }
+
+      if (e.cancelable) e.preventDefault();
+      setIsDragging(true);
+
+      const raw = baseOffset + dy * 0.72;
+      const clamped = Math.max(0, Math.min(REACH_MAX_DROP + 36, raw));
+      setReachOffset(clamped);
+    };
+
+    const onTouchEnd = () => {
+      if (!tracking && !isDragging()) return;
+      tracking = false;
+      setIsDragging(false);
+
+      const current = reachOffset();
+      if (!isExpanded()) {
+        if (current >= REACH_SNAP_THRESHOLD) {
+          setIsExpanded(true);
+          setReachOffset(REACH_MAX_DROP);
+        } else {
+          setIsExpanded(false);
+          setReachOffset(0);
+        }
+      } else {
+        if (current <= REACH_MAX_DROP - 44) {
+          setIsExpanded(false);
+          setReachOffset(0);
+        } else {
+          setIsExpanded(true);
+          setReachOffset(REACH_MAX_DROP);
+        }
+      }
+    };
+
+    el.addEventListener('touchstart', onTouchStart, { passive: true });
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    el.addEventListener('touchend', onTouchEnd, { passive: true });
+    el.addEventListener('touchcancel', onTouchEnd, { passive: true });
+
+    onCleanup(() => {
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchend', onTouchEnd);
+      el.removeEventListener('touchcancel', onTouchEnd);
+    });
+  });
+
+  const collapseReach = () => {
+    setIsExpanded(false);
+    setReachOffset(0);
+  };
+
   const handleLogout = () => {
     setUser(null);
     window.location.href = '/login';
@@ -64,7 +178,16 @@ const Layout: Component<RouteSectionProps> = (props) => {
   return (
     <>
       <Navbar user={user()} onLogout={handleLogout} />
-      <main>
+      <Show when={isExpanded() && reachOffset() > 40}>
+        <div class="oneui-reach-space" onClick={collapseReach} role="button" aria-label="Tutup mode satu tangan">
+          <span class="oneui-reach-hint">Ketuk atau geser ke atas untuk kembali</span>
+        </div>
+      </Show>
+      <main
+        ref={mainRef}
+        class={`oneui-stage ${isDragging() ? '' : 'animating'}`}
+        style={reachOffset() > 0 ? { transform: `translateY(${reachOffset()}px)` } : undefined}
+      >
         {props.children}
       </main>
       <BottomNav user={user()} />
