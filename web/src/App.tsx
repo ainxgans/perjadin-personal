@@ -55,11 +55,24 @@ const AdminProtected: Component<{ children: any }> = (props) => {
   );
 };
 
+const getPageTitle = (pathname: string): string => {
+  if (pathname === '/') return 'Beranda';
+  if (pathname === '/analytics') return 'Analitik Keuangan';
+  if (pathname === '/trips/new') return 'Perjalanan Baru';
+  if (/^\/trips\/[^/]+\/edit$/.test(pathname)) return 'Edit Perjalanan';
+  if (/^\/trips\/[^/]+$/.test(pathname)) return 'Detail Perjalanan';
+  if (pathname === '/admin') return 'Admin Terminal';
+  if (pathname === '/admin/users') return 'Kelola Pengguna';
+  if (pathname === '/admin/master') return 'Data Master';
+  return 'Perjadin';
+};
+
 const REACH_MAX_DROP = 180;
 const REACH_SNAP_THRESHOLD = 56;
 
 const Layout: Component<RouteSectionProps> = (props) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [reachOffset, setReachOffset] = createSignal(0);
   const [isDragging, setIsDragging] = createSignal(false);
   const [isExpanded, setIsExpanded] = createSignal(false);
@@ -76,6 +89,21 @@ const Layout: Component<RouteSectionProps> = (props) => {
     location.pathname;
     setIsExpanded(false);
     setReachOffset(0);
+  });
+
+  // If user is logged in and there's a pending shared PDF from Android Share Sheet,
+  // route straight to /trips/new?shared=1 so it gets parsed automatically.
+  createEffect(() => {
+    const u = user();
+    if (!loading() && u && 'caches' in window && location.pathname !== '/trips/new') {
+      caches.open('perjadin-share-target').then((cache) =>
+        cache.match('/_shared_pdf').then((res) => {
+          if (res) {
+            navigate('/trips/new?shared=1', { replace: true });
+          }
+        })
+      ).catch(() => {});
+    }
   });
 
   onMount(() => {
@@ -180,7 +208,8 @@ const Layout: Component<RouteSectionProps> = (props) => {
       <Navbar user={user()} onLogout={handleLogout} />
       <Show when={isExpanded() && reachOffset() > 40}>
         <div class="oneui-reach-space" onClick={collapseReach} role="button" aria-label="Tutup mode satu tangan">
-          <span class="oneui-reach-hint">Ketuk atau geser ke atas untuk kembali</span>
+          <div class="oneui-reach-title">{getPageTitle(location.pathname)}</div>
+          <span class="oneui-reach-hint">Ketuk atau geser ke atas untuk merapatkan</span>
         </div>
       </Show>
       <main
