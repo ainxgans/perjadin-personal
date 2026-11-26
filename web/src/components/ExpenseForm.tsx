@@ -2,15 +2,11 @@ import { Component, createSignal, createResource, Show, For, onMount, onCleanup 
 import { getCategories, getPaymentMethods, createExpense, updateExpense, type Expense } from '../api';
 import { XIcon } from './Icons';
 
-const QUICK_AMOUNTS = [
-  { label: '0 (Belum pasti)', value: '0' },
-  { label: '25rb', value: '25000' },
-  { label: '50rb', value: '50000' },
-  { label: '100rb', value: '100000' },
-  { label: '250rb', value: '250000' },
-  { label: '500rb', value: '500000' },
-  { label: '1 Jt', value: '1000000' },
-];
+const formatThousands = (raw: string) => {
+  const digits = raw.replace(/\D/g, '');
+  if (!digits) return '0';
+  return new Intl.NumberFormat('id-ID').format(parseInt(digits, 10));
+};
 
 const ExpenseForm: Component<{
   tripId: string;
@@ -26,7 +22,9 @@ const ExpenseForm: Component<{
   const [categoryId, setCategoryId] = createSignal(props.expense?.category_id || '');
   const [pmId, setPmId] = createSignal(props.expense?.payment_method_id || '');
   const [deskripsi, setDeskripsi] = createSignal(props.expense?.deskripsi || '');
-  const [jumlah, setJumlah] = createSignal(props.expense?.jumlah?.toString() || '');
+  const [jumlah, setJumlah] = createSignal(
+    props.expense?.jumlah != null ? String(props.expense.jumlah) : '0'
+  );
   const [tanggal, setTanggal] = createSignal(props.expense?.tanggal || props.defaultDate || new Date().toISOString().slice(0, 10));
   const [error, setError] = createSignal('');
   const [loading, setLoading] = createSignal(false);
@@ -133,31 +131,29 @@ const ExpenseForm: Component<{
 
           <div class="form-group">
             <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.375rem;">
-              <label style="margin-bottom: 0;">Jumlah Nominal (Rp)</label>
-              <span style="font-size: 0.75rem; color: var(--text-muted);">Isi 0 jika nominal belum pasti</span>
+              <label style="margin-bottom: 0;">Jumlah Nominal</label>
+              <span style="font-size: 0.75rem; color: var(--text-muted);">Default 0 (belum pasti)</span>
             </div>
-            <div class="quick-amount-row">
-              <For each={QUICK_AMOUNTS}>
-                {(item) => (
-                  <button
-                    type="button"
-                    class={`quick-chip ${jumlah() === item.value ? 'active' : ''}`}
-                    onClick={() => setJumlah(item.value)}
-                  >
-                    {item.label}
-                  </button>
-                )}
-              </For>
+            <div style="position: relative; display: flex; align-items: center;">
+              <span style="position: absolute; left: 0.875rem; font-size: 1rem; font-weight: 700; color: var(--text-muted); pointer-events: none;">
+                Rp
+              </span>
+              <input
+                class="form-control amount"
+                type="text"
+                inputMode="numeric"
+                value={formatThousands(jumlah())}
+                onInput={(e) => {
+                  const digits = e.currentTarget.value.replace(/\D/g, '');
+                  const normalized = digits.replace(/^0+(?=\d)/, '');
+                  const next = normalized || '0';
+                  setJumlah(next);
+                  e.currentTarget.value = formatThousands(next);
+                }}
+                placeholder="0"
+                style="padding-left: 2.75rem; font-size: 1.125rem; font-weight: 700;"
+              />
             </div>
-            <input
-              class="form-control amount"
-              type="number"
-              value={jumlah()}
-              onInput={(e) => setJumlah(e.currentTarget.value)}
-              min="0"
-              placeholder="0 (boleh 0 jika belum pasti)"
-              style="font-size: 1.125rem; font-weight: 700;"
-            />
           </div>
 
           <div class="form-group">
