@@ -3,6 +3,7 @@ import { getCategories, getPaymentMethods, createExpense, updateExpense, type Ex
 import { XIcon } from './Icons';
 
 const QUICK_AMOUNTS = [
+  { label: '0 (Belum pasti)', value: '0' },
   { label: '25rb', value: '25000' },
   { label: '50rb', value: '50000' },
   { label: '100rb', value: '100000' },
@@ -40,9 +41,9 @@ const ExpenseForm: Component<{
   const handleSubmit = async (e: Event) => {
     e.preventDefault();
     setError('');
-    const amt = parseInt(jumlah());
-    if (!amt || amt <= 0) {
-      setError('Jumlah harus > 0');
+    const amt = jumlah() === '' ? 0 : parseInt(jumlah());
+    if (isNaN(amt) || amt < 0) {
+      setError('Jumlah harus >= 0');
       return;
     }
     setLoading(true);
@@ -121,7 +122,7 @@ const ExpenseForm: Component<{
           <div class="form-group">
             <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.375rem;">
               <label style="margin-bottom: 0;">Jumlah Nominal (Rp)</label>
-              <span style="font-size: 0.75rem; color: var(--text-muted);">Pilih shortcut atau ketik</span>
+              <span style="font-size: 0.75rem; color: var(--text-muted);">Isi 0 jika nominal belum pasti</span>
             </div>
             <div class="quick-amount-row">
               <For each={QUICK_AMOUNTS}>
@@ -141,9 +142,8 @@ const ExpenseForm: Component<{
               type="number"
               value={jumlah()}
               onInput={(e) => setJumlah(e.currentTarget.value)}
-              min="1"
-              placeholder="0"
-              required
+              min="0"
+              placeholder="0 (boleh 0 jika belum pasti)"
               style="font-size: 1.125rem; font-weight: 700;"
             />
           </div>

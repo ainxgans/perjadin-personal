@@ -116,8 +116,8 @@ func CreateExpense(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		if input.Jumlah <= 0 {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "jumlah must be > 0"})
+		if input.Jumlah < 0 {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "jumlah must be >= 0"})
 			return
 		}
 		if input.CategoryID == "" || input.PaymentMethodID == "" || input.Tanggal == "" {
@@ -215,8 +215,8 @@ func UpdateExpense(db *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		if input.Jumlah != nil && *input.Jumlah <= 0 {
-			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "jumlah must be > 0"})
+		if input.Jumlah != nil && *input.Jumlah < 0 {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "jumlah must be >= 0"})
 			return
 		}
 

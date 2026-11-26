@@ -37,7 +37,12 @@ const Dashboard: Component = () => {
         t.nama.toLowerCase().includes(query) ||
         t.tujuan.toLowerCase().includes(query);
 
-      const matchStatus = status === 'all' || t.status === status;
+      const matchStatus =
+        status === 'all'
+          ? true
+          : status === 'belum_lunas'
+          ? t.status !== 'lunas'
+          : t.status === status;
 
       return matchSearch && matchStatus;
     });
@@ -69,8 +74,18 @@ const Dashboard: Component = () => {
             <span class="ledger-metric-label">Estimasi belum cair</span>
             <span class="ledger-metric-val text-sky amount">{formatRp(dashboard()!.estimasi_belum_cair)}</span>
           </div>
-          <div class="ledger-metric-cell">
-            <span class="ledger-metric-label">Talangan belum lunas</span>
+          <div
+            class="ledger-metric-cell"
+            role="button"
+            tabIndex={0}
+            style="cursor: pointer;"
+            title="Ketuk untuk lihat perjalanan yang belum lunas"
+            onClick={() => {
+              setStatusFilter('belum_lunas');
+              document.getElementById('trip-list-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+          >
+            <span class="ledger-metric-label">Talangan belum lunas ↗</span>
             <span class="ledger-metric-val text-amber amount">{formatRp(dashboard()!.belum_lunas)}</span>
           </div>
           <div class="ledger-metric-cell">
@@ -81,7 +96,7 @@ const Dashboard: Component = () => {
       </Show>
 
       {/* Search & Connected Segmented Status Filter */}
-      <div class="search-filter-box">
+      <div id="trip-list-section" class="search-filter-box">
         <div class="search-input-wrap">
           <span class="search-input-icon">
             <SearchIcon size={16} />
@@ -122,6 +137,13 @@ const Dashboard: Component = () => {
             onClick={() => setStatusFilter('diajukan')}
           >
             Diajukan
+          </button>
+          <button
+            type="button"
+            class={`segmented-filter-btn ${statusFilter() === 'belum_lunas' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('belum_lunas')}
+          >
+            Belum Lunas
           </button>
           <button
             type="button"

@@ -3,6 +3,7 @@ import { useParams, useNavigate, A } from '@solidjs/router';
 import {
   getTrip,
   getExpenses,
+  updateTrip,
   deleteTrip,
   deleteExpense,
   type Expense,
@@ -45,6 +46,23 @@ const TripDetail: Component = () => {
   const [showForm, setShowForm] = createSignal(false);
   const [editingExpense, setEditingExpense] = createSignal<Expense | null>(null);
   const [copiedLink, setCopiedLink] = createSignal(false);
+  const [markingLunas, setMarkingLunas] = createSignal(false);
+
+  const handleMarkLunas = async () => {
+    const t = trip();
+    if (!t || markingLunas()) return;
+    setMarkingLunas(true);
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      await updateTrip(t.id, {
+        status: 'lunas',
+        tanggal_dibayar: t.tanggal_dibayar || today,
+      });
+      refetchTrip();
+    } finally {
+      setMarkingLunas(false);
+    }
+  };
 
   const handleCopyLink = async (rawUrl: string) => {
     try {
@@ -202,6 +220,37 @@ const TripDetail: Component = () => {
                 </div>
               </Show>
 
+              <Show when={t().tujuan}>
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
+                  <a
+                    href="gojek://goride"
+                    class="btn btn-sm btn-outline"
+                    style="flex: 1; min-width: 90px; font-size: 0.75rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem; border-color: rgba(0, 170, 19, 0.35); color: #00880f; background: rgba(0, 170, 19, 0.05);"
+                  >
+                    <ExternalLinkIcon size={13} />
+                    <span>Gojek</span>
+                  </a>
+                  <a
+                    href={`grab://open?screenType=BOOKING&dropOffAddress=${encodeURIComponent(t().tujuan)}`}
+                    class="btn btn-sm btn-outline"
+                    style="flex: 1; min-width: 90px; font-size: 0.75rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem; border-color: rgba(0, 177, 79, 0.35); color: #009140; background: rgba(0, 177, 79, 0.05);"
+                  >
+                    <ExternalLinkIcon size={13} />
+                    <span>Grab</span>
+                  </a>
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(t().tujuan)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="btn btn-sm btn-outline"
+                    style="flex: 1; min-width: 90px; font-size: 0.75rem; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.375rem;"
+                  >
+                    <MapPinIcon size={13} />
+                    <span>Maps</span>
+                  </a>
+                </div>
+              </Show>
+
               <Show when={t().dokumen_url}>
                 <div style="margin-bottom: 0.75rem;">
                   <a
@@ -279,6 +328,17 @@ const TripDetail: Component = () => {
                   <A href={'/trips/' + params.id + '/edit'} class="btn btn-sm btn-secondary">
                     <EditIcon size={14} /> Edit
                   </A>
+                  <Show when={t().status !== 'lunas'}>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline"
+                      style="color: var(--emerald); border-color: var(--emerald-border); background: var(--emerald-bg);"
+                      disabled={markingLunas()}
+                      onClick={handleMarkLunas}
+                    >
+                      <CheckIcon size={14} /> {markingLunas() ? 'Menyimpan...' : 'Tandai Lunas'}
+                    </button>
+                  </Show>
                   <button
                     type="button"
                     class="btn btn-sm btn-outline"
@@ -349,7 +409,12 @@ const TripDetail: Component = () => {
                                 </div>
                               </div>
                               <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <span class="expense-row-amount amount">{formatRp(exp.jumlah)}</span>
+                                <Show
+                                  when={exp.jumlah > 0}
+                                  fallback={<span class="badge badge-orange">Nominal belum pasti</span>}
+                                >
+                                  <span class="expense-row-amount amount">{formatRp(exp.jumlah)}</span>
+                                </Show>
                                 <Show when={exp.can_edit !== false}>
                                   <button
                                     type="button"
