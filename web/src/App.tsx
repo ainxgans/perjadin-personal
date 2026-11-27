@@ -1,16 +1,17 @@
-import { Component, createSignal, onMount, onCleanup, createEffect, Show } from 'solid-js';
+import { Component, createSignal, onMount, onCleanup, createEffect, Show, lazy } from 'solid-js';
 import { Router, Route, useNavigate, useLocation, type RouteSectionProps } from '@solidjs/router';
 import { getMe, type User } from './api';
 import Navbar from './components/Navbar';
 import BottomNav from './components/BottomNav';
-import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import TripDetail from './pages/TripDetail';
-import TripForm from './pages/TripForm';
-import Analytics from './pages/Analytics';
-import AdminHub from './pages/admin/AdminHub';
-import AdminUsers from './pages/admin/AdminUsers';
-import AdminMaster from './pages/admin/AdminMaster';
+
+const Login = lazy(() => import('./pages/Login'));
+const TripDetail = lazy(() => import('./pages/TripDetail'));
+const TripForm = lazy(() => import('./pages/TripForm'));
+const Analytics = lazy(() => import('./pages/Analytics'));
+const AdminHub = lazy(() => import('./pages/admin/AdminHub'));
+const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
+const AdminMaster = lazy(() => import('./pages/admin/AdminMaster'));
 
 export const [user, setUser] = createSignal<User | null>(null);
 export const [loading, setLoading] = createSignal(true);
@@ -180,7 +181,12 @@ const Layout: Component<RouteSectionProps> = (props) => {
       } else if (shouldRefresh) {
         setIsRefreshing(true);
         setReachOffset(REACH_MAX_DROP);
-        window.location.reload();
+        window.dispatchEvent(new CustomEvent('perjadin:refresh'));
+        setTimeout(() => {
+          setIsRefreshing(false);
+          setIsExpanded(false);
+          setReachOffset(0);
+        }, 450);
       } else {
         if (current <= REACH_MAX_DROP - 44) {
           setIsExpanded(false);

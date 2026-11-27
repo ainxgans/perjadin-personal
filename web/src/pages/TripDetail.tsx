@@ -1,4 +1,4 @@
-import { Component, createSignal, createResource, Show, For } from 'solid-js';
+import { Component, createSignal, createResource, onMount, onCleanup, Show, For } from 'solid-js';
 import { useParams, useNavigate, A } from '@solidjs/router';
 import {
   getTrip,
@@ -40,6 +40,15 @@ const TripDetail: Component = () => {
   const navigate = useNavigate();
   const [trip, { refetch: refetchTrip }] = createResource(() => params.id, getTrip);
   const [expenses, { refetch: refetchExpenses }] = createResource(() => params.id, getExpenses);
+
+  onMount(() => {
+    const onRefresh = () => {
+      refetchTrip();
+      refetchExpenses();
+    };
+    window.addEventListener('perjadin:refresh', onRefresh);
+    onCleanup(() => window.removeEventListener('perjadin:refresh', onRefresh));
+  });
 
   const [showForm, setShowForm] = createSignal(false);
   const [editingExpense, setEditingExpense] = createSignal<Expense | null>(null);
@@ -165,6 +174,16 @@ const TripDetail: Component = () => {
       (groups[e.category_nama] ??= []).push(e);
     }
     return groups;
+  };
+
+  const paymentMethodBreakdown = () => {
+    const exps = expenses() || [];
+    const map: Record<string, number> = {};
+    for (const e of exps) {
+      const name = e.payment_method_nama || 'Lainnya';
+      map[name] = (map[name] || 0) + e.jumlah;
+    }
+    return Object.entries(map);
   };
 
   const getCategoryTotal = (exps: Expense[]) =>
@@ -433,7 +452,27 @@ const TripDetail: Component = () => {
             </div>
 
             {/* Grouped Expenses List */}
-            <Show when={expenses()} fallback={<p style="text-align: center; padding: 1.5rem 0; color: var(--text-muted);">Memuat...</p>}>
+            <Show
+              when={!expenses.loading && expenses()}
+              fallback={
+                <div class="category-group-card" style="padding: 1rem;">
+                  <div class="skeleton" style="height: 16px; width: 40%; margin-bottom: 0.75rem;" />
+                  <div class="skeleton" style="height: 44px; width: 100%; margin-bottom: 0.5rem;" />
+                  <div class="skeleton" style="height: 44px; width: 100%;" />
+                </div>
+              }
+            >
+              <Show when={paymentMethodBreakdown().length > 1}>
+                <div style="display: flex; gap: 0.375rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
+                  <For each={paymentMethodBreakdown()}>
+                    {([method, total]) => (
+                      <span class={getPaymentBadgeClass(method)} style="font-size: 0.75rem;">
+                        {method}: <strong class="amount" style="margin-left: 0.25rem;">{formatRp(total)}</strong>
+                      </span>
+                    )}
+                  </For>
+                </div>
+              </Show>
               <Show
                 when={filteredExpenses().length > 0}
                 fallback={

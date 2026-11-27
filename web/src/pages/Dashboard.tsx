@@ -1,8 +1,8 @@
-import { Component, createSignal, createResource, createEffect, For, Show } from 'solid-js';
+import { Component, createSignal, createResource, createEffect, onMount, onCleanup, For, Show } from 'solid-js';
 import { A } from '@solidjs/router';
 import { getDashboard, getTrips, type Trip } from '../api';
 import StatusBadge from '../components/StatusBadge';
-import { SearchIcon, MapPinIcon, CalendarIcon, PlusIcon, PlaneIcon, LayoutGridIcon, ListIcon, ChevronLeftIcon, ChevronRightIcon, EyeIcon, EyeOffIcon } from '../components/Icons';
+import { SearchIcon, MapPinIcon, CalendarIcon, PlusIcon, PlaneIcon, LayoutGridIcon, ListIcon, ChevronLeftIcon, ChevronRightIcon, EyeIcon, EyeOffIcon, XIcon } from '../components/Icons';
 import { formatRp, hideAmounts, toggleHideAmounts } from '../store/privacy';
 import { getTripDays } from '../utils/date';
 
@@ -21,8 +21,17 @@ const formatDates = (start: string, end: string) => {
 };
 
 const Dashboard: Component = () => {
-  const [dashboard] = createResource(getDashboard);
-  const [trips] = createResource(getTrips);
+  const [dashboard, { refetch: refetchDashboard }] = createResource(getDashboard);
+  const [trips, { refetch: refetchTrips }] = createResource(getTrips);
+
+  onMount(() => {
+    const onRefresh = () => {
+      refetchDashboard();
+      refetchTrips();
+    };
+    window.addEventListener('perjadin:refresh', onRefresh);
+    onCleanup(() => window.removeEventListener('perjadin:refresh', onRefresh));
+  });
 
   const PAGE_SIZE = 10;
   const savedView = typeof window !== 'undefined' ? localStorage.getItem('perjadin_view_mode') : null;
@@ -157,7 +166,19 @@ const Dashboard: Component = () => {
             placeholder="Cari perjalanan atau kota tujuan..."
             value={searchQuery()}
             onInput={(e) => setSearchQuery(e.currentTarget.value)}
+            style={searchQuery() ? 'padding-right: 2.5rem;' : undefined}
           />
+          <Show when={searchQuery()}>
+            <button
+              type="button"
+              class="search-clear-btn"
+              onClick={() => setSearchQuery('')}
+              aria-label="Hapus kata kunci"
+              title="Hapus"
+            >
+              <XIcon size={14} />
+            </button>
+          </Show>
         </div>
 
         <div class="segmented-filter" role="tablist" aria-label="Filter status perjalanan">
@@ -262,7 +283,29 @@ const Dashboard: Component = () => {
       </div>
 
       {/* Trip List & Empty State */}
-      <Show when={!trips.loading} fallback={<p style="text-align: center; color: var(--text-muted); padding: 2rem 0;">Memuat...</p>}>
+      <Show
+        when={!trips.loading}
+        fallback={
+          <div class="trips-grid">
+            <For each={[1, 2, 3, 4]}>
+              {() => (
+                <div class="ticket-card" style="pointer-events: none;">
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
+                    <div class="skeleton" style="height: 18px; width: 55%;" />
+                    <div class="skeleton" style="height: 22px; width: 90px; border-radius: 9999px;" />
+                  </div>
+                  <div class="skeleton" style="height: 14px; width: 45%; margin-bottom: 0.375rem;" />
+                  <div class="skeleton" style="height: 14px; width: 65%; margin-bottom: 1rem;" />
+                  <div style="display: flex; justify-content: space-between; padding-top: 0.75rem; border-top: 1px solid var(--border-subtle);">
+                    <div class="skeleton" style="height: 20px; width: 90px;" />
+                    <div class="skeleton" style="height: 20px; width: 90px;" />
+                  </div>
+                </div>
+              )}
+            </For>
+          </div>
+        }
+      >
         <Show
           when={filteredTrips().length > 0}
           fallback={

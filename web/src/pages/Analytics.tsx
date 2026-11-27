@@ -1,4 +1,4 @@
-import { Component, createResource, createSignal, For, Show } from 'solid-js';
+import { Component, createResource, createSignal, onMount, onCleanup, For, Show } from 'solid-js';
 import { A } from '@solidjs/router';
 import { getAnalytics } from '../api';
 import { ArrowLeftIcon, CalendarIcon, WalletIcon, ReceiptIcon, CreditCardIcon } from '../components/Icons';
@@ -16,10 +16,16 @@ const COLORS = [
 
 const Analytics: Component = () => {
   const [selectedYear, setSelectedYear] = createSignal<number | null>(null);
-  const [data] = createResource(
+  const [data, { refetch }] = createResource(
     () => ({ year: selectedYear() }),
     ({ year }) => getAnalytics(year || undefined)
   );
+
+  onMount(() => {
+    const onRefresh = () => refetch();
+    window.addEventListener('perjadin:refresh', onRefresh);
+    onCleanup(() => window.removeEventListener('perjadin:refresh', onRefresh));
+  });
 
   return (
     <div class="page" style="padding-bottom: 6rem;">

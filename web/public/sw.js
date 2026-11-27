@@ -1,12 +1,21 @@
 const SHARE_CACHE_NAME = 'perjadin-share-target';
 const SHARED_PDF_KEY = '/_shared_pdf';
+const ASSET_CACHE_NAME = 'perjadin-assets-v1';
 
 self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys
+          .filter((k) => k !== SHARE_CACHE_NAME && k !== ASSET_CACHE_NAME)
+          .map((k) => caches.delete(k))
+      )
+    ).then(() => self.clients.claim())
+  );
 });
 
 async function handleShareTarget(request) {
@@ -43,5 +52,24 @@ self.addEventListener('fetch', (event) => {
 
   if (event.request.method === 'POST' && url.pathname === '/share-target') {
     event.respondWith(handleShareTarget(event.request));
+    return;
+  }
+
+  if (
+    event.request.method === 'GET' &&
+    url.origin === self.location.origin &&
+    (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/icons/'))
+  ) {
+    event.respondWith(
+      caches.open(ASSET_CACHE_NAME).then(async (cache) => {
+        const cached = await cache.match(event.request);
+        if (cached) return cached;
+        const res = await fetch(event.request);
+        if (res.ok) {
+          cache.put(event.request, res.clone());
+        }
+        return res;
+      })
+    );
   }
 });
